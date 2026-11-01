@@ -8,7 +8,7 @@ services:
     plan: free
     rootDir: backend
     buildCommand: npm install --include=dev && npx prisma generate && npm run build
-    startCommand: npx prisma db push --skip-generate && node dist/main.js
+    startCommand: npx prisma db push --skip-generate --accept-data-loss && node dist/main.js   # TODO before public launch: switch to prisma migrate deploy
     healthCheckPath: /v1/health
     envVars:
       - key: NODE_VERSION
