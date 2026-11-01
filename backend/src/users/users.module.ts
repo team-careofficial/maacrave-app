@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, Delete, Get, Injectable, Module, NotFoundException, Param, Patch, Post } from '@nestjs/common';
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, Length, Matches, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, Length, Matches, Max, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
 import { AuthUser, CurrentUser } from '../common/auth';
 import { PrismaService } from '../common/prisma.service';
 import { BD_PHONE, DHAKA_AREAS, normalizePhone } from '../common/util';
@@ -21,6 +21,11 @@ class AddressDto {
   @IsOptional() @IsString() @MaxLength(120) landmark?: string;
   @IsOptional() @IsBoolean() isDefault?: boolean;
 }
+/** A photo sent as a data URL (data:image/jpeg;base64,...). The app compresses it to well under 1.5 MB. */
+class DocumentDto {
+  @IsIn(['NID_FRONT', 'NID_BACK', 'KITCHEN', 'LICENSE']) kind: string;
+  @IsString() @Matches(/^data:image\/(jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=]+$/) @MaxLength(2_000_000) data: string;
+}
 class ApplyCookDto {
   @IsString() @MinLength(2) @MaxLength(60) displayName: string;
   @IsIn(DHAKA_AREAS) area: string;
@@ -30,10 +35,12 @@ class ApplyCookDto {
   @IsOptional() @IsString() hours?: string;
   @Type(() => Number) @IsInt() @Min(1) @Max(200) dailyCapacity: number;
   @Matches(/^\d{4}$/) nidLast4: string;
+  @IsArray() @ArrayMinSize(2) @ArrayMaxSize(5) @ValidateNested({ each: true }) @Type(() => DocumentDto) documents: DocumentDto[];
 }
 class ApplyRiderDto {
   @IsIn(['Bicycle', 'Motorbike', 'On foot']) vehicle: string;
   @Matches(/^\d{4}$/) nidLast4: string;
+  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(4) @ValidateNested({ each: true }) @Type(() => DocumentDto) documents: DocumentDto[];
 }
 class FavoriteDto { @IsOptional() @IsString() dishId?: string; @IsOptional() @IsString() cookId?: string; }
 
@@ -44,7 +51,7 @@ export class UsersService {
   me(userId: string) {
     return this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { id: true, phone: true, email: true, name: true, area: true, language: true, loyaltyPoints: true, referralCode: true, roles: { select: { role: true, status: true } }, cook: true, rider: true },
+      select: { id: true, phone: true, email: true, name: true, area: true, language: true, loyaltyPoints: true, referralCode: true, roles: { select: { role: true, status: true, note: true } }, cook: true, rider: true },
     });
   }
 
@@ -93,23 +100,68 @@ export class UsersService {
     return this.addresses(userId);
   }
 
+  private docs(userId: string, role: 'COOK' | 'RIDER', list: DocumentDto[]) {
+    return list.map((d) => {
+      const [, mime, data] = /^data:(image\/[a-z]+);base64,(.+)$/.exec(d.data)!;
+      return this.prisma.document.create({ data: { userId, role, kind: d.kind, mime, data } });
+    });
+  }
+
+  /** Cook application. A rejected applicant can fix and resubmit; the MaaCrave team reviews it in the admin panel. */
   async applyCook(user: AuthUser, dto: ApplyCookDto) {
-    if (user.cook) throw new BadRequestException('You have already applied as a cook.');
-    const { nidLast4, ...rest } = dto;
+    const status = user.roles.find((r) => r.role === 'COOK')?.status;
+    if (status === 'PENDING' || status === 'APPROVED') throw new BadRequestException('Your cook application is already submitted.');
+    if (status === 'SUSPENDED') throw new BadRequestException('Your cook account is suspended. Contact support.');
+    if (!dto.documents.some((d) => d.kind === 'NID_FRONT')) throw new BadRequestException('Add a photo of the front of your NID.');
+    if (!dto.documents.some((d) => d.kind === 'KITCHEN')) throw new BadRequestException('Add at least one photo of your kitchen.');
+    const { nidLast4, documents, ...rest } = dto;
     await this.prisma.$transaction([
-      this.prisma.cookProfile.create({ data: { ...rest, nidLast4, userId: user.id } }),
-      this.prisma.userRole.upsert({ where: { userId_role: { userId: user.id, role: 'COOK' } }, update: { status: 'PENDING' }, create: { userId: user.id, role: 'COOK' } }),
+      this.prisma.document.deleteMany({ where: { userId: user.id, role: 'COOK' } }),
+      user.cook
+        ? this.prisma.cookProfile.update({ where: { userId: user.id }, data: { ...rest, nidLast4 } })
+        : this.prisma.cookProfile.create({ data: { ...rest, nidLast4, userId: user.id } }),
+      ...this.docs(user.id, 'COOK', documents),
+      this.prisma.userRole.upsert({ where: { userId_role: { userId: user.id, role: 'COOK' } }, update: { status: 'PENDING', note: null }, create: { userId: user.id, role: 'COOK' } }),
     ]);
     return this.me(user.id);
   }
 
   async applyRider(user: AuthUser, dto: ApplyRiderDto) {
-    if (user.rider) throw new BadRequestException('You have already applied as a rider.');
+    const status = user.roles.find((r) => r.role === 'RIDER')?.status;
+    if (status === 'PENDING' || status === 'APPROVED') throw new BadRequestException('Your rider application is already submitted.');
+    if (status === 'SUSPENDED') throw new BadRequestException('Your rider account is suspended. Contact support.');
+    if (!dto.documents.some((d) => d.kind === 'NID_FRONT')) throw new BadRequestException('Add a photo of the front of your NID.');
+    if (dto.vehicle === 'Motorbike' && !dto.documents.some((d) => d.kind === 'LICENSE')) throw new BadRequestException('Add a photo of your driving licence.');
+    const { documents, ...rest } = dto;
     await this.prisma.$transaction([
-      this.prisma.riderProfile.create({ data: { ...dto, userId: user.id } }),
-      this.prisma.userRole.upsert({ where: { userId_role: { userId: user.id, role: 'RIDER' } }, update: { status: 'PENDING' }, create: { userId: user.id, role: 'RIDER' } }),
+      this.prisma.document.deleteMany({ where: { userId: user.id, role: 'RIDER' } }),
+      user.rider
+        ? this.prisma.riderProfile.update({ where: { userId: user.id }, data: rest })
+        : this.prisma.riderProfile.create({ data: { ...rest, userId: user.id } }),
+      ...this.docs(user.id, 'RIDER', documents),
+      this.prisma.userRole.upsert({ where: { userId_role: { userId: user.id, role: 'RIDER' } }, update: { status: 'PENDING', note: null }, create: { userId: user.id, role: 'RIDER' } }),
     ]);
     return this.me(user.id);
+  }
+
+  /**
+   * Account deletion (required by the app stores). Personal data is removed; order records are kept
+   * without personal details because cooks, riders and accounting still need them.
+   */
+  async deleteAccount(userId: string) {
+    const live = await this.prisma.order.count({ where: { customerId: userId, status: { notIn: ['DELIVERED', 'CANCELLED'] } } });
+    if (live) throw new BadRequestException('You have an order in progress. You can delete your account once it is delivered or cancelled.');
+    await this.prisma.$transaction([
+      this.prisma.refreshToken.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date() } }),
+      this.prisma.pushToken.deleteMany({ where: { userId } }),
+      this.prisma.address.deleteMany({ where: { userId } }),
+      this.prisma.favorite.deleteMany({ where: { userId } }),
+      this.prisma.document.deleteMany({ where: { userId } }),
+      this.prisma.cookProfile.updateMany({ where: { userId }, data: { accepting: false } }),
+      this.prisma.riderProfile.updateMany({ where: { userId }, data: { online: false } }),
+      this.prisma.user.update({ where: { id: userId }, data: { phone: null, email: null, name: 'Deleted user', area: null, referralCode: null, suspended: true, deletedAt: new Date() } }),
+    ]);
+    return { ok: true };
   }
 
   favorites(userId: string) {
@@ -137,6 +189,7 @@ export class UsersController {
   @Delete('addresses/:id') deleteAddress(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.users.deleteAddress(u.id, id); }
   @Post('apply/cook') applyCook(@CurrentUser() u: AuthUser, @Body() dto: ApplyCookDto) { return this.users.applyCook(u, dto); }
   @Post('apply/rider') applyRider(@CurrentUser() u: AuthUser, @Body() dto: ApplyRiderDto) { return this.users.applyRider(u, dto); }
+  @Delete() deleteAccount(@CurrentUser() u: AuthUser) { return this.users.deleteAccount(u.id); }
   @Get('favorites') favorites(@CurrentUser() u: AuthUser) { return this.users.favorites(u.id); }
   @Post('favorites/toggle') toggle(@CurrentUser() u: AuthUser, @Body() dto: FavoriteDto) { return this.users.toggleFavorite(u.id, dto); }
 }

@@ -17,6 +17,7 @@ class VerifyOtpDto extends RequestOtpDto { @IsString() @Length(6, 6) code: strin
 
 type Target = { kind: 'phone' | 'email'; value: string };
 class RefreshDto { @IsString() refreshToken: string; }
+class GoogleDto { @IsString() @Length(100, 5000) idToken: string; }
 
 @Injectable()
 export class AuthService {
@@ -62,6 +63,27 @@ export class AuthService {
     return { ...(await this.issue(user.id)), isNew: isNew || !user.name };
   }
 
+  /**
+   * “Continue with Google”. The ID token is checked with Google, must be issued for one of our
+   * OAuth client IDs (GOOGLE_CLIENT_IDS) and carry a verified email.
+   */
+  async google(idToken: string) {
+    const allowed = (process.env.GOOGLE_CLIENT_IDS || '').split(',').map((s) => s.trim()).filter(Boolean);
+    if (!allowed.length) throw new BadRequestException('Google sign-in is not set up yet. Use your mobile number or email.');
+    const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
+    const info = (await res.json()) as { aud?: string; email?: string; email_verified?: string | boolean; exp?: string; iss?: string };
+    const verified = info.email_verified === true || info.email_verified === 'true';
+    if (!res.ok || !info.email || !verified || !allowed.includes(info.aud || '') || !['accounts.google.com', 'https://accounts.google.com'].includes(info.iss || '') || Number(info.exp) * 1000 < Date.now()) {
+      throw new UnauthorizedException('Google sign-in failed. Please try again.');
+    }
+    const email = info.email.toLowerCase();
+    let user = await this.prisma.user.findUnique({ where: { email } });
+    const isNew = !user;
+    if (!user) user = await this.prisma.user.create({ data: { email, roles: { create: { role: 'CUSTOMER', status: 'APPROVED' } } } });
+    if (user.suspended) throw new UnauthorizedException('This account is suspended. Contact support.');
+    return { ...(await this.issue(user.id)), isNew: isNew || !user.name };
+  }
+
   async issue(userId: string) {
     const accessToken = await this.jwt.signAsync({ sub: userId, typ: 'access' }, { expiresIn: '15m' });
     const refreshToken = randomToken();
@@ -91,6 +113,9 @@ export class AuthController {
 
   @Public() @Throttle({ default: { limit: 10, ttl: 60_000 } }) @Post('otp/verify') @HttpCode(200)
   verify(@Body() dto: VerifyOtpDto) { return this.auth.verifyOtp(dto); }
+
+  @Public() @Throttle({ default: { limit: 10, ttl: 60_000 } }) @Post('google') @HttpCode(200)
+  google(@Body() dto: GoogleDto) { return this.auth.google(dto.idToken); }
 
   @Public() @Post('refresh') @HttpCode(200)
   refresh(@Body() dto: RefreshDto) { return this.auth.refresh(dto.refreshToken); }

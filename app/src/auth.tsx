@@ -14,6 +14,8 @@ interface AuthCtx {
 }
 const Ctx = createContext<AuthCtx | null>(null);
 const MODE_KEY = 'maacrave.mode';
+/** Set during sign-up when the person chooses to cook or ride, so the app opens their application next. */
+export const onboarding: { next: 'cook' | 'rider' | null } = { next: null };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const qc = useQueryClient();

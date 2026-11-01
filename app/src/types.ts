@@ -8,7 +8,7 @@ export interface CookPublic { id: string; displayName: string; area: string; int
 export interface Kitchen extends CookPublic { dailyCapacity: number; hygieneChecks: number; payoutWallet: string | null; kitchenInfo: string | null; experience: string | null }
 export interface Me {
   id: string; phone: string | null; email: string | null; name: string | null; area: string | null; language: 'en' | 'bn'; loyaltyPoints: number; referralCode: string | null;
-  roles: { role: Role; status: RoleStatus }[]; cook: Kitchen | null; rider: { id: string; vehicle: string; online: boolean } | null;
+  roles: { role: Role; status: RoleStatus; note?: string | null }[]; cook: Kitchen | null; rider: { id: string; vehicle: string; online: boolean } | null;
 }
 export interface Dish {
   id: string; cookId: string; name: string; nameBn: string | null; category: string; price: number; portion: string; prepMinutes: number;

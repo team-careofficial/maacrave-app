@@ -70,6 +70,9 @@ export async function api<T>(path: string, opts: Opts = {}, retry = true): Promi
 }
 
 /** Sign in with a mobile number (SMS code) or an email address (email code). */
+/** A verification photo as a data URL. */
+export type UploadDoc = { kind: 'NID_FRONT' | 'NID_BACK' | 'KITCHEN' | 'LICENSE'; data: string };
+
 export type SignInTarget = { phone: string } | { email: string };
 
 export type CheckoutBody =
@@ -80,6 +83,8 @@ export type CheckoutBody =
 export const API = {
   // auth & profile
   requestOtp: (to: SignInTarget) => api<{ expiresInSeconds: number }>('/auth/otp/request', { method: 'POST', body: to }),
+  googleSignIn: (idToken: string) => api<{ accessToken: string; refreshToken: string; isNew: boolean }>('/auth/google', { method: 'POST', body: { idToken } }),
+  deleteAccount: () => api<{ ok: true }>('/me', { method: 'DELETE' }),
   verifyOtp: (to: SignInTarget, code: string) => api<{ accessToken: string; refreshToken: string; isNew: boolean }>('/auth/otp/verify', { method: 'POST', body: { ...to, code } }),
   me: () => api<Me>('/me'),
   updateMe: (b: Partial<Pick<Me, 'name' | 'area' | 'language'>> & { phone?: string }) => api<Me>('/me', { method: 'PATCH', body: b }),
@@ -87,8 +92,8 @@ export const API = {
   addAddress: (b: Omit<Address, 'id' | 'isDefault'> & { isDefault?: boolean }) => api<Address>('/me/addresses', { method: 'POST', body: b }),
   setDefaultAddress: (id: string) => api<Address[]>(`/me/addresses/${id}/default`, { method: 'POST' }),
   deleteAddress: (id: string) => api<Address[]>(`/me/addresses/${id}`, { method: 'DELETE' }),
-  applyCook: (b: { displayName: string; area: string; specialties: string[]; experience?: string; kitchenInfo?: string; hours?: string; dailyCapacity: number; nidLast4: string }) => api<Me>('/me/apply/cook', { method: 'POST', body: b }),
-  applyRider: (b: { vehicle: string; nidLast4: string }) => api<Me>('/me/apply/rider', { method: 'POST', body: b }),
+  applyCook: (b: { displayName: string; area: string; specialties: string[]; experience?: string; kitchenInfo?: string; hours?: string; dailyCapacity: number; nidLast4: string; documents: UploadDoc[] }) => api<Me>('/me/apply/cook', { method: 'POST', body: b }),
+  applyRider: (b: { vehicle: string; nidLast4: string; documents: UploadDoc[] }) => api<Me>('/me/apply/rider', { method: 'POST', body: b }),
   favorites: () => api<{ id: string; dish: (Dish & { cook: CookPublic }) | null; cook: CookPublic | null }[]>('/me/favorites'),
   toggleFavorite: (b: { dishId?: string; cookId?: string }) => api<{ saved: boolean }>('/me/favorites/toggle', { method: 'POST', body: b }),
   notifications: (role: Role) => api<Notification[]>('/notifications', { query: { role } }),

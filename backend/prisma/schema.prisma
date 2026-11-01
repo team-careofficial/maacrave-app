@@ -111,6 +111,8 @@ model User {
   pushTokens    PushToken[]
   complaints    Complaint[]
   refreshTokens RefreshToken[]
+  documents     Document[]
+  deletedAt     DateTime?
 }
 
 model UserRole {
@@ -477,4 +479,31 @@ model PlatformSetting {
   riderPayout      Int   @default(35)
   defaultMinBatch  Int   @default(8)
   requestRadiusKm  Int   @default(8)
+}
+
+/// Verification documents uploaded with a cook or rider application (NID, kitchen photos, licence).
+/// Stored as compressed base64 images; only the admin panel can read them.
+model Document {
+  id        String   @id @default(cuid())
+  userId    String
+  role      Role
+  kind      String   // NID_FRONT, NID_BACK, KITCHEN, LICENSE
+  mime      String
+  data      String   // base64, no data: prefix
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, role])
+}
+
+/// Every action taken in the admin panel, for accountability.
+model AdminLog {
+  id         String   @id @default(cuid())
+  adminEmail String
+  action     String
+  targetId   String?
+  detail     String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
 }

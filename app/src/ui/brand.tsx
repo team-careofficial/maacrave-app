@@ -1,3 +1,4 @@
+import type React from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
@@ -29,6 +30,20 @@ export function Brand({ light }: { light?: boolean }) {
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
       <Logo inverse={light} />
       <T v="section" color={light ? '#fff' : C.text} style={{ fontSize: 23 }}>Maa<T v="section" color={light ? '#FFD9D9' : C.brand} style={{ fontSize: 23 }}>Crave</T></T>
+    </View>
+  );
+}
+
+/** Logo + wordmark for the top-left corner of the main screens. */
+export function BrandBar({ right, sub }: { right?: React.ReactNode; sub?: string }) {
+  return (
+    <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 6, width: '100%', maxWidth: 1080, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+      <Logo size={36} />
+      <View style={{ flex: 1 }}>
+        <T v="section" style={{ fontSize: 22, lineHeight: 25, letterSpacing: -0.6 }}>Maa<T v="section" color={C.brand} style={{ fontSize: 22, lineHeight: 25, letterSpacing: -0.6 }}>Crave</T></T>
+        {sub ? <T v="meta" numberOfLines={1}>{sub}</T> : null}
+      </View>
+      {right}
     </View>
   );
 }

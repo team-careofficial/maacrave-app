@@ -41,22 +41,21 @@ With `SMS_PROVIDER=log` and `EMAIL_PROVIDER=log` (development only) the sign-in 
 
 People can sign in with a **mobile number** (code by SMS) or **Gmail / any email** (code by email). Codes expire after 5 minutes. Email-only users are asked for a mobile number at profile setup so riders can call them.
 
-## 2. Verifying cooks and riders (no admin screen in the app)
+## 2. Admin panel (separate website)
 
-There is deliberately **no admin sign-in in the app or website**. People apply from *Account → Cook with MaaCrave / Ride with MaaCrave*; their role stays `PENDING` until your team approves it after the NID call / kitchen check:
+The `admin/` folder is a **separate internal website** — not part of the app, with its own sign-in. The team uses it to approve or reject cook and rider applications (with their NID and kitchen photos), resolve reports and refunds, suspend accounts, see orders and send payouts. Every action is logged.
 
-```bash
-cd backend && npx prisma studio      # open UserRole, set status = APPROVED (or REJECTED)
-```
+- Who can sign in: the emails in `ADMIN_EMAILS` on the API (code sent by email). Admin sessions use their own secret `ADMIN_JWT_SECRET`, so an app login can never open admin routes.
+- Deploy: Vercel → new project from this repo → Root Directory `admin` → Deploy. Add its address to `CORS_ORIGINS`.
 
-or with SQL:
+## Sign-in options in the app
 
-```sql
-UPDATE "UserRole" SET status = 'APPROVED'
-WHERE role = 'COOK' AND "userId" = (SELECT id FROM "User" WHERE phone = '01XXXXXXXXX');
-```
+Mobile number (SMS code), email (email code) and **Continue with Google**. The Google button appears once these are set:
+- App (Vercel / EAS env): `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (+ `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID`, `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` for the store apps)
+- API (Render): `GOOGLE_CLIENT_IDS` = the same client IDs, comma separated
+- Create them in Google Cloud Console → APIs & Services → Credentials → OAuth client ID (Web application), with your site address as an authorised JavaScript origin.
 
-The same way your team handles payouts (`Payout`), complaints and refunds (`Complaint`), coupons (`Coupon`) and fees (`PlatformSetting`). Run Prisma Studio only on a trusted machine against production — never expose it publicly. A separate internal admin web tool can be built later on top of the same API with `@Roles('ADMIN')`.
+After the first sign-in people choose **Order food / Cook & sell / Deliver food**. Cooks and riders fill an application with photos and wait for approval in the admin panel.
 
 ## 3. Going live — what you need to provide
 

@@ -8,6 +8,7 @@ import { firstName, tk } from '@/format';
 import { C, S } from '@/theme';
 import type { RiderTask } from '@/types';
 import { Badge, Button, Card, Empty, ErrorState, IconButton, Loading, Row, Screen, Section, T, Toggle, useToast } from '@/ui';
+import { BrandBar } from '@/ui/brand';
 import { Grid } from '@/ui/grid';
 
 function TaskCard({ t }: { t: RiderTask }) {
@@ -48,12 +49,9 @@ export default function RiderHome() {
 
   return (
     <Screen onRefresh={() => { tasks.refetch(); active.refetch(); }} refreshing={tasks.isRefetching}
-      header={
-        <View style={{ paddingHorizontal: S.lg, paddingVertical: S.sm, width: '100%', maxWidth: 1080, alignSelf: 'center', flexDirection: 'row', alignItems: 'center' }}>
-          <View style={{ flex: 1 }}><T v="meta">Hi {firstName(me?.name)}</T><T v="title">Pickups</T></View>
-          <IconButton label="Notifications" badge={unread} onPress={() => router.push('/notifications')}><Bell size={22} color={C.text} /></IconButton>
-        </View>
-      }>
+      header={<BrandBar sub={`Rider · ${firstName(me?.name)}`} right={
+        <IconButton label="Notifications" badge={unread} onPress={() => router.push('/notifications')}><Bell size={20} color={C.text} /></IconButton>
+      } />}>
       <Card style={{ marginTop: S.sm, backgroundColor: online ? C.okSoft : C.card }}>
         <Toggle value={online} onChange={(v) => status.mutate(v)} label={online ? 'You’re online' : 'You’re offline'} sub={online ? 'New pickups near you appear below.' : 'Go online to see pickups and get alerts.'} />
       </Card>

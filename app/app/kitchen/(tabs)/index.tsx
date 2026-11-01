@@ -8,6 +8,7 @@ import { useAuth } from '@/auth';
 import { C, S } from '@/theme';
 import { Button, Card, ErrorState, Glossy, IconButton, IconTile, Loading, Note, Rings, Row, Screen, Section, T, Toggle, useToast } from '@/ui';
 import { Bars } from '@/ui/bars';
+import { BrandBar } from '@/ui/brand';
 
 export default function KitchenToday() {
   const { me } = useAuth();
@@ -21,12 +22,9 @@ export default function KitchenToday() {
 
   return (
     <Screen onRefresh={q.refetch} refreshing={q.isRefetching}
-      header={
-        <View style={{ paddingHorizontal: S.lg, paddingVertical: S.sm, width: '100%', maxWidth: 1080, alignSelf: 'center', flexDirection: 'row', alignItems: 'center' }}>
-          <View style={{ flex: 1 }}><T v="meta">Assalamu alaikum, {firstName(me?.name)}</T><T v="title" numberOfLines={1}>{k?.kitchen.displayName || 'Your kitchen'}</T></View>
-          <IconButton label="Notifications" badge={unread} onPress={() => router.push('/notifications')}><Bell size={22} color={C.text} /></IconButton>
-        </View>
-      }>
+      header={<BrandBar sub={`Kitchen · ${k?.kitchen.displayName || firstName(me?.name)}`} right={
+        <IconButton label="Notifications" badge={unread} onPress={() => router.push('/notifications')}><Bell size={20} color={C.text} /></IconButton>
+      } />}>
       {q.isLoading ? <Loading /> : q.error || !k ? <ErrorState error={q.error} onRetry={q.refetch} /> : (
         <>
           <Card style={{ marginTop: S.sm, backgroundColor: k.kitchen.accepting ? C.okSoft : C.card }}>

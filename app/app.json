@@ -8,7 +8,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "splash": { "image": "./assets/splash.png", "resizeMode": "contain", "backgroundColor": "#FFFFFF" },
+    "splash": { "image": "./assets/splash-mark.png", "resizeMode": "contain", "backgroundColor": "#A9151B" },
     "ios": {
       "bundleIdentifier": "app.maacrave.mobile",
       "supportsTablet": true,
@@ -25,7 +25,8 @@
       "expo-secure-store",
       "expo-font",
       ["expo-notifications", { "color": "#A9151B" }],
-      ["expo-splash-screen", { "image": "./assets/splash.png", "imageWidth": 160, "backgroundColor": "#FFFFFF" }]
+      ["expo-splash-screen", { "image": "./assets/splash-mark.png", "imageWidth": 120, "backgroundColor": "#A9151B" }],
+      ["expo-image-picker", { "photosPermission": "MaaCrave needs your photos to upload your NID and kitchen pictures for verification.", "cameraPermission": "MaaCrave uses the camera to photograph your NID and kitchen for verification." }]
     ],
     "experiments": { "typedRoutes": false },
     "extra": { "eas": { "projectId": "REPLACE_WITH_EAS_PROJECT_ID" } }

@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { Bell, Bike, ChefHat, ChevronRight, Globe, Heart, HelpCircle, LogOut, MapPin, Shield, ShoppingBag, type LucideIcon } from 'lucide-react-native';
+import { Bell, Bike, ChefHat, ChevronRight, FileText, Globe, Heart, HelpCircle, LogOut, MapPin, Shield, ShoppingBag, Trash2, type LucideIcon } from 'lucide-react-native';
 import { Linking, Pressable, View } from 'react-native';
 import { API } from '@/api';
 import { homeFor, useAuth } from '@/auth';
@@ -27,6 +27,11 @@ export default function Account() {
   const { me, signOut, canUse, roleStatus, setMode, reload } = useAuth();
   const toast = useToast();
   const lang = useMutation({ mutationFn: (language: 'en' | 'bn') => API.updateMe({ language }), onSuccess: () => { reload(); toast('Language updated'); } });
+  async function deleteAccount() {
+    if (!(await confirm('Delete your account?', 'Your name, phone, email, addresses and saved items will be removed. Past orders are kept without your details. This cannot be undone.', 'Continue', true))) return;
+    if (!(await confirm('Are you sure?', 'This permanently deletes your MaaCrave account.', 'Delete account', true))) return;
+    try { await API.deleteAccount(); toast('Your account was deleted'); await signOut(); } catch (e) { toast((e as Error).message); }
+  }
   if (!me) return null;
 
   const roleRow = (role: 'COOK' | 'RIDER') => {
@@ -35,7 +40,9 @@ export default function Account() {
     const name = role === 'COOK' ? 'Mother / Cook' : 'Rider';
     if (canUse(role)) return <Item Icon={Icon} label={`Switch to ${name} mode`} sub={role === 'COOK' ? 'Manage menu, requests and batches' : 'Go online and deliver'} onPress={async () => { await setMode(role); router.replace(homeFor(role)); }} />;
     if (st === 'PENDING') return <Item Icon={Icon} label={`${name} application`} sub="Under review — we’ll notify you" onPress={() => undefined} right={<Badge label="Pending" tone="warn" />} />;
-    if (st === 'REJECTED' || st === 'SUSPENDED') return <Item Icon={Icon} label={`${name} account`} sub={st === 'SUSPENDED' ? 'Suspended — contact support' : 'Not approved — contact support'} onPress={() => Linking.openURL('mailto:support@maacrave.app')} right={<Badge label={st === 'SUSPENDED' ? 'Suspended' : 'Not approved'} tone="err" />} />;
+    const note = me?.roles.find((r) => r.role === role)?.note;
+    if (st === 'REJECTED') return <Item Icon={Icon} label={`${name} application needs changes`} sub={note ? `“${note}” — tap to fix and resubmit` : 'Tap to fix and resubmit'} onPress={() => router.push(`/apply/${role.toLowerCase()}`)} right={<Badge label="Resubmit" tone="warn" />} />;
+    if (st === 'SUSPENDED') return <Item Icon={Icon} label={`${name} account`} sub={note || 'Suspended — contact support'} onPress={() => Linking.openURL('mailto:support@maacrave.app')} right={<Badge label="Suspended" tone="err" />} />;
     return <Item Icon={Icon} label={role === 'COOK' ? 'Cook with MaaCrave' : 'Ride with MaaCrave'} sub={role === 'COOK' ? 'Earn from your home kitchen' : 'Flexible delivery earnings'} onPress={() => router.push(`/apply/${role.toLowerCase()}`)} />;
   };
 
@@ -76,7 +83,9 @@ export default function Account() {
           <Item Icon={Globe} label="Language" sub={me.language === 'bn' ? 'বাংলা' : 'English'} onPress={() => lang.mutate(me.language === 'bn' ? 'en' : 'bn')}
             right={<T v="label" color={C.brandText}>{me.language === 'bn' ? 'Switch to English' : 'বাংলা'}</T>} /><Divider />
           <Item Icon={HelpCircle} label="Help & support" sub="support@maacrave.app" onPress={() => Linking.openURL('mailto:support@maacrave.app')} /><Divider />
-          <Item Icon={Shield} label="Privacy policy" onPress={() => Linking.openURL('https://maacrave.app/privacy')} /><Divider />
+          <Item Icon={Shield} label="Privacy policy" onPress={() => router.push('/privacy')} /><Divider />
+          <Item Icon={FileText} label="Terms of service" onPress={() => router.push('/terms')} /><Divider />
+          <Item Icon={Trash2} label="Delete account" sub="Removes your personal data permanently" danger onPress={deleteAccount} right={<View />} /><Divider />
           <Item Icon={LogOut} label="Sign out" danger onPress={async () => { if (await confirm('Sign out?', 'You can sign back in with your phone number or email.', 'Sign out', true)) signOut(); }} right={<View />} />
         </Group>
       </Section>

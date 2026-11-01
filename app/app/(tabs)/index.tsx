@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { ArrowUpRight, Bell, ChevronDown, MapPin, MessageSquarePlus, Search, ShoppingBag, SlidersHorizontal, Truck, Utensils } from 'lucide-react-native';
+import { ArrowRight, Bell, ChevronDown, MapPin, MessageSquarePlus, Search, ShoppingBag, SlidersHorizontal, Truck, UtensilsCrossed } from 'lucide-react-native';
 import { ScrollView, View } from 'react-native';
 import { API } from '@/api';
 import { useAuth } from '@/auth';
@@ -8,8 +8,18 @@ import { useCart } from '@/cart';
 import { ACTIVE_STATUSES, firstName, STATUS_LABEL } from '@/format';
 import { useAddresses, useAddToCart, useFavorites } from '@/hooks';
 import { C, CATEGORY_META, F, R, S } from '@/theme';
-import { BatchCard, Card, CategoryTile, CookCard, DishCard, FadeIn, Glossy, IconButton, Loading, Matte, Rings, Row, Screen, Section, T, Tap } from '@/ui';
+import { BatchCard, Card, CategoryTile, CookCard, DishCard, FadeIn, Glossy, IconButton, Loading, Rings, Row, Screen, Section, T, Tap } from '@/ui';
+import { BrandBar } from '@/ui/brand';
 import { Grid, useCols } from '@/ui/grid';
+
+/** A short line for the banner; changes every day. */
+const QUOTES = [
+  { bn: 'মায়ের হাতের রান্না, এখন আপনার দরজায়', en: 'Homemade, delivered warm' },
+  { bn: 'ঘরের খাবার, ভালোবাসায় রান্না', en: 'Cooked with love, not in a factory' },
+  { bn: 'আজ কী খেতে মন চায়?', en: 'Tell us what you crave' },
+  { bn: 'হোস্টেলে থেকেও মায়ের রান্না', en: 'Home taste, far from home' },
+  { bn: 'প্রতিদিন তাজা, প্রতিদিন ঘরোয়া', en: 'Fresh every day' },
+];
 
 export default function Home() {
   const { me } = useAuth();
@@ -31,79 +41,70 @@ export default function Home() {
   const openReqs = (requests.data || []).filter((r) => r.status === 'OPEN' || r.status === 'PROPOSALS');
   const waiting = openReqs.reduce((a, r) => a + r.proposals.filter((p) => p.status === 'PENDING').length, 0);
   const groupPrice = new Map((batches.data || []).filter((b) => b.dishId).map((b) => [b.dishId!, b.pricePerPortion]));
-  const hour = new Date().getHours();
   const unread = (notifs.data || []).filter((n) => !n.read).length;
+  const quote = QUOTES[Math.floor(Date.now() / 86_400_000) % QUOTES.length];
+  const hour = new Date().getHours();
   const refresh = () => { dishes.refetch(); batches.refetch(); orders.refetch(); requests.refetch(); cooks.refetch(); };
-  const wide = cols > 1;
 
   return (
     <Screen onRefresh={refresh} refreshing={dishes.isRefetching}
-      header={
-        <View style={{ paddingHorizontal: S.lg, paddingVertical: S.sm, width: '100%', maxWidth: 1080, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: S.sm }}>
-          <Tap onPress={() => router.push('/addresses')} style={{ flex: 1 }}>
-            <T v="meta">Deliver to</T>
-            <Row gap={5} style={{ marginTop: 2 }}>
-              <MapPin size={16} color={C.brand} />
-              <T v="card" numberOfLines={1} style={{ flexShrink: 1 }}>{addr ? `${addr.label}, ${addr.area}` : 'Add your address'}</T>
-              <ChevronDown size={16} color={C.text} />
-            </Row>
-          </Tap>
+      header={<BrandBar right={
+        <Row gap={6}>
           <IconButton label="Notifications" badge={unread} onPress={() => router.push('/notifications')}><Bell size={20} color={C.text} /></IconButton>
           <IconButton label="Cart" badge={cart.count} onPress={() => router.push('/cart')}><ShoppingBag size={20} color={C.text} /></IconButton>
-        </View>
-      }>
-      <FadeIn>
-        <T v="hero" style={{ marginTop: S.sm }}>{hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'},{'\n'}<T v="hero" color={C.brand}>{firstName(me?.name) || 'friend'}</T></T>
-      </FadeIn>
+        </Row>
+      } />}>
+      {/* delivery address + greeting */}
+      <Tap onPress={() => router.push('/addresses')} scale={0.98} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+        <MapPin size={15} color={C.brand} />
+        <T v="meta" color={C.text2} numberOfLines={1} style={{ flexShrink: 1 }}>
+          {hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'}, {firstName(me?.name) || 'friend'} · <T v="meta" color={C.text} style={{ fontFamily: F.bold }}>{addr ? `${addr.label}, ${addr.area}` : 'Add delivery address'}</T>
+        </T>
+        <ChevronDown size={14} color={C.text} />
+      </Tap>
 
-      <Row gap={S.sm} style={{ marginTop: S.lg }}>
-        <Tap onPress={() => router.push('/browse')} scale={0.98} style={{ flex: 1, height: 52, borderRadius: R.pill, backgroundColor: C.surface2, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18 }}>
+      <Row gap={S.sm} style={{ marginTop: S.md }}>
+        <Tap onPress={() => router.push('/browse')} scale={0.98} style={{ flex: 1, height: 50, borderRadius: R.pill, backgroundColor: C.surface2, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18 }}>
           <Search size={19} color={C.muted} />
           <T v="body" color={C.muted} numberOfLines={1}>Search biryani, bhorta, cooks…</T>
         </Tap>
-        <Tap label="Filters" onPress={() => router.push('/browse')} scale={0.9} style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center' }}>
+        <Tap label="Filters" onPress={() => router.push('/browse')} scale={0.9} style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center' }}>
           <SlidersHorizontal size={19} color="#fff" />
         </Tap>
       </Row>
 
-      {/* The two ways to eat: order what's cooking, or ask for what you crave */}
-      <View style={{ flexDirection: wide ? 'row' : 'column', gap: S.md, marginTop: S.lg }}>
-        <Glossy onPress={() => router.push('/browse')} style={{ flex: wide ? 1.3 : undefined }}>
-          <View style={{ padding: S.xl, minHeight: wide ? 200 : 168, justifyContent: 'space-between' }}>
-            <Rings size={230} right={-70} top={-60} />
-            <View style={{ position: 'absolute', right: 22, bottom: 22, width: 76, height: 76, borderRadius: 38, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' }}>
-              <Utensils size={34} color="#fff" strokeWidth={1.7} />
-            </View>
-            <View style={{ gap: 6, maxWidth: '72%' }}>
-              <T v="eyebrow" color="rgba(255,255,255,0.8)">Cooking today</T>
-              <T v="title" color="#fff" style={{ fontSize: 28, lineHeight: 32 }}>Homemade meals, ready near you</T>
-            </View>
-            <View style={{ alignSelf: 'flex-start', backgroundColor: '#fff', borderRadius: R.pill, paddingHorizontal: 18, height: 40, flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: S.lg }}>
-              <T v="label" color={C.brand}>Order now</T><ArrowUpRight size={16} color={C.brand} />
-            </View>
+      {/* slim banner: line of the day + Explore */}
+      <Glossy style={{ marginTop: S.lg }} radius={22}>
+        <View style={{ paddingVertical: S.lg, paddingHorizontal: S.xl, flexDirection: 'row', alignItems: 'center', gap: S.md }}>
+          <Rings size={190} right={-60} top={-70} />
+          <View style={{ flex: 1, gap: 4 }}>
+            <T v="card" bn color="#fff" style={{ fontFamily: F.bnBold, fontSize: 18, lineHeight: 26 }}>{quote.bn}</T>
+            <T v="meta" color="rgba(255,255,255,0.8)">{quote.en}</T>
           </View>
-        </Glossy>
-        <Matte onPress={() => router.push('/request/new')} style={{ flex: wide ? 1 : undefined }}>
-          <View style={{ padding: S.xl, minHeight: wide ? 200 : 132, justifyContent: 'space-between', gap: S.md }}>
-            <Rings size={160} right={-50} top={-50} color="#E2373C" />
-            <Row style={{ alignItems: 'flex-start' }}>
-              <View style={{ flex: 1, gap: 6 }}>
-                <T v="eyebrow" color="#F29A9C">Can’t find it?</T>
-                <T v="section" color="#fff" style={{ fontSize: 22, lineHeight: 27 }}>Request a dish</T>
-                <T v="sub" color="rgba(255,255,255,0.72)">Tell mothers what you crave — they reply with a price.</T>
-              </View>
-              <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: C.brand, alignItems: 'center', justifyContent: 'center' }}><MessageSquarePlus size={21} color="#fff" /></View>
-            </Row>
-          </View>
-        </Matte>
-      </View>
+          <Tap onPress={() => router.push('/browse')} scale={0.92} style={{ backgroundColor: '#fff', borderRadius: R.pill, height: 40, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <T v="label" color={C.brand}>Explore</T><ArrowRight size={15} color={C.brand} />
+          </Tap>
+        </View>
+      </Glossy>
+
+      {/* the two ways to eat, side by side */}
+      <Row gap={S.md} style={{ marginTop: S.md, alignItems: 'stretch' }}>
+        <Card onPress={() => router.push('/browse')} style={{ flex: 1, padding: S.md, gap: S.sm }}>
+          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center' }}><UtensilsCrossed size={19} color={C.brand} /></View>
+          <View><T v="card" style={{ fontSize: 15 }}>Order now</T><T v="meta" numberOfLines={2}>Ready dishes cooking today</T></View>
+        </Card>
+        <Card onPress={() => router.push('/request/new')} style={{ flex: 1, padding: S.md, gap: S.sm, backgroundColor: C.ink }}>
+          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.brand, alignItems: 'center', justifyContent: 'center' }}><MessageSquarePlus size={19} color="#fff" /></View>
+          <View><T v="card" color="#fff" style={{ fontSize: 15 }}>Request a dish</T><T v="meta" color="rgba(255,255,255,0.65)" numberOfLines={2}>Mothers reply with a price</T></View>
+        </Card>
+      </Row>
 
       {active || openReqs.length ? (
-        <FadeIn delay={80} style={{ gap: S.sm, marginTop: S.lg }}>
+        <FadeIn delay={80} style={{ gap: S.sm, marginTop: S.md }}>
           {active ? (
             <Card white onPress={() => router.push(`/order/${active.id}`)} style={{ padding: S.md, paddingRight: S.lg }}>
               <Row>
-                <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: C.okSoft, alignItems: 'center', justifyContent: 'center' }}><Truck size={20} color={C.ok} /></View>
+                <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: C.okSoft, alignItems: 'center', justifyContent: 'center' }}><Truck size={20} color={C.ok} /></View>
                 <View style={{ flex: 1 }}><T v="card" style={{ fontSize: 15 }}>{STATUS_LABEL[active.status]}</T><T v="meta" numberOfLines={1}>{active.items.map((i) => `${i.quantity}× ${i.name}`).join(', ')} · {active.cook.displayName}</T></View>
                 <T v="label" color={C.brandText}>Track</T>
               </Row>
@@ -112,7 +113,7 @@ export default function Home() {
           {openReqs.length ? (
             <Card white onPress={() => router.push('/requests')} style={{ padding: S.md, paddingRight: S.lg }}>
               <Row>
-                <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: C.brandSoft, alignItems: 'center', justifyContent: 'center' }}><MessageSquarePlus size={20} color={C.brand} /></View>
+                <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: C.brandSoft, alignItems: 'center', justifyContent: 'center' }}><MessageSquarePlus size={20} color={C.brand} /></View>
                 <View style={{ flex: 1 }}><T v="card" style={{ fontSize: 15 }}>{openReqs.length} open request{openReqs.length > 1 ? 's' : ''}</T><T v="meta">{waiting ? `${waiting} price${waiting > 1 ? 's' : ''} waiting for you` : 'Waiting for mothers to reply'}</T></View>
                 {waiting ? <View style={{ minWidth: 26, height: 26, borderRadius: 13, backgroundColor: C.brand, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 }}><T v="meta" color="#fff" style={{ fontFamily: F.bold }}>{waiting}</T></View> : <T v="label" color={C.brandText}>View</T>}
               </Row>
@@ -121,11 +122,11 @@ export default function Home() {
         </FadeIn>
       ) : null}
 
-      <Section title="What are you craving?">
+      <Section title="What are you craving?" style={{ marginTop: S.xl }}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -S.lg }} contentContainerStyle={{ gap: S.md, paddingHorizontal: S.lg }}>
           {Object.entries(CATEGORY_META).map(([k, m]) => (
-            <Tap key={k} onPress={() => router.push({ pathname: '/browse', params: { category: k } })} scale={0.92} style={{ width: 78, alignItems: 'center', gap: 8 }}>
-              <View style={{ width: 70, height: 70, borderRadius: 24, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' }}><CategoryTile category={k} size={48} solid /></View>
+            <Tap key={k} onPress={() => router.push({ pathname: '/browse', params: { category: k } })} scale={0.92} style={{ width: 74, alignItems: 'center', gap: 8 }}>
+              <View style={{ width: 66, height: 66, borderRadius: 22, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' }}><CategoryTile category={k} size={46} solid /></View>
               <T v="meta" center color={C.text2} numberOfLines={2} style={{ fontFamily: F.semibold }}>{m.label}</T>
             </Tap>
           ))}
@@ -144,11 +145,14 @@ export default function Home() {
         )}
       </Section>
 
-      {batches.data?.length ? (
-        <Section title="Group orders" sub="Join neighbours, share one rider, pay less for delivery." action="See all" onAction={() => router.push({ pathname: '/browse', params: { tab: 'groups' } })}>
-          <Grid>{batches.data.slice(0, 3).map((b) => <BatchCard key={b.id} b={b} />)}</Grid>
-        </Section>
-      ) : null}
+      <Section title="Group orders" sub="Join neighbours, share one rider, pay less for delivery." action={batches.data?.length ? 'See all' : undefined} onAction={() => router.push({ pathname: '/browse', params: { tab: 'groups' } })}>
+        {batches.data?.length ? <Grid>{batches.data.slice(0, 3).map((b) => <BatchCard key={b.id} b={b} />)}</Grid> : (
+          <Card style={{ gap: 4 }}>
+            <T v="card" style={{ fontSize: 15 }}>No group orders open right now</T>
+            <T v="sub">When a mother near you opens a big pot — like Friday biryani — you can join with your neighbours here.</T>
+          </Card>
+        )}
+      </Section>
 
       {cooks.data?.length ? (
         <Section title="Verified mothers" sub="Identity and kitchen checked by MaaCrave" action="See all" onAction={() => router.push({ pathname: '/browse', params: { tab: 'cooks' } })}>

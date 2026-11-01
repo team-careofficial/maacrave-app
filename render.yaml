@@ -33,3 +33,9 @@ services:
         sync: false
       - key: BREVO_API_KEY
         sync: false
+      - key: ADMIN_EMAILS
+        sync: false             # who may open the admin panel, comma separated
+      - key: ADMIN_JWT_SECRET
+        generateValue: true
+      - key: GOOGLE_CLIENT_IDS
+        sync: false             # Google OAuth client IDs for "Continue with Google", comma separated
