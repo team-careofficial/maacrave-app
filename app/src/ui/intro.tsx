@@ -1,7 +1,13 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, Platform, StyleSheet, Text, View } from 'react-native';
-import { F, GLOSS, SHEEN } from '../theme';
+import { F } from '../theme';
+
+/** Deep maroon for the launch screen (darker than the brand crimson). */
+const INTRO = ['#5C0B10', '#3F070B', '#260406'] as const;
+const GLOW = ['rgba(226,55,60,0.35)', 'rgba(226,55,60,0)'] as const;
+/** Never keep people on the intro longer than this, even if the server is slow to wake up. */
+const MAX_MS = 4500;
 import { Logo } from './brand';
 
 const ND = Platform.OS !== 'web';
@@ -20,6 +26,15 @@ export function Intro({ ready, onDone }: { ready: boolean; onDone: () => void })
   const out = useRef(new Animated.Value(0)).current;
   const played = useRef(false);
   const finished = useRef(false);
+  // Kept in a ref so the animation callback always sees the latest value (a stale closure here froze the intro).
+  const readyRef = useRef(ready);
+  readyRef.current = ready;
+
+  function leave(force = false) {
+    if (finished.current || (!force && (!played.current || !readyRef.current))) return;
+    finished.current = true;
+    Animated.timing(out, { toValue: 1, duration: 420, easing: Easing.in(Easing.cubic), useNativeDriver: ND }).start(() => onDone());
+  }
 
   useEffect(() => {
     Animated.sequence([
@@ -30,22 +45,18 @@ export function Intro({ ready, onDone }: { ready: boolean; onDone: () => void })
       Animated.stagger(45, letters.map((v) => Animated.timing(v, { toValue: 1, duration: 260, easing: Easing.out(Easing.back(1.6)), useNativeDriver: ND }))),
       Animated.timing(tag, { toValue: 1, duration: 320, useNativeDriver: ND }),
       Animated.delay(380),
-    ]).start(() => { played.current = true; maybeLeave(); });
+    ]).start(() => { played.current = true; leave(); });
+    const safety = setTimeout(() => leave(true), MAX_MS);
+    return () => clearTimeout(safety);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  function maybeLeave() {
-    if (!played.current || !ready || finished.current) return;
-    finished.current = true;
-    Animated.timing(out, { toValue: 1, duration: 420, easing: Easing.in(Easing.cubic), useNativeDriver: ND }).start(onDone);
-  }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { maybeLeave(); }, [ready]);
+  useEffect(() => { leave(); }, [ready]);
 
   return (
     <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 100, opacity: out.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]}>
-      <LinearGradient colors={GLOSS} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-      <LinearGradient colors={SHEEN} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '45%' }} />
+      <LinearGradient colors={INTRO} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={GLOW} start={{ x: 0.5, y: 0.2 }} end={{ x: 0.5, y: 0.8 }} style={{ position: 'absolute', left: 0, right: 0, top: '20%', height: '45%' }} />
       <Animated.View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', transform: [{ translateY: out.interpolate({ inputRange: [0, 1], outputRange: [0, -30] }) }, { scale: out.interpolate({ inputRange: [0, 1], outputRange: [1, 1.04] }) }] }}>
         <View style={{ width: 120, height: 120, alignItems: 'center', justifyContent: 'center' }}>
           <Animated.View style={{ position: 'absolute', width: 120, height: 120, borderRadius: 60, borderWidth: 2, borderColor: '#fff',

@@ -22,7 +22,8 @@ import { EmailService } from '../sms/email.service';
  */
 const ADMIN_TTL = '8h';
 const OTP_TTL_MS = 5 * 60_000;
-const adminEmails = () => (process.env.ADMIN_EMAILS || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+// Tolerates spaces, quotes and semicolons people often paste into the dashboard.
+const adminEmails = () => (process.env.ADMIN_EMAILS || '').split(/[,;\s]+/).map((s) => s.replace(/["']/g, '').trim().toLowerCase()).filter(Boolean);
 const adminSecret = () => {
   const s = process.env.ADMIN_JWT_SECRET;
   if (!s || s.length < 24) throw new UnauthorizedException('Admin access is not configured on the server.');
@@ -74,13 +75,15 @@ export class AdminService {
   async requestCode(raw: string) {
     const email = raw.trim().toLowerCase();
     // Same answer whether or not the email is an admin, so the list can't be probed.
-    if (!adminEmails().includes(email)) { this.log.warn(`Admin code requested for non-admin ${email.replace(/(.{2}).*@/, '$1***@')}`); return { sent: true }; }
+    if (!adminEmails().length) this.log.error('ADMIN_EMAILS is empty — nobody can sign in to the admin panel.');
+    if (!adminEmails().includes(email)) { this.log.warn(`Admin code requested for an email that is not in ADMIN_EMAILS (${email.replace(/(.{2}).*@/, '$1***@')})`); return { sent: true }; }
     const target = `admin:${email}`;
     const recent = await this.prisma.otpCode.count({ where: { target, createdAt: { gt: new Date(Date.now() - 10 * 60_000) } } });
     if (recent >= 3) throw new BadRequestException('Too many codes requested. Wait 10 minutes.');
     const code = digits(6);
     await this.prisma.otpCode.create({ data: { target, codeHash: sha256(`${target}:${code}:${process.env.OTP_SECRET}`), expiresAt: new Date(Date.now() + OTP_TTL_MS) } });
     await this.email.sendCode(email, code);
+    this.log.log(`Admin sign-in code sent to ${email.replace(/(.{2}).*@/, '$1***@')}`);
     return { sent: true };
   }
 
