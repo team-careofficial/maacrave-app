@@ -54,7 +54,7 @@ export async function api<T>(path: string, opts: Opts = {}, retry = true): Promi
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
     });
   } catch {
-    throw new ApiError('No internet connection. Check your network and try again.', 0);
+    throw new ApiError('Couldn’t reach the MaaCrave server. Check your internet, or try again in a minute.', 0);
   }
   if (res.status === 401 && retry && refreshToken) {
     if (await refreshAccess()) return api<T>(path, opts, false);
