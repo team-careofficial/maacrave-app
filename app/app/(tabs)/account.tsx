@@ -1,0 +1,92 @@
+import { useMutation } from '@tanstack/react-query';
+import { router } from 'expo-router';
+import { Bell, Bike, ChefHat, ChevronRight, Globe, Heart, HelpCircle, LogOut, MapPin, Shield, ShoppingBag, type LucideIcon } from 'lucide-react-native';
+import { Linking, Pressable, View } from 'react-native';
+import { API } from '@/api';
+import { homeFor, useAuth } from '@/auth';
+import { C, R, S } from '@/theme';
+import { Badge, Card, confirm, Divider, Glossy, Header, IconTile, Rings, Screen, Section, T, useToast } from '@/ui';
+
+function Item({ Icon, label, sub, onPress, right, danger }: { Icon: LucideIcon; label: string; sub?: string; onPress: () => void; right?: React.ReactNode; danger?: boolean }) {
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: 14, paddingHorizontal: S.lg }, pressed && { backgroundColor: C.sunken }]}>
+      <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: danger ? C.errSoft : C.surface, alignItems: 'center', justifyContent: 'center' }}><Icon size={18} color={danger ? C.err : C.brand} /></View>
+      <View style={{ flex: 1 }}>
+        <T v="body" color={danger ? C.err : C.text} style={{ fontSize: 15 }}>{label}</T>
+        {sub ? <T v="meta">{sub}</T> : null}
+      </View>
+      {right ?? <ChevronRight size={18} color={C.muted} />}
+    </Pressable>
+  );
+}
+const Group = ({ children }: { children: React.ReactNode }) => (
+  <View style={{ backgroundColor: C.card, borderRadius: R.lg, overflow: 'hidden' }}>{children}</View>
+);
+
+export default function Account() {
+  const { me, signOut, canUse, roleStatus, setMode, reload } = useAuth();
+  const toast = useToast();
+  const lang = useMutation({ mutationFn: (language: 'en' | 'bn') => API.updateMe({ language }), onSuccess: () => { reload(); toast('Language updated'); } });
+  if (!me) return null;
+
+  const roleRow = (role: 'COOK' | 'RIDER') => {
+    const st = roleStatus(role);
+    const Icon = role === 'COOK' ? ChefHat : Bike;
+    const name = role === 'COOK' ? 'Mother / Cook' : 'Rider';
+    if (canUse(role)) return <Item Icon={Icon} label={`Switch to ${name} mode`} sub={role === 'COOK' ? 'Manage menu, requests and batches' : 'Go online and deliver'} onPress={async () => { await setMode(role); router.replace(homeFor(role)); }} />;
+    if (st === 'PENDING') return <Item Icon={Icon} label={`${name} application`} sub="Under review — we’ll notify you" onPress={() => undefined} right={<Badge label="Pending" tone="warn" />} />;
+    if (st === 'REJECTED' || st === 'SUSPENDED') return <Item Icon={Icon} label={`${name} account`} sub={st === 'SUSPENDED' ? 'Suspended — contact support' : 'Not approved — contact support'} onPress={() => Linking.openURL('mailto:support@maacrave.app')} right={<Badge label={st === 'SUSPENDED' ? 'Suspended' : 'Not approved'} tone="err" />} />;
+    return <Item Icon={Icon} label={role === 'COOK' ? 'Cook with MaaCrave' : 'Ride with MaaCrave'} sub={role === 'COOK' ? 'Earn from your home kitchen' : 'Flexible delivery earnings'} onPress={() => router.push(`/apply/${role.toLowerCase()}`)} />;
+  };
+
+  return (
+    <Screen header={<Header title="Account" />}>
+      <Glossy style={{ marginTop: S.sm }}>
+        <View style={{ padding: S.xl, flexDirection: 'row', alignItems: 'center', gap: S.md }}>
+          <Rings size={200} right={-60} top={-70} />
+          <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
+            <T v="section" color={C.brand}>{(me.name || 'You').split(' ').map((x) => x[0]).slice(0, 2).join('').toUpperCase()}</T>
+          </View>
+          <View style={{ flex: 1 }}>
+            <T v="section" color="#fff">{me.name}</T>
+            <T v="sub" color="rgba(255,255,255,0.82)">{me.phone || me.email}{me.area ? ` · ${me.area}` : ''}</T>
+          </View>
+          <View style={{ alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.16)', borderRadius: R.md, paddingHorizontal: 12, paddingVertical: 8 }}>
+            <T v="price" color="#fff">{me.loyaltyPoints}</T>
+            <T v="meta" color="rgba(255,255,255,0.82)">points</T>
+          </View>
+        </View>
+      </Glossy>
+
+      <Section title="Your food">
+        <Group>
+          <Item Icon={ShoppingBag} label="Orders" onPress={() => router.push('/orders')} /><Divider />
+          <Item Icon={Heart} label="Saved dishes & cooks" onPress={() => router.push('/favorites')} /><Divider />
+          <Item Icon={MapPin} label="Delivery addresses" onPress={() => router.push('/addresses')} /><Divider />
+          <Item Icon={Bell} label="Notifications" onPress={() => router.push('/notifications')} />
+        </Group>
+      </Section>
+
+      <Section title="Work with us">
+        <Group>{roleRow('COOK')}<Divider />{roleRow('RIDER')}</Group>
+      </Section>
+
+      <Section title="Settings">
+        <Group>
+          <Item Icon={Globe} label="Language" sub={me.language === 'bn' ? 'বাংলা' : 'English'} onPress={() => lang.mutate(me.language === 'bn' ? 'en' : 'bn')}
+            right={<T v="label" color={C.brandText}>{me.language === 'bn' ? 'Switch to English' : 'বাংলা'}</T>} /><Divider />
+          <Item Icon={HelpCircle} label="Help & support" sub="support@maacrave.app" onPress={() => Linking.openURL('mailto:support@maacrave.app')} /><Divider />
+          <Item Icon={Shield} label="Privacy policy" onPress={() => Linking.openURL('https://maacrave.app/privacy')} /><Divider />
+          <Item Icon={LogOut} label="Sign out" danger onPress={async () => { if (await confirm('Sign out?', 'You can sign back in with your phone number or email.', 'Sign out', true)) signOut(); }} right={<View />} />
+        </Group>
+      </Section>
+      {me.referralCode ? (
+        <Card style={{ marginTop: S.xl, flexDirection: 'row', alignItems: 'center', gap: S.md, backgroundColor: C.brandSoft, borderColor: C.brandSoft }}>
+          <IconTile Icon={Heart} />
+          <View style={{ flex: 1 }}><T v="label">Your invite code: {me.referralCode}</T><T v="meta">Share it with friends who love home food. You earn 1 point for every ৳10 you spend.</T></View>
+        </Card>
+      ) : null}
+      <T v="meta" center style={{ marginTop: S.xl }}>MaaCrave · Version 1.0.0</T>
+    </Screen>
+  );
+}

@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "MaaCrave",
+    "slug": "maacrave",
+    "scheme": "maacrave",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": { "image": "./assets/splash.png", "resizeMode": "contain", "backgroundColor": "#FFFFFF" },
+    "ios": {
+      "bundleIdentifier": "app.maacrave.mobile",
+      "supportsTablet": true,
+      "infoPlist": { "ITSAppUsesNonExemptEncryption": false }
+    },
+    "android": {
+      "package": "app.maacrave.mobile",
+      "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#A9151B" },
+      "permissions": ["POST_NOTIFICATIONS"]
+    },
+    "web": { "bundler": "metro", "output": "single", "favicon": "./assets/favicon.png", "name": "MaaCrave", "themeColor": "#FFFFFF" },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      ["expo-notifications", { "color": "#A9151B" }],
+      ["expo-splash-screen", { "image": "./assets/splash.png", "imageWidth": 160, "backgroundColor": "#FFFFFF" }]
+    ],
+    "experiments": { "typedRoutes": false },
+    "extra": { "eas": { "projectId": "REPLACE_WITH_EAS_PROJECT_ID" } }
+  }
+}

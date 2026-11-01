@@ -1,0 +1,12 @@
+# Local development: PostgreSQL only. Run the API and app with npm (see README).
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: maacrave
+      POSTGRES_PASSWORD: change-me
+      POSTGRES_DB: maacrave
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+volumes:
+  pgdata:

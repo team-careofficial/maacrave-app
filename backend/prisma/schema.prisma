@@ -1,0 +1,480 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  COOK
+  RIDER
+  ADMIN
+}
+
+enum RoleStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum OrderStatus {
+  AWAITING_PAYMENT
+  SUBMITTED
+  COOK_ACCEPTED
+  CONFIRMED
+  PREPARING
+  READY
+  RIDER_ASSIGNED
+  PICKED_UP
+  ON_THE_WAY
+  DELIVERED
+  CANCELLED
+}
+
+enum BatchStatus {
+  OPEN
+  FULL
+  CONFIRMED
+  COOKING
+  READY
+  DONE
+  FAILED
+}
+
+enum RequestStatus {
+  OPEN
+  PROPOSALS
+  ACCEPTED
+  CANCELLED
+  EXPIRED
+}
+
+enum ProposalStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum PaymentMethod {
+  BKASH
+  SSLCOMMERZ
+  COD
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUND_PENDING
+  REFUNDED
+}
+
+enum PayoutStatus {
+  REQUESTED
+  PROCESSING
+  PAID
+  FAILED
+}
+
+enum ComplaintStatus {
+  OPEN
+  INVESTIGATING
+  RESOLVED
+}
+
+model User {
+  id            String         @id @default(cuid())
+  phone         String?        @unique // signed up with mobile, or added later for delivery
+  email         String?        @unique // signed up with Gmail / email
+  name          String?
+  area          String?
+  language      String         @default("en")
+  loyaltyPoints Int            @default(0)
+  referralCode  String?        @unique
+  suspended     Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  roles         UserRole[]
+  cook          CookProfile?
+  rider         RiderProfile?
+  addresses     Address[]
+  orders        Order[]        @relation("CustomerOrders")
+  deliveries    Order[]        @relation("RiderOrders")
+  requests      FoodRequest[]
+  reviews       Review[]
+  favorites     Favorite[]
+  notifications Notification[]
+  pushTokens    PushToken[]
+  complaints    Complaint[]
+  refreshTokens RefreshToken[]
+}
+
+model UserRole {
+  id        String     @id @default(cuid())
+  userId    String
+  role      Role
+  status    RoleStatus @default(PENDING)
+  note      String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+}
+
+model OtpCode {
+  id         String    @id @default(cuid())
+  /// Where the code was sent: a phone number (01XXXXXXXXX) or an email address.
+  target     String    @map("phone")
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([target, createdAt])
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Address {
+  id        String   @id @default(cuid())
+  userId    String
+  label     String
+  area      String
+  road      String
+  house     String
+  floor     String?
+  landmark  String?
+  lat       Float?
+  lng       Float?
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CookProfile {
+  id              String      @id @default(cuid())
+  userId          String      @unique
+  displayName     String
+  intro           String      @default("")
+  specialties     String[]
+  area            String
+  hours           String      @default("11:00-20:00")
+  dailyCapacity   Int         @default(20)
+  accepting       Boolean     @default(false)
+  experience      String?
+  kitchenInfo     String?
+  hygieneChecks   Int         @default(0)
+  nidLast4        String?
+  payoutWallet    String?
+  rating          Float       @default(0)
+  ratingCount     Int         @default(0)
+  completedOrders Int         @default(0)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dishes          Dish[]
+  proposals       Proposal[]
+  batches         Batch[]
+  orders          Order[]
+  payouts         Payout[]
+  favorites       Favorite[]
+  reviews         Review[]
+
+  @@index([area])
+}
+
+model RiderProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  vehicle   String
+  online    Boolean  @default(false)
+  nidLast4  String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Dish {
+  id            String      @id @default(cuid())
+  cookId        String
+  name          String
+  nameBn        String?
+  category      String
+  price         Int
+  portion       String
+  prepMinutes   Int
+  ingredients   String[]
+  allergens     String[]
+  description   String      @default("")
+  spice         Int         @default(1)
+  dailyCapacity Int         @default(20)
+  available     Boolean     @default(true)
+  photoUrl      String?
+  rating        Float       @default(0)
+  ratingCount   Int         @default(0)
+  orderCount    Int         @default(0)
+  deletedAt     DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  cook          CookProfile @relation(fields: [cookId], references: [id], onDelete: Cascade)
+  orderItems    OrderItem[]
+  batches       Batch[]
+  favorites     Favorite[]
+  reviews       Review[]
+
+  @@index([category])
+  @@index([cookId])
+}
+
+model FoodRequest {
+  id               String        @id @default(cuid())
+  customerId       String
+  dishName         String
+  category         String
+  portions         Int
+  budgetPerPortion Int
+  neededAt         DateTime
+  area             String
+  addressId        String?
+  spice            String        @default("Medium")
+  oil              String        @default("Normal")
+  diet             String[]
+  exclusions       String?
+  allergies        String?
+  notes            String?
+  allowGroup       Boolean       @default(true)
+  status           RequestStatus @default(OPEN)
+  createdAt        DateTime      @default(now())
+  customer         User          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  proposals        Proposal[]
+  order            Order?
+  declinedBy       String[]
+
+  @@index([status, area])
+}
+
+model Proposal {
+  id              String         @id @default(cuid())
+  requestId       String
+  cookId          String
+  pricePerPortion Int
+  note            String?
+  status          ProposalStatus @default(PENDING)
+  createdAt       DateTime       @default(now())
+  request         FoodRequest    @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  cook            CookProfile    @relation(fields: [cookId], references: [id], onDelete: Cascade)
+
+  @@unique([requestId, cookId])
+}
+
+model Batch {
+  id              String      @id @default(cuid())
+  cookId          String
+  dishId          String?
+  title           String
+  pricePerPortion Int
+  minPortions     Int
+  maxPortions     Int
+  cutoffAt        DateTime
+  readyBy         DateTime
+  area            String
+  status          BatchStatus @default(OPEN)
+  createdAt       DateTime    @default(now())
+  cook            CookProfile @relation(fields: [cookId], references: [id], onDelete: Cascade)
+  dish            Dish?       @relation(fields: [dishId], references: [id])
+  orders          Order[]
+
+  @@index([status, cutoffAt])
+}
+
+model Order {
+  id             String       @id @default(cuid())
+  code           String       @unique
+  customerId     String
+  cookId         String
+  batchId        String?
+  requestId      String?      @unique
+  riderId        String?
+  status         OrderStatus
+  subtotal       Int
+  serviceFee     Int
+  deliveryFee    Int
+  discount       Int          @default(0)
+  total          Int
+  commission     Int
+  cookEarning    Int
+  riderPayout    Int
+  couponCode     String?
+  addressText    String
+  area           String
+  deliveryOtp    String
+  notes          String?
+  scheduledFor   DateTime?
+  idempotencyKey String?      @unique
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  customer       User         @relation("CustomerOrders", fields: [customerId], references: [id])
+  cook           CookProfile  @relation(fields: [cookId], references: [id])
+  batch          Batch?       @relation(fields: [batchId], references: [id])
+  request        FoodRequest? @relation(fields: [requestId], references: [id])
+  rider          User?        @relation("RiderOrders", fields: [riderId], references: [id])
+  items          OrderItem[]
+  events         OrderEvent[]
+  payment        Payment?
+  review         Review?
+  complaints     Complaint[]
+
+  @@index([customerId, createdAt])
+  @@index([cookId, status])
+  @@index([status, riderId])
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  dishId    String?
+  name      String
+  unitPrice Int
+  quantity  Int
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  dish      Dish?   @relation(fields: [dishId], references: [id])
+}
+
+model OrderEvent {
+  id        String      @id @default(cuid())
+  orderId   String
+  status    OrderStatus
+  actorId   String?
+  createdAt DateTime    @default(now())
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  orderId     String        @unique
+  method      PaymentMethod
+  status      PaymentStatus @default(PENDING)
+  amount      Int
+  providerRef String?
+  providerTrx String?
+  returnTo    String?       // 'app' or 'web' — where the gateway sends the customer back
+  raw         Json?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  order       Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model Coupon {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  type        String
+  value       Int
+  minOrder    Int       @default(0)
+  maxDiscount Int
+  batchOnly   Boolean   @default(false)
+  active      Boolean   @default(true)
+  usageLimit  Int?
+  usedCount   Int       @default(0)
+  expiresAt   DateTime?
+  description String    @default("")
+}
+
+model Review {
+  id        String       @id @default(cuid())
+  orderId   String       @unique
+  userId    String
+  cookId    String
+  dishId    String?
+  stars     Int
+  text      String?
+  createdAt DateTime     @default(now())
+  order     Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cook      CookProfile  @relation(fields: [cookId], references: [id], onDelete: Cascade)
+  dish      Dish?        @relation(fields: [dishId], references: [id])
+}
+
+model Favorite {
+  id        String       @id @default(cuid())
+  userId    String
+  dishId    String?
+  cookId    String?
+  createdAt DateTime     @default(now())
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dish      Dish?        @relation(fields: [dishId], references: [id], onDelete: Cascade)
+  cook      CookProfile? @relation(fields: [cookId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dishId])
+  @@unique([userId, cookId])
+}
+
+model Complaint {
+  id              String          @id @default(cuid())
+  orderId         String
+  userId          String
+  type            String
+  text            String
+  refundRequested Boolean         @default(false)
+  refundAmount    Int             @default(0)
+  status          ComplaintStatus @default(OPEN)
+  createdAt       DateTime        @default(now())
+  order           Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  role      Role
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, role, createdAt])
+}
+
+model PushToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  platform  String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Payout {
+  id          String       @id @default(cuid())
+  cookId      String
+  amount      Int
+  status      PayoutStatus @default(REQUESTED)
+  method      String
+  providerRef String?
+  createdAt   DateTime     @default(now())
+  cook        CookProfile  @relation(fields: [cookId], references: [id], onDelete: Cascade)
+}
+
+model PlatformSetting {
+  id               Int   @id @default(1)
+  commissionPct    Float @default(10)
+  serviceFee       Int   @default(12)
+  deliveryFee      Int   @default(45)
+  batchDeliveryFee Int   @default(25)
+  riderPayout      Int   @default(35)
+  defaultMinBatch  Int   @default(8)
+  requestRadiusKm  Int   @default(8)
+}
