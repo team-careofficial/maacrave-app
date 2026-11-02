@@ -13,8 +13,10 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "20"
+      # Values you set in the Render dashboard. They are listed here without a value so a
+      # Blueprint sync never overwrites them (it used to reset EMAIL_PROVIDER to "log").
       - key: NODE_ENV
-        value: development      # switch to production once SMS + email are configured
+        sync: false             # development while testing, production when SMS + email work
       - key: DATABASE_URL
         sync: false             # Neon connection string, without quotes
       - key: JWT_SECRET
@@ -26,9 +28,9 @@ services:
       - key: API_PUBLIC_URL
         sync: false             # e.g. https://maacrave-api.onrender.com
       - key: SMS_PROVIDER
-        value: log
+        sync: false             # log | bulksmsbd
       - key: EMAIL_PROVIDER
-        value: log              # brevo on Render (free plan blocks Gmail SMTP)
+        sync: false             # brevo on Render (free plan blocks Gmail SMTP)
       - key: EMAIL_FROM
         sync: false
       - key: BREVO_API_KEY
