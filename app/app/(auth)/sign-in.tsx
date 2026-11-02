@@ -2,7 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { BadgeCheck, Bike, HeartHandshake, Mail, Smartphone } from 'lucide-react-native';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Linking, Platform, ScrollView, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Linking, Platform, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { API } from '@/api';
 import { useAuth } from '@/auth';
@@ -22,6 +22,7 @@ const PERKS = [
 
 export default function SignIn() {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const { signIn } = useAuth();
   const lang = useLang();
   const [mode, setMode] = useState<'phone' | 'email'>('phone');
@@ -49,11 +50,10 @@ export default function SignIn() {
 
   const switchTo = (m: 'phone' | 'email') => { setMode(m); setError(null); };
 
-  return (
-    <View style={{ flex: 1, backgroundColor: C.brandDark }}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" bounces={false}>
-          <View style={{ paddingTop: insets.top + S.xl, paddingHorizontal: S.xl, paddingBottom: 60, overflow: 'hidden' }}>
+  // laptop / wide screens: story on the left, sign-in form on the right. Phones keep the stacked layout.
+  const wide = width >= 900;
+  const hero = (
+    <>
             <LinearGradient colors={GLOSS} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} />
             <LinearGradient colors={SHEEN} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '45%' }} />
             <Rings size={320} right={-110} top={-60} />
@@ -65,7 +65,7 @@ export default function SignIn() {
                 </Tap>
               </Row>
               <FadeIn style={{ gap: S.sm }}>
-                <T v="hero" bn color="#fff" style={{ fontFamily: F.bnBold, fontSize: 34, lineHeight: 44 }}>ঘরের খাবার,{'\n'}মায়ের হাতের।</T>
+                <T v="hero" bn color="#fff" style={{ fontFamily: F.bnBold, fontSize: wide ? 50 : 34, lineHeight: wide ? 64 : 44 }}>ঘরের খাবার,{'\n'}মায়ের হাতের।</T>
                 <T v="body" color="rgba(255,255,255,0.86)">Fresh homemade meals from verified mothers in your neighbourhood.</T>
               </FadeIn>
               <Row gap={S.sm} wrap>
@@ -76,9 +76,9 @@ export default function SignIn() {
                 ))}
               </Row>
             </View>
-          </View>
-
-          <View style={{ flex: 1, backgroundColor: C.bg, borderTopLeftRadius: 32, borderTopRightRadius: 32, marginTop: -32, paddingHorizontal: S.xl, paddingTop: S.x3, paddingBottom: insets.bottom + S.xl }}>
+    </>
+  );
+  const form = (
             <FadeIn delay={120} style={{ width: '100%', maxWidth: 440, alignSelf: 'center', gap: S.lg }}>
               <View style={{ gap: 4 }}>
                 <T v="title">Welcome</T>
@@ -113,6 +113,29 @@ export default function SignIn() {
                 <Text style={{ color: C.text, textDecorationLine: 'underline' }} onPress={() => Linking.openURL('https://maacrave.vercel.app/privacy')}>Privacy Policy</Text>.
               </T>
             </FadeIn>
+  );
+
+  if (wide) {
+    return (
+      <View style={{ flex: 1, flexDirection: 'row', backgroundColor: C.bg }}>
+        <View style={{ flex: 1.1, justifyContent: 'center', paddingHorizontal: S.x5, paddingVertical: S.x4, overflow: 'hidden' }}>{hero}</View>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: S.x5, paddingVertical: S.x4 }} keyboardShouldPersistTaps="handled">
+          {form}
+        </ScrollView>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ flex: 1, backgroundColor: C.brandDark }}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" bounces={false}>
+          <View style={{ paddingTop: insets.top + S.xl, paddingHorizontal: S.xl, paddingBottom: 60, overflow: 'hidden' }}>
+            {hero}
+          </View>
+
+          <View style={{ flex: 1, backgroundColor: C.bg, borderTopLeftRadius: 32, borderTopRightRadius: 32, marginTop: -32, paddingHorizontal: S.xl, paddingTop: S.x3, paddingBottom: insets.bottom + S.xl }}>
+            {form}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
