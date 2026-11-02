@@ -252,7 +252,7 @@ export class AdminService {
     return rows.map(({ imageData, ...r }) => ({ ...r, hasImage: !!imageData }));
   }
   async saveSpotlight(admin: string, slot: number, dto: SpotlightDto) {
-    if (![1, 2, 3, 4].includes(slot)) throw new BadRequestException('Slot must be 1–4.');
+    if (![1, 2, 3, 4, 5].includes(slot)) throw new BadRequestException('Slot must be 1–5.');
     const { image, removeImage, ...fields } = dto;
     const pic = image ? /^data:(image\/[a-z]+);base64,(.+)$/.exec(image) : null;
     const imageFields = pic ? { imageMime: pic[1], imageData: pic[2] } : removeImage ? { imageMime: null, imageData: null } : {};

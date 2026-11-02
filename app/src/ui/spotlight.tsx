@@ -34,6 +34,7 @@ export const DEFAULT_SPOTLIGHTS: Spotlight[] = [
   { slot: 2, title: 'Under ৳150', titleBn: '৳১৫০ এর মধ্যে', subtitle: 'Full meals on a student budget', subtitleBn: 'স্টুডেন্ট বাজেটে পেট ভরে', icon: 'percent', theme: 'saffron', animation: 'wiggle', action: 'maxPrice:150', active: true },
   { slot: 3, title: 'Light & healthy', titleBn: 'হালকা ও স্বাস্থ্যকর', subtitle: 'Less oil, more vegetables', subtitleBn: 'কম তেল, বেশি সবজি', icon: 'leaf', theme: 'forest', animation: 'float', action: 'category:healthy', active: true },
   { slot: 4, title: 'Meal plans', titleBn: 'মিল প্ল্যান', subtitle: 'Lunch box every day', subtitleBn: 'প্রতিদিন দুপুরের টিফিন', icon: 'coffee', theme: 'ocean', animation: 'pulse', action: 'plans', active: true },
+  { slot: 5, title: 'Sweet tooth', titleBn: 'মিষ্টিমুখ', subtitle: 'Payesh, pitha & home desserts', subtitleBn: 'পায়েশ, পিঠা আর ঘরের মিষ্টি', icon: 'cake', theme: 'rose', animation: 'wiggle', action: 'category:dessert', active: true },
 ];
 
 function go(action: string) {
@@ -87,7 +88,7 @@ function Drift({ children }: { children: React.ReactNode }) {
 }
 
 /** Pathao-style tall card: white inside, thin red border, title on top, animated drawing (or picture) below. */
-function Card({ s, width }: { s: Spotlight; width: number }) {
+function Card({ s, width, height }: { s: Spotlight; width: number; height: number }) {
   const lang = useLang();
   const bn = lang === 'bn';
   const color = (THEMES[s.theme] || THEMES.crimson)[1];
@@ -96,9 +97,9 @@ function Card({ s, width }: { s: Spotlight; width: number }) {
   const Icon = ICONS[s.icon] || UtensilsCrossed;
   const img = s.hasImage ? { uri: `${API_URL}/spotlights/${s.slot}/image?v=${encodeURIComponent(s.updatedAt || '')}` } : null;
   const small = width < 120;
-  const h = width * (small ? 1.18 : 1.3);
+  const h = height;
   const poster = s.layout === 'poster';
-  const titleStyle = { fontFamily: bn ? 'HindSiliguri_600SemiBold' : F.displayX, fontSize: small ? (bn ? 12 : 10.5) : bn ? 15 : 14.5, lineHeight: small ? (bn ? 16 : 12.5) : bn ? 21 : 16, letterSpacing: bn ? 0 : 0.2, color: FRAME, textAlign: 'center' as const, textTransform: bn ? undefined : ('uppercase' as const) };
+  const titleStyle = { fontFamily: bn ? 'HindSiliguri_600SemiBold' : F.displayX, fontSize: small ? (bn ? 11 : 9.5) : bn ? 15 : 14.5, lineHeight: small ? (bn ? 15 : 11.5) : bn ? 21 : 16, letterSpacing: bn ? 0 : 0.2, color: FRAME, textAlign: 'center' as const, textTransform: bn ? undefined : ('uppercase' as const) };
   return (
     <Tap onPress={() => go(s.action)} scale={0.95} label={title} style={{ width, height: h, borderRadius: small ? 16 : 20, borderWidth: small ? 1.5 : 2, borderColor: FRAME, backgroundColor: '#fff', overflow: 'hidden',
       ...(Platform.select({ ios: { shadowColor: '#7C0E13', shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 6 } }, android: { elevation: 2 }, default: { boxShadow: '0 10px 22px -16px rgba(124,14,19,.45)' } }) as object) }}>
@@ -107,7 +108,7 @@ function Card({ s, width }: { s: Spotlight; width: number }) {
           <Drift><Image source={img} style={{ width: '100%', height: '100%' }} resizeMode="cover" /></Drift>
         </>
       ) : (
-        <View style={{ flex: 1, paddingTop: small ? 9 : 12, paddingHorizontal: small ? 5 : 8, alignItems: 'center' }}>
+        <View style={{ flex: 1, paddingTop: small ? 9 : 12, paddingHorizontal: small ? 3 : 8, alignItems: 'center' }}>
           {!poster ? (
             <>
               <Text style={titleStyle} numberOfLines={2}>{title}</Text>
@@ -120,7 +121,7 @@ function Card({ s, width }: { s: Spotlight; width: number }) {
             </View>
           ) : (
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-              <Scene kind={s.animation} Icon={Icon} color={color} size={Math.min(width * 0.5, 72)} />
+              <Scene kind={s.animation} Icon={Icon} color={color} size={Math.min(width * 0.52, 72)} />
             </View>
           )}
           {poster ? (
@@ -142,12 +143,15 @@ export function SpotlightGrid() {
   const cols = useCols();
   const { width } = useWindowDimensions();
   const q = useQuery({ queryKey: ['spotlights'], queryFn: () => api<Spotlight[]>('/spotlights'), staleTime: 10 * 60_000 });
-  const fromServer = q.data || [];
-  const cards = (q.data && fromServer.length ? fromServer : DEFAULT_SPOTLIGHTS).slice(0, 4);
-  const cardW = cols >= 2 ? Math.min(200, (Math.min(width, 1080) - 32 - 36) / 4) : Math.min(84, (Math.min(width, 520) - 32 - 3 * 12) / 4 - 6);
+  // each slot: the admin's card if saved (shown only when switched on), otherwise the built-in one
+  const saved = new Map((q.data || []).map((r) => [r.slot, r]));
+  const cards = DEFAULT_SPOTLIGHTS.map((d) => saved.get(d.slot) || d).filter((c) => c.active);
+  // phones: five narrow cards across, same height as before; wide screens: five roomy cards
+  const cardW = cols >= 2 ? Math.min(180, (Math.min(width, 1080) - 32 - 4 * 12) / 5) : Math.min(72, (Math.min(width, 520) - 32 - 4 * 8) / 5);
+  const cardH = cols >= 2 ? cardW * 1.25 : 88;
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -S.lg }} contentContainerStyle={{ gap: 12, paddingHorizontal: S.lg, paddingVertical: 6 }}>
-      {cards.map((s) => <Card key={s.slot} s={s} width={cardW} />)}
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -S.lg }} contentContainerStyle={{ gap: cols >= 2 ? 12 : 8, paddingHorizontal: S.lg, paddingVertical: 6 }}>
+      {cards.map((s) => <Card key={s.slot} s={s} width={cardW} height={cardH} />)}
     </ScrollView>
   );
 }

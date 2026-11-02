@@ -187,6 +187,7 @@
         { slot: 2, title: 'Under ৳150', titleBn: '৳১৫০ এর মধ্যে', subtitle: 'Full meals on a student budget', subtitleBn: 'স্টুডেন্ট বাজেটে পেট ভরে', icon: 'percent', theme: 'saffron', animation: 'wiggle', action: 'maxPrice:150', active: true },
         { slot: 3, title: 'Light & healthy', titleBn: 'হালকা ও স্বাস্থ্যকর', subtitle: 'Less oil, more vegetables', subtitleBn: 'কম তেল, বেশি সবজি', icon: 'leaf', theme: 'forest', animation: 'float', action: 'category:healthy', active: true },
         { slot: 4, title: 'Meal plans', titleBn: 'মিল প্ল্যান', subtitle: 'Lunch box every day', subtitleBn: 'প্রতিদিন দুপুরের টিফিন', icon: 'coffee', theme: 'ocean', animation: 'pulse', action: 'plans', active: true },
+        { slot: 5, title: 'Sweet tooth', titleBn: 'মিষ্টিমুখ', subtitle: 'Payesh, pitha & home desserts', subtitleBn: 'পায়েশ, পিঠা আর ঘরের মিষ্টি', icon: 'cake', theme: 'rose', animation: 'wiggle', action: 'category:dessert', active: true },
       ];
       const ICONS = ['soup', 'fish', 'drumstick', 'beef', 'leaf', 'cake', 'cookie', 'sun', 'moon', 'flame', 'sparkles', 'users', 'gift', 'heart', 'utensils', 'request', 'percent', 'coffee'];
       const THEMES = [['crimson', 'Crimson'], ['saffron', 'Saffron'], ['forest', 'Green'], ['night', 'Night'], ['rose', 'Rose'], ['ocean', 'Ocean']];
@@ -196,8 +197,8 @@
         ...['rice', 'bengali', 'fish', 'chicken', 'beef', 'veg', 'snacks', 'breakfast', 'lunch', 'dinner', 'dessert', 'healthy'].map((c) => ['category:' + c, 'Category: ' + c])];
       const sel = (name, opts, v) => `<select class="input" name="${name}">${opts.map((o) => { const [val, label] = Array.isArray(o) ? o : [o, o]; return `<option value="${esc(val)}" ${val === v ? 'selected' : ''}>${esc(label)}</option>`; }).join('')}</select>`;
       return `
-        <div class="top"><div><h1>Home spotlight</h1><p class="muted">The four animated cards under “What are you craving?” in the app. Changes appear within about 10 minutes.</p></div></div>
-        <div class="spots">${[1, 2, 3, 4].map((slot) => {
+        <div class="top"><div><h1>Home spotlight</h1><p class="muted">The five animated cards under “What are you craving?” in the app. Changes appear within about 10 minutes.</p></div></div>
+        <div class="spots">${[1, 2, 3, 4, 5].map((slot) => {
           const r = rows.find((x) => x.slot === slot) || DEF[slot - 1];
           return `<form class="card spot spot-${esc(r.theme)}" data-spot="${slot}">
             <div class="row between"><h3>Card ${slot}</h3><label class="row small"><input type="checkbox" name="active" ${r.active ? 'checked' : ''}/> Show in app</label></div>

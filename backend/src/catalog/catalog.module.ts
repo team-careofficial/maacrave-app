@@ -21,7 +21,8 @@ export class CatalogService {
   }
 
   async spotlights() {
-    const rows = await this.prisma.spotlight.findMany({ where: { active: true }, orderBy: { slot: 'asc' } });
+    // every saved slot, hidden ones too, so the app knows not to fill a hidden slot with its built-in card
+    const rows = await this.prisma.spotlight.findMany({ orderBy: { slot: 'asc' } });
     return rows.map(({ imageData, imageMime: _m, ...r }) => ({ ...r, hasImage: !!imageData }));
   }
   spotlightImage(slot: number) { return this.prisma.spotlight.findUnique({ where: { slot }, select: { imageMime: true, imageData: true } }); }
