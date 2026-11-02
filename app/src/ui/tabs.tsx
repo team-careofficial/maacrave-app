@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { Tabs } from 'expo-router';
 import type { LucideIcon } from 'lucide-react-native';
 import { useEffect, useRef } from 'react';
@@ -9,9 +10,9 @@ import { C, F } from '../theme';
 type TabDef = { name: string; title: string; Icon: LucideIcon };
 const ND = Platform.OS !== 'web';
 const barShadow = Platform.select({
-  ios: { shadowColor: '#2A0B0D', shadowOpacity: 0.1, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } },
-  android: { elevation: 10 },
-  default: { boxShadow: '0 14px 34px -14px rgba(42,11,13,.28)' } as object,
+  ios: { shadowColor: '#2A0B0D', shadowOpacity: 0.06, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
+  android: { elevation: 4 },
+  default: { boxShadow: '0 6px 20px -10px rgba(42,11,13,.18)' } as object,
 }) as object;
 
 function TabButton({ t, focused, onPress }: { t: TabDef; focused: boolean; onPress: () => void }) {
@@ -20,12 +21,12 @@ function TabButton({ t, focused, onPress }: { t: TabDef; focused: boolean; onPre
   useEffect(() => { Animated.spring(a, { toValue: focused ? 1 : 0, useNativeDriver: ND, speed: 16, bounciness: 6 }).start(); }, [focused, a]);
   return (
     <Pressable accessibilityRole="tab" accessibilityState={{ selected: focused }} accessibilityLabel={tr(t.title)} onPress={onPress}
-      style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
-      <View style={{ width: 52, height: 32, alignItems: 'center', justifyContent: 'center' }}>
-        <Animated.View style={{ position: 'absolute', width: 52, height: 32, borderRadius: 16, backgroundColor: C.brandSoft, opacity: a, transform: [{ scaleX: a.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }] }} />
-        <View style={{ position: 'relative', zIndex: 1 }}><t.Icon size={21} color={focused ? C.brand : C.muted} strokeWidth={focused ? 2.4 : 1.9} /></View>
+      style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 6 }}>
+      <View style={{ width: 44, height: 28, alignItems: 'center', justifyContent: 'center' }}>
+        <Animated.View style={{ position: 'absolute', width: 44, height: 28, borderRadius: 14, backgroundColor: C.brandSoft, opacity: a, transform: [{ scaleX: a.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }] }} />
+        <View style={{ position: 'relative', zIndex: 1 }}><t.Icon size={20} color={focused ? C.brand : C.muted} strokeWidth={focused ? 2.4 : 1.9} /></View>
       </View>
-      <Text numberOfLines={1} style={{ marginTop: 3, fontFamily: lang === 'bn' ? 'HindSiliguri_600SemiBold' : focused ? F.bold : F.semibold, fontSize: 10.5, color: focused ? C.brand : C.muted }}>{tr(t.title)}</Text>
+      <Text numberOfLines={1} style={{ marginTop: 2, fontFamily: lang === 'bn' ? 'HindSiliguri_600SemiBold' : focused ? F.bold : F.semibold, fontSize: 10.5, color: focused ? C.brand : C.muted }}>{tr(t.title)}</Text>
     </Pressable>
   );
 }
@@ -46,7 +47,8 @@ export function AppTabs({ tabs }: { tabs: TabDef[] }) {
         };
         return (
           <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 14, paddingBottom: Math.max(insets.bottom, 10) }}>
-            <View style={[{ flexDirection: 'row', backgroundColor: C.surface, borderRadius: 26, paddingHorizontal: 4, width: '100%', maxWidth: 560, alignSelf: 'center', borderWidth: 1, borderColor: C.line }, barShadow]}>
+            <LinearGradient pointerEvents="none" colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.92)', '#FFFFFF']} locations={[0, 0.45, 1]} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, top: -28 }} />
+            <View style={[{ flexDirection: 'row', backgroundColor: C.surface, borderRadius: 24, paddingHorizontal: 4, width: '100%', maxWidth: 560, alignSelf: 'center', borderWidth: 1, borderColor: C.line }, barShadow]}>
               {tabs.map((t) => <TabButton key={t.name} t={t} focused={current === t.name} onPress={() => press(t.name)} />)}
             </View>
           </View>

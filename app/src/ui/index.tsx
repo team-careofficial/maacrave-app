@@ -203,7 +203,7 @@ export function Header({ title, sub, back, right }: { title: string; sub?: strin
 }
 export function Section({ title, sub, action, onAction, children, style }: { title: string; sub?: string; action?: string; onAction?: () => void; children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
   return (
-    <FadeIn style={[{ gap: S.md, marginTop: S.x3 }, style]}>
+    <FadeIn style={[{ gap: S.md, marginTop: S.xxl }, style]}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: S.md }}>
         <View style={{ flex: 1 }}>
           <T v="section">{title}</T>

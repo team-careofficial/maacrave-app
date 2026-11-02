@@ -101,7 +101,7 @@ function Card({ s, width, height }: { s: Spotlight; width: number; height: numbe
   const poster = s.layout === 'poster';
   const titleStyle = { fontFamily: bn ? 'HindSiliguri_600SemiBold' : F.displayX, fontSize: small ? (bn ? 11 : 9.5) : bn ? 15 : 14.5, lineHeight: small ? (bn ? 15 : 11.5) : bn ? 21 : 16, letterSpacing: bn ? 0 : 0.2, color: FRAME, textAlign: 'center' as const, textTransform: bn ? undefined : ('uppercase' as const) };
   return (
-    <Tap onPress={() => go(s.action)} scale={0.95} label={title} style={{ width, height: h, borderRadius: small ? 16 : 20, borderWidth: small ? 1.5 : 2, borderColor: FRAME, backgroundColor: '#fff', overflow: 'hidden',
+    <Tap onPress={() => go(s.action)} scale={0.95} label={title} style={{ width, height: h, borderRadius: small ? 16 : 20, borderWidth: 1, borderColor: FRAME, backgroundColor: '#fff', overflow: 'hidden',
       ...(Platform.select({ ios: { shadowColor: '#7C0E13', shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 6 } }, android: { elevation: 2 }, default: { boxShadow: '0 10px 22px -16px rgba(124,14,19,.45)' } }) as object) }}>
       {poster && img ? (
         <>

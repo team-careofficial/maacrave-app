@@ -9,7 +9,7 @@ import { useCart } from '@/cart';
 import { ACTIVE_STATUSES, firstName, STATUS_LABEL } from '@/format';
 import { useAddresses, useAddToCart, useFavorites } from '@/hooks';
 import { C, F, GLOSS, R, S, shadow } from '@/theme';
-import { BatchCard, Card, CookCard, DishCard, FadeIn, Glossy, IconButton, Loading, Rings, Row, Screen, Section, T, Tap } from '@/ui';
+import { BatchCard, Card, CookCard, DishCard, FadeIn, Glossy, IconButton, Loading, Row, Screen, Section, T, Tap } from '@/ui';
 import { BrandBar } from '@/ui/brand';
 import { SpotlightGrid } from '@/ui/spotlight';
 import { Grid, useCols } from '@/ui/grid';
@@ -60,10 +60,10 @@ export default function Home() {
       } />}>
       {/* big greeting */}
       <FadeIn>
-        <T v="hero" style={{ marginTop: S.sm, fontSize: 32, lineHeight: 38 }}>{tr(hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening')},{'\n'}<T v="hero" color={C.brand} style={{ fontSize: 32, lineHeight: 38 }}>{firstName(me?.name) || tr('friend')}</T></T>
+        <T v="hero" style={{ marginTop: S.sm, fontFamily: F.display, fontSize: 28, lineHeight: 34, letterSpacing: -0.6 }}>{tr(hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening')},{'\n'}<T v="hero" color={C.brand} style={{ fontFamily: F.display, fontSize: 28, lineHeight: 34, letterSpacing: -0.6 }}>{firstName(me?.name) || tr('friend')}</T></T>
       </FadeIn>
 
-      <Row gap={S.sm} style={{ marginTop: S.md }}>
+      <Row gap={S.sm} style={{ marginTop: S.lg }}>
         <Tap onPress={() => router.push('/browse')} scale={0.98} style={{ flex: 1, height: 50, borderRadius: R.pill, backgroundColor: C.surface2, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18 }}>
           <Search size={19} color={C.muted} />
           <T v="body" color={C.muted} numberOfLines={1}>Search biryani, bhorta, cooks…</T>
@@ -76,7 +76,7 @@ export default function Home() {
       {/* slim banner: line of the day + Explore */}
       <Glossy style={{ marginTop: S.lg }} radius={22} glow={false}>
         <View style={{ paddingVertical: S.lg, paddingHorizontal: S.xl, flexDirection: 'row', alignItems: 'center', gap: S.md }}>
-          <Rings size={190} right={-60} top={-70} />
+          <View pointerEvents="none" style={{ position: 'absolute', right: -50, top: -60, width: 160, height: 160, borderRadius: 80, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' }} />
           <View style={{ flex: 1, gap: 4 }}>
             <T v="card" bn color="#fff" style={{ fontFamily: F.bnBold, fontSize: 18, lineHeight: 26 }}>{quote.bn}</T>
             <T v="meta" color="rgba(255,255,255,0.8)">{quote.en}</T>
@@ -91,8 +91,8 @@ export default function Home() {
       <Row gap={S.md} style={{ marginTop: S.md, alignItems: 'stretch' }}>
         {/* Order now: white card with a crimson gradient outline */}
         <Tap onPress={() => router.push('/browse')} scale={0.97} style={{ flex: 1, borderRadius: R.xl, ...(shadow as object) }}>
-          <LinearGradient colors={['#C7272D', '#F2A3A6', '#7A0D12']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, borderRadius: R.xl, padding: 1.6 }}>
-            <View style={{ flex: 1, borderRadius: R.xl - 1.6, backgroundColor: '#fff', padding: S.md, gap: S.sm }}>
+          <LinearGradient colors={['#E6A4A7', '#F6D9DA', '#C7272D']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, borderRadius: R.xl, padding: 1 }}>
+            <View style={{ flex: 1, borderRadius: R.xl - 1, backgroundColor: '#fff', padding: S.md, gap: S.sm }}>
               <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.brandSoft, alignItems: 'center', justifyContent: 'center' }}><UtensilsCrossed size={19} color={C.brand} /></View>
               <View><T v="card" style={{ fontSize: 15 }}>Order now</T><T v="meta" numberOfLines={2}>Ready dishes cooking today</T></View>
             </View>
@@ -134,7 +134,7 @@ export default function Home() {
         </FadeIn>
       ) : null}
 
-      <Section title="What are you craving?" style={{ marginTop: S.xl }}>
+      <Section title="What are you craving?">
         <SpotlightGrid />
       </Section>
 
