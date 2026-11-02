@@ -1,11 +1,11 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, Platform, StyleSheet, Text, View } from 'react-native';
-import { F } from '../theme';
+import { F, GLOSS } from '../theme';
 import { Logo } from './logo';
 
 /** Deep red launch screen (matches the native splash colour #7A0D12). */
-const INTRO = ['#941219', '#7A0D12', '#5A090D'] as const;
+const INTRO = GLOSS;
 /** Never keep people on the intro longer than this, even if the server is slow to wake up. */
 const MAX_MS = 4500;
 const ND = Platform.OS !== 'web';
@@ -89,9 +89,6 @@ export function Intro({ ready, onDone }: { ready: boolean; onDone: () => void })
         </Animated.View>
       </Animated.View>
 
-      <Animated.View style={{ position: 'absolute', left: 0, right: 0, bottom: 48, alignItems: 'center', opacity: tag }}>
-        <Text style={{ fontFamily: F.medium, fontSize: 12, letterSpacing: 1.6, color: 'rgba(255,255,255,0.55)' }}>HOMEMADE · VERIFIED MOTHERS</Text>
-      </Animated.View>
     </Animated.View>
   );
 }

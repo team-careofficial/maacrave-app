@@ -4,7 +4,7 @@
   --brand: #A9151B; --brand2: #C21D23; --brand-dark: #7C0E13; --brand-soft: #FBEEEE;
   --ok: #1E7F4F; --ok-soft: #E8F5EE; --warn: #9A6200; --warn-soft: #FDF4E1; --err: #C62828; --err-soft: #FDECEC; --info: #2552C9; --info-soft: #EDF2FE;
   --ink: #231A1B;
-  --gloss: linear-gradient(135deg, #D8292F, #B0161C 50%, #7C0E13);
+  --gloss: linear-gradient(135deg, #941219, #7A0D12 50%, #5A090D);
   --shadow: 0 10px 30px -16px rgba(42, 11, 13, .25);
   --r: 16px;
   --display: 'Bricolage Grotesque', system-ui, sans-serif;

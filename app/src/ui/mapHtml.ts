@@ -16,7 +16,7 @@ html,body,#m{margin:0;height:100%;background:#F1ECEA;font-family:-apple-system,S
 .leaflet-container{background:#F1ECEA}
 .pin{width:38px;height:38px;border-radius:50% 50% 50% 4px;transform:rotate(-45deg);display:grid;place-items:center;box-shadow:0 8px 18px -6px rgba(42,11,13,.55);border:3px solid #fff}
 .pin>span{transform:rotate(45deg);display:grid;place-items:center}
-.k{background:linear-gradient(135deg,#D8292F,#7C0E13)} .h{background:#231A1B}
+.k{background:linear-gradient(135deg,#941219,#5A090D)} .h{background:#231A1B}
 .tag{position:absolute;left:44px;top:4px;white-space:nowrap;background:#fff;color:#1D1617;font-weight:700;font-size:12px;padding:4px 9px;border-radius:999px;box-shadow:0 6px 14px -8px rgba(0,0,0,.5)}
 .center{position:absolute;left:50%;top:50%;z-index:500;transform:translate(-50%,-100%);pointer-events:none}
 .dot{position:absolute;left:50%;top:50%;width:10px;height:5px;border-radius:50%;background:rgba(0,0,0,.25);transform:translate(-50%,-50%);z-index:499}
@@ -36,7 +36,7 @@ if(cfg.mode==='route'){
   var c=[mx-dy*0.22,my+dx*0.22],pts=[];
   for(var i=0;i<=40;i++){var t=i/40,u=1-t;pts.push([u*u*a[0]+2*u*t*c[0]+t*t*b[0],u*u*a[1]+2*u*t*c[1]+t*t*b[1]]);}
   L.polyline(pts,{color:'#fff',weight:9,opacity:.95}).addTo(map);
-  L.polyline(pts,{color:'#B0161C',weight:5,opacity:1,lineCap:'round'}).addTo(map);
+  L.polyline(pts,{color:'#7A0D12',weight:5,opacity:1,lineCap:'round'}).addTo(map);
   L.marker(a,{icon:icon('k',${JSON.stringify(KITCHEN)},cfg.fromLabel)}).addTo(map);
   L.marker(b,{icon:icon('h',${JSON.stringify(HOME)},cfg.toLabel)}).addTo(map);
   map.fitBounds(L.latLngBounds([a,b]).pad(0.45),{maxZoom:15});

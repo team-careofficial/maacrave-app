@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import {
   Beef, CakeSlice, Coffee, Cookie, Drumstick, Fish, Flame, Gift, Heart, Leaf, MessageSquarePlus, Moon, Percent, Soup, Sparkles, Sun, Users, UtensilsCrossed, type LucideIcon,
@@ -21,7 +20,7 @@ const ICONS: Record<string, LucideIcon> = {
   users: Users, gift: Gift, heart: Heart, utensils: UtensilsCrossed, request: MessageSquarePlus, percent: Percent, coffee: Coffee,
 };
 const THEMES: Record<string, readonly [string, string, string]> = {
-  crimson: ['#D8292F', '#B0161C', '#7C0E13'],
+  crimson: ['#941219', '#7A0D12', '#5A090D'],
   saffron: ['#F4A12E', '#E07B12', '#B85A07'],
   forest: ['#3BA06A', '#1E7F4F', '#145C38'],
   night: ['#3A2A4F', '#261B36', '#16101F'],
@@ -56,60 +55,25 @@ function useLoop(duration: number, delay = 0) {
   return v;
 }
 
-/** Soft tint of a theme colour for the white cards. */
-const TINT: Record<string, { soft: string; mid: string }> = {
-  crimson: { soft: '#FDEEEE', mid: '#F7D3D4' }, saffron: { soft: '#FFF4E5', mid: '#FDE0B8' }, forest: { soft: '#EAF6EF', mid: '#CBEBD8' },
-  night: { soft: '#F0EDF6', mid: '#DCD5EA' }, rose: { soft: '#FDEEF3', mid: '#F8D2DF' }, ocean: { soft: '#EBF3FC', mid: '#CFE1F6' },
-};
-
-/** The moving drawing inside a card, chosen in the admin panel (float, steam, pulse, wiggle, spin, shine). */
-function Scene({ kind, Icon, color, tint, size }: { kind: string; Icon: LucideIcon; color: string; tint: { soft: string; mid: string }; size: number }) {
-  const a = useLoop(kind === 'spin' ? 9000 : kind === 'shine' ? 2800 : 2400);
+/** The moving icon inside a card, chosen in the admin panel (float, steam, pulse, wiggle, spin, shine). No circles — just the icon. */
+function Scene({ kind, Icon, color, size }: { kind: string; Icon: LucideIcon; color: string; size: number }) {
+  const a = useLoop(kind === 'spin' ? 9000 : 2400);
   const b = useLoop(2400, 800);
   const c = useLoop(2400, 1600);
-  const slow = useLoop(6000);
   const wave = a.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 1, 0] });
-  const breathe = slow.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 1, 0] });
   const iconStyle =
-    kind === 'float' ? { transform: [{ translateY: wave.interpolate({ inputRange: [0, 1], outputRange: [4, -6] }) }] }
-    : kind === 'wiggle' ? { transform: [{ rotate: a.interpolate({ inputRange: [0, 0.15, 0.3, 0.45, 0.6, 1], outputRange: ['0deg', '-14deg', '12deg', '-8deg', '0deg', '0deg'] }) }] }
+    kind === 'wiggle' ? { transform: [{ rotate: a.interpolate({ inputRange: [0, 0.15, 0.3, 0.45, 0.6, 1], outputRange: ['0deg', '-14deg', '12deg', '-8deg', '0deg', '0deg'] }) }] }
     : kind === 'spin' ? { transform: [{ rotate: a.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] }
-    : kind === 'pulse' ? { transform: [{ scale: wave.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] }) }] }
-    : {};
-  const disc = size * 0.62;
+    : kind === 'pulse' || kind === 'shine' ? { transform: [{ scale: wave.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] }) }] }
+    : { transform: [{ translateY: wave.interpolate({ inputRange: [0, 1], outputRange: [3, -5] }) }] }; // float + steam
   return (
     <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      {/* slow breathing halo */}
-      <Animated.View style={{ position: 'absolute', width: size, height: size, borderRadius: size / 2, backgroundColor: tint.soft,
-        transform: [{ scale: breathe.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1.02] }) }] }} />
-      {/* little orbiting dots */}
-      <Animated.View style={{ position: 'absolute', width: size * 0.9, height: size * 0.9, transform: [{ rotate: slow.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] }}>
-        <View style={{ position: 'absolute', top: 0, left: size * 0.45 - 3, width: 5, height: 5, borderRadius: 3, backgroundColor: color, opacity: 0.5 }} />
-        <View style={{ position: 'absolute', bottom: size * 0.12, right: 2, width: 4, height: 4, borderRadius: 2, backgroundColor: color, opacity: 0.35 }} />
-      </Animated.View>
-      {kind === 'pulse' ? [a, b].map((v, i) => (
-        <Animated.View key={i} style={{ position: 'absolute', width: disc, height: disc, borderRadius: disc / 2, borderWidth: 2, borderColor: color,
-          opacity: v.interpolate({ inputRange: [0, 1], outputRange: [0.45, 0] }), transform: [{ scale: v.interpolate({ inputRange: [0, 1], outputRange: [1, 1.6] }) }] }} />
-      )) : null}
       {kind === 'steam' ? [a, b, c].map((v, i) => (
-        <Animated.View key={i} style={{ position: 'absolute', top: size / 2 - disc / 2 - 6, left: size / 2 - 12 + i * 9, width: 5, height: 14, borderRadius: 3, backgroundColor: color,
-          opacity: v.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 0.5, 0] }), transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [8, -16] }) }, { scaleX: v.interpolate({ inputRange: [0, 1], outputRange: [1, 1.7] }) }] }} />
+        <Animated.View key={i} style={{ position: 'absolute', top: 0, left: size / 2 - 9 + i * 7, width: 3, height: 9, borderRadius: 2, backgroundColor: color,
+          opacity: v.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 0.45, 0] }), transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [6, -8] }) }] }} />
       )) : null}
-      <View style={{ width: disc, height: disc, borderRadius: disc / 2, backgroundColor: '#fff', borderWidth: 1.5, borderColor: tint.mid, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-        {kind === 'shine' ? <Shine color={tint.mid} /> : null}
-        <Animated.View style={iconStyle}><Icon size={disc * 0.46} color={color} strokeWidth={2} /></Animated.View>
-      </View>
+      <Animated.View style={iconStyle}><Icon size={size * 0.62} color={color} strokeWidth={1.9} /></Animated.View>
     </View>
-  );
-}
-
-function Shine({ color = 'rgba(255,255,255,0.9)' }: { color?: string }) {
-  const a = useLoop(3200, 400);
-  return (
-    <Animated.View pointerEvents="none" style={{ position: 'absolute', top: -40, bottom: -40, width: 30, opacity: 0.8,
-      transform: [{ translateX: a.interpolate({ inputRange: [0, 1], outputRange: [-80, 120] }) }, { rotate: '20deg' }] }}>
-      <LinearGradient colors={['rgba(255,255,255,0)', color, 'rgba(255,255,255,0)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
-    </Animated.View>
   );
 }
 
@@ -127,12 +91,11 @@ function Card({ s, width }: { s: Spotlight; width: number }) {
   const lang = useLang();
   const bn = lang === 'bn';
   const color = (THEMES[s.theme] || THEMES.crimson)[1];
-  const tint = TINT[s.theme] || TINT.crimson;
   const title = bn ? s.titleBn : s.title;
   const sub = bn ? s.subtitleBn : s.subtitle;
   const Icon = ICONS[s.icon] || UtensilsCrossed;
   const img = s.hasImage ? { uri: `${API_URL}/spotlights/${s.slot}/image?v=${encodeURIComponent(s.updatedAt || '')}` } : null;
-  const h = width * 1.36;
+  const h = width * (small ? 1.18 : 1.3);
   const poster = s.layout === 'poster';
   const small = width < 120;
   const titleStyle = { fontFamily: bn ? 'HindSiliguri_600SemiBold' : F.displayX, fontSize: small ? (bn ? 12 : 10.5) : bn ? 15 : 14.5, lineHeight: small ? (bn ? 16 : 12.5) : bn ? 21 : 16, letterSpacing: bn ? 0 : 0.2, color: FRAME, textAlign: 'center' as const, textTransform: bn ? undefined : ('uppercase' as const) };
@@ -157,7 +120,7 @@ function Card({ s, width }: { s: Spotlight; width: number }) {
             </View>
           ) : (
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-              <Scene kind={s.animation} Icon={Icon} color={color} tint={tint} size={Math.min(width * (small ? 0.7 : 0.78), poster ? 120 : 100)} />
+              <Scene kind={s.animation} Icon={Icon} color={color} size={Math.min(width * 0.5, 72)} />
             </View>
           )}
           {poster ? (
@@ -181,9 +144,9 @@ export function SpotlightGrid() {
   const q = useQuery({ queryKey: ['spotlights'], queryFn: () => api<Spotlight[]>('/spotlights'), staleTime: 10 * 60_000 });
   const fromServer = q.data || [];
   const cards = (q.data && fromServer.length ? fromServer : DEFAULT_SPOTLIGHTS).slice(0, 4);
-  const cardW = cols >= 2 ? Math.min(200, (Math.min(width, 1080) - 32 - 36) / 4) : Math.min(132, (Math.min(width, 520) - 32 - 24) / 4);
+  const cardW = cols >= 2 ? Math.min(200, (Math.min(width, 1080) - 32 - 36) / 4) : Math.min(84, (Math.min(width, 520) - 32 - 3 * 12) / 4 - 6);
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -S.lg }} contentContainerStyle={{ gap: 8, paddingHorizontal: S.lg, paddingVertical: 6 }}>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -S.lg }} contentContainerStyle={{ gap: 12, paddingHorizontal: S.lg, paddingVertical: 6 }}>
       {cards.map((s) => <Card key={s.slot} s={s} width={cardW} />)}
     </ScrollView>
   );

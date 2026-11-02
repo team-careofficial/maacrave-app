@@ -11,12 +11,12 @@ export const C = {
   ok: '#1E7F4F', okSoft: '#E8F5EE', warn: '#9A6200', warnSoft: '#FDF4E1', err: '#C62828', errSoft: '#FDECEC', info: '#2552C9', infoSoft: '#EDF2FE',
   star: '#E9A23B', gold: '#E9A23B',
 };
-/** Glossy crimson (hero cards, primary buttons). */
-export const GLOSS = ['#D8292F', '#B0161C', '#7C0E13'] as const;
+/** The one deep-red shade used everywhere (intro, banners, buttons, logo) — same as the launch screen. */
+export const GLOSS = ['#941219', '#7A0D12', '#5A090D'] as const;
 /** Matte deep maroon (secondary hero, dark surfaces). */
 export const MATTE = ['#3B1013', '#2A0B0D'] as const;
 /** Top highlight laid over glossy surfaces. */
-export const SHEEN = ['rgba(255,255,255,0.26)', 'rgba(255,255,255,0)'] as const;
+export const SHEEN = ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0)'] as const;
 
 /** 8-point spacing scale */
 export const S = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, x3: 32, x4: 40, x5: 48 };
@@ -50,9 +50,9 @@ export const shadow = Platform.select({
   default: { boxShadow: '0 10px 30px -14px rgba(42,11,13,.22)' } as object,
 });
 export const redShadow = Platform.select({
-  ios: { shadowColor: '#A9151B', shadowOpacity: 0.35, shadowRadius: 16, shadowOffset: { width: 0, height: 10 } },
-  android: { elevation: 6 },
-  default: { boxShadow: '0 14px 30px -12px rgba(169,21,27,.55)' } as object,
+  ios: { shadowColor: '#2A0B0D', shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 6 } },
+  android: { elevation: 3 },
+  default: { boxShadow: '0 8px 18px -12px rgba(42,11,13,.35)' } as object,
 });
 
 export const CATEGORY_META: Record<string, { label: string; bn: string; icon: string; color: string }> = {
