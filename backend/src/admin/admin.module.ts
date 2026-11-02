@@ -71,8 +71,12 @@ class SpotlightDto {
   @IsIn(SPOT_ICONS) icon: string;
   @IsIn(SPOT_THEMES) theme: string;
   @IsIn(SPOT_ANIMS) animation: string;
-  @Matches(/^(browse|request|groups|category:[a-z]+|maxPrice:\d{2,4})$/) action: string;
+  @Matches(/^(browse|request|groups|plans|category:[a-z]+|maxPrice:\d{2,4})$/) action: string;
+  @IsIn(['arch', 'poster']) layout: string;
   @IsBoolean() active: boolean;
+  /** New picture as a data URL; leave out to keep the current one. */
+  @IsOptional() @Matches(/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/) @MaxLength(1_500_000) image?: string;
+  @IsOptional() @IsBoolean() removeImage?: boolean;
 }
 class PayoutDto { @IsIn(['PROCESSING', 'PAID', 'FAILED']) status: 'PROCESSING' | 'PAID' | 'FAILED'; @IsOptional() @IsString() @MaxLength(60) reference?: string; }
 
@@ -243,10 +247,16 @@ export class AdminService {
   activity() { return this.prisma.adminLog.findMany({ orderBy: { createdAt: 'desc' }, take: 100 }); }
 
   /* ---------- Home spotlight cards ---------- */
-  spotlights() { return this.prisma.spotlight.findMany({ orderBy: { slot: 'asc' } }); }
+  async spotlights() {
+    const rows = await this.prisma.spotlight.findMany({ orderBy: { slot: 'asc' } });
+    return rows.map(({ imageData, ...r }) => ({ ...r, hasImage: !!imageData }));
+  }
   async saveSpotlight(admin: string, slot: number, dto: SpotlightDto) {
     if (![1, 2, 3, 4].includes(slot)) throw new BadRequestException('Slot must be 1–4.');
-    const row = await this.prisma.spotlight.upsert({ where: { slot }, update: dto, create: { slot, ...dto } });
+    const { image, removeImage, ...fields } = dto;
+    const pic = image ? /^data:(image\/[a-z]+);base64,(.+)$/.exec(image) : null;
+    const imageFields = pic ? { imageMime: pic[1], imageData: pic[2] } : removeImage ? { imageMime: null, imageData: null } : {};
+    const { imageData: _d, ...row } = await this.prisma.spotlight.upsert({ where: { slot }, update: { ...fields, ...imageFields }, create: { slot, ...fields, ...imageFields } });
     await this.audit(admin, 'SPOTLIGHT_SAVE', String(slot), `${dto.title} · ${dto.animation}`);
     return row;
   }

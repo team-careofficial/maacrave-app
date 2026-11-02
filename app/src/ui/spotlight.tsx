@@ -5,14 +5,15 @@ import {
   Beef, CakeSlice, Coffee, Cookie, Drumstick, Fish, Flame, Gift, Heart, Leaf, MessageSquarePlus, Moon, Percent, Soup, Sparkles, Sun, Users, UtensilsCrossed, type LucideIcon,
 } from 'lucide-react-native';
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, Platform, StyleSheet, Text, View } from 'react-native';
-import { api } from '../api';
+import { Animated, Easing, Image, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { api, API_URL } from '../api';
 import { useLang } from '../i18n';
 import { F, R, S } from '../theme';
 import { Tap } from './index';
 import { useCols } from './grid';
+import type React from 'react';
 
-export interface Spotlight { slot: number; title: string; titleBn: string; subtitle: string; subtitleBn: string; icon: string; theme: string; animation: string; action: string; active: boolean }
+export interface Spotlight { slot: number; title: string; titleBn: string; subtitle: string; subtitleBn: string; icon: string; theme: string; animation: string; action: string; layout?: string; hasImage?: boolean; updatedAt?: string; active: boolean }
 
 const ND = Platform.OS !== 'web';
 const ICONS: Record<string, LucideIcon> = {
@@ -30,14 +31,15 @@ const THEMES: Record<string, readonly [string, string, string]> = {
 
 /** Shown until the team sets cards in the admin panel. */
 export const DEFAULT_SPOTLIGHTS: Spotlight[] = [
-  { slot: 1, title: 'Friday Biryani', titleBn: 'শুক্রবারের বিরিয়ানি', subtitle: 'Kacchi & tehari from home kitchens', subtitleBn: 'ঘরের হাঁড়ির কাচ্চি আর তেহারি', icon: 'soup', theme: 'crimson', animation: 'steam', action: 'category:rice', active: true },
+  { slot: 1, layout: 'poster', title: 'Friday Biryani', titleBn: 'শুক্রবারের বিরিয়ানি', subtitle: 'Kacchi & tehari from home kitchens', subtitleBn: 'ঘরের হাঁড়ির কাচ্চি আর তেহারি', icon: 'soup', theme: 'crimson', animation: 'steam', action: 'category:rice', active: true },
   { slot: 2, title: 'Under ৳150', titleBn: '৳১৫০ এর মধ্যে', subtitle: 'Full meals on a student budget', subtitleBn: 'স্টুডেন্ট বাজেটে পেট ভরে', icon: 'percent', theme: 'saffron', animation: 'wiggle', action: 'maxPrice:150', active: true },
   { slot: 3, title: 'Light & healthy', titleBn: 'হালকা ও স্বাস্থ্যকর', subtitle: 'Less oil, more vegetables', subtitleBn: 'কম তেল, বেশি সবজি', icon: 'leaf', theme: 'forest', animation: 'float', action: 'category:healthy', active: true },
-  { slot: 4, title: 'Group dinner', titleBn: 'গ্রুপ ডিনার', subtitle: 'Join neighbours, pay less', subtitleBn: 'প্রতিবেশীদের সাথে, কম খরচে', icon: 'users', theme: 'night', animation: 'pulse', action: 'groups', active: true },
+  { slot: 4, title: 'Meal plans', titleBn: 'মিল প্ল্যান', subtitle: 'Lunch box every day', subtitleBn: 'প্রতিদিন দুপুরের টিফিন', icon: 'coffee', theme: 'ocean', animation: 'pulse', action: 'plans', active: true },
 ];
 
 function go(action: string) {
   if (action === 'request') return router.push('/request/new');
+  if (action === 'plans') return router.push('/plans');
   if (action === 'groups') return router.push({ pathname: '/browse', params: { tab: 'groups' } });
   if (action.startsWith('category:')) return router.push({ pathname: '/browse', params: { category: action.slice(9) } });
   if (action.startsWith('maxPrice:')) return router.push({ pathname: '/browse', params: { maxPrice: action.slice(9) } });
@@ -55,7 +57,7 @@ function useLoop(duration: number, delay = 0) {
 }
 
 /** The moving bits inside a card, chosen in the admin panel. */
-function AnimatedIcon({ kind, Icon }: { kind: string; Icon: LucideIcon }) {
+function AnimatedIcon({ kind, Icon, big }: { kind: string; Icon: LucideIcon; big?: boolean }) {
   const a = useLoop(kind === 'spin' ? 9000 : kind === 'shine' ? 2600 : 2200);
   const b = useLoop(2200, 700);
   const c = useLoop(2200, 1400);
@@ -66,8 +68,9 @@ function AnimatedIcon({ kind, Icon }: { kind: string; Icon: LucideIcon }) {
     : kind === 'spin' ? { transform: [{ rotate: a.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] }
     : kind === 'pulse' ? { transform: [{ scale: wave.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] }) }] }
     : {};
+  const z = big ? 1.5 : 1;
   return (
-    <View style={{ width: 52, height: 52, alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{ width: 52, height: 52, alignItems: 'center', justifyContent: 'center', transform: [{ scale: z }] }}>
       {kind === 'pulse' ? [a, b].map((v, i) => (
         <Animated.View key={i} style={{ position: 'absolute', width: 52, height: 52, borderRadius: 26, borderWidth: 2, borderColor: 'rgba(255,255,255,0.8)',
           opacity: v.interpolate({ inputRange: [0, 1], outputRange: [0.6, 0] }), transform: [{ scale: v.interpolate({ inputRange: [0, 1], outputRange: [1, 1.8] }) }] }} />
@@ -93,44 +96,84 @@ function Shine() {
   );
 }
 
-function Card({ s }: { s: Spotlight }) {
+const FRAME = '#C7272D';
+
+/** Gentle zoom-and-drift on the picture (the "Ken Burns" effect). */
+function Drift({ children }: { children: React.ReactNode }) {
+  const a = useLoop(9000);
+  const k = a.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 1, 0] });
+  return <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ scale: k.interpolate({ inputRange: [0, 1], outputRange: [1.02, 1.12] }) }, { translateX: k.interpolate({ inputRange: [0, 1], outputRange: [0, -6] }) }] }]}>{children}</Animated.View>;
+}
+
+/** Pathao-style tall card: crimson frame, title on a curved colour band, picture (or animated icon) below. */
+function Card({ s, width }: { s: Spotlight; width: number }) {
   const lang = useLang();
   const bn = lang === 'bn';
   const colors = THEMES[s.theme] || THEMES.crimson;
+  const title = bn ? s.titleBn : s.title;
+  const sub = bn ? s.subtitleBn : s.subtitle;
+  const Icon = ICONS[s.icon] || UtensilsCrossed;
+  const img = s.hasImage ? { uri: `${API_URL}/spotlights/${s.slot}/image?v=${encodeURIComponent(s.updatedAt || '')}` } : null;
+  const titleStyle = { fontFamily: bn ? 'HindSiliguri_600SemiBold' : F.displayX, fontSize: bn ? 21 : 21, lineHeight: bn ? 28 : 22, letterSpacing: bn ? 0 : -0.3, color: '#fff', textAlign: 'center' as const, textTransform: bn ? undefined : ('uppercase' as const) };
+  const scene = img ? (
+    <Drift><Image source={img} style={{ width: '100%', height: '100%' }} resizeMode="cover" /></Drift>
+  ) : (
+    <View style={StyleSheet.absoluteFill}>
+      <LinearGradient colors={[colors[2], colors[1]]} start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+      {s.animation === 'shine' ? <Shine /> : null}
+      {[0, 1, 2].map((i) => <View key={i} style={{ position: 'absolute', bottom: -20 + i * 6, left: -10 + i * 52, width: 70, height: 60 + i * 18, borderTopLeftRadius: 10, borderTopRightRadius: 10, backgroundColor: 'rgba(0,0,0,0.12)' }} />)}
+      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 22, alignItems: 'center' }}><AnimatedIcon kind={s.animation} Icon={Icon} big /></View>
+    </View>
+  );
   return (
-    <Tap onPress={() => go(s.action)} scale={0.97} label={s.title} style={{ flex: 1, borderRadius: R.lg, minHeight: 148 }}>
-      <View style={{ flexGrow: 1, minHeight: 148, borderRadius: R.lg, overflow: 'hidden', padding: S.md, justifyContent: 'space-between' }}>
-        <LinearGradient colors={colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-        <LinearGradient colors={['rgba(255,255,255,0.22)', 'rgba(255,255,255,0)']} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '50%' }} />
-        <View style={{ position: 'absolute', right: -30, bottom: -30, width: 110, height: 110, borderRadius: 55, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.14)' }} />
-        {s.animation === 'shine' ? <Shine /> : null}
-        <AnimatedIcon kind={s.animation} Icon={ICONS[s.icon] || UtensilsCrossed} />
-        <View style={{ marginTop: S.md }}>
-          <Text numberOfLines={1} style={{ fontFamily: bn ? 'HindSiliguri_600SemiBold' : F.displayX, fontSize: bn ? 17 : 17.5, letterSpacing: bn ? 0 : -0.4, color: '#fff' }}>{bn ? s.titleBn : s.title}</Text>
-          <Text numberOfLines={2} style={{ fontFamily: bn ? 'HindSiliguri_400Regular' : F.medium, fontSize: 12.5, lineHeight: 17, color: 'rgba(255,255,255,0.85)', marginTop: 2 }}>{bn ? s.subtitleBn : s.subtitle}</Text>
-        </View>
+    <Tap onPress={() => go(s.action)} scale={0.96} label={title} style={{ width, borderRadius: 26, borderWidth: 3, borderColor: FRAME, padding: 3, backgroundColor: '#fff',
+      ...(Platform.select({ ios: { shadowColor: '#7C0E13', shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 8 } }, android: { elevation: 4 }, default: { boxShadow: '0 12px 24px -14px rgba(124,14,19,.45)' } }) as object) }}>
+      <View style={{ height: width * 1.36, borderRadius: 20, overflow: 'hidden', backgroundColor: colors[1] }}>
+        {s.layout === 'poster' ? (
+          <>
+            {img ? scene : (
+              <>
+                <LinearGradient colors={[colors[0], colors[2], '#1A0A0B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+                <Shine />
+              </>
+            )}
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 12, gap: 10 }}>
+              {!img ? <AnimatedIcon kind={s.animation} Icon={Icon} /> : null}
+              <Text style={titleStyle} numberOfLines={3}>{title}</Text>
+              <View style={{ backgroundColor: '#fff', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, transform: [{ rotate: '-4deg' }] }}>
+                <Text numberOfLines={1} style={{ fontFamily: bn ? 'HindSiliguri_600SemiBold' : F.bold, fontSize: 12, color: FRAME }}>{sub}</Text>
+              </View>
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, top: '38%' }}>{scene}</View>
+            {/* curved colour band with the title */}
+            <View style={{ position: 'absolute', top: -width * 0.55, left: -width * 0.35, width: width * 1.7, height: width * 1.08, borderRadius: width, overflow: 'hidden' }}>
+              <LinearGradient colors={[colors[0], colors[1]]} style={StyleSheet.absoluteFill} />
+            </View>
+            <View style={{ paddingTop: 16, paddingHorizontal: 10, alignItems: 'center' }}>
+              <Text style={titleStyle} numberOfLines={2}>{title}</Text>
+              <Text numberOfLines={1} style={{ fontFamily: bn ? 'HindSiliguri_400Regular' : F.semibold, fontSize: 11, color: 'rgba(255,255,255,0.88)', marginTop: 3 }}>{sub}</Text>
+            </View>
+          </>
+        )}
       </View>
     </Tap>
   );
 }
 
-/** Four animated spotlight cards (2×2 on phones, 4 in a row on wide screens). Content comes from the admin panel. */
+/** Four Pathao-style spotlight cards in a swipeable row (all four visible on wide screens). Managed in the admin panel. */
 export function SpotlightGrid() {
   const cols = useCols();
+  const { width } = useWindowDimensions();
   const q = useQuery({ queryKey: ['spotlights'], queryFn: () => api<Spotlight[]>('/spotlights'), staleTime: 10 * 60_000 });
   const fromServer = q.data || [];
-  const cards = [1, 2, 3, 4].map((slot) => fromServer.find((x) => x.slot === slot) || (q.data && fromServer.length ? null : DEFAULT_SPOTLIGHTS[slot - 1])).filter(Boolean) as Spotlight[];
-  const perRow = cols >= 2 ? 4 : 2;
-  const rows: Spotlight[][] = [];
-  for (let i = 0; i < cards.length; i += perRow) rows.push(cards.slice(i, i + perRow));
+  const cards = (q.data && fromServer.length ? fromServer : DEFAULT_SPOTLIGHTS).slice(0, 4);
+  const cardW = cols >= 2 ? Math.min(230, (Math.min(width, 1080) - 32 - 36) / 4) : Math.min(168, width * 0.42);
   return (
-    <View style={{ gap: S.md }}>
-      {rows.map((row, i) => (
-        <View key={i} style={{ flexDirection: 'row', gap: S.md }}>
-          {row.map((s) => <Card key={s.slot} s={s} />)}
-          {row.length < perRow ? Array.from({ length: perRow - row.length }, (_, k) => <View key={`e${k}`} style={{ flex: 1 }} />) : null}
-        </View>
-      ))}
-    </View>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -S.lg }} contentContainerStyle={{ gap: 12, paddingHorizontal: S.lg, paddingVertical: 4 }}>
+      {cards.map((s) => <Card key={s.slot} s={s} width={cardW} />)}
+    </ScrollView>
   );
 }

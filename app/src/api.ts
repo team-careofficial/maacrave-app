@@ -1,5 +1,5 @@
 import { storage } from './storage';
-import type { Address, Batch, CookDetail, CookPublic, Dish, DishDetail, Fees, FoodRequest, Kitchen, KitchenBatch, KitchenDashboard, Me, Meta, Notification, Order, PaymentMethod, Proposal, Role, RiderOrder, RiderTask } from './types';
+import type { KitchenSubscriber, MealPlan, PlanInput, Subscription, Address, Batch, CookDetail, CookPublic, Dish, DishDetail, Fees, FoodRequest, Kitchen, KitchenBatch, KitchenDashboard, Me, Meta, Notification, Order, PaymentMethod, Proposal, Role, RiderOrder, RiderTask } from './types';
 
 export const API_URL = (process.env.EXPO_PUBLIC_API_URL || '').replace(/\/$/, '');
 const RT_KEY = 'maacrave.rt';
@@ -138,6 +138,16 @@ export const API = {
   batchAction: (id: string, action: 'close' | 'confirm' | 'cook' | 'ready' | 'cancel' | 'capacity', maxPortions?: number) => api(`/kitchen/batches/${id}/${action}`, { method: 'POST', body: maxPortions ? { maxPortions } : {} }),
   earnings: () => api<{ delivered: number; gross: number; commission: number; net: number; available: number; recent: { id: string; code: string; updatedAt: string; subtotal: number; commission: number; cookEarning: number }[]; payouts: { id: string; amount: number; status: string; method: string; createdAt: string }[] }>('/kitchen/earnings'),
   requestPayout: () => api('/kitchen/payouts', { method: 'POST' }),
+
+  plans: (q: { meal?: string; period?: string }) => api<MealPlan[]>('/plans', { query: q }),
+  plan: (id: string) => api<MealPlan & { cook: CookPublic }>(`/plans/${id}`),
+  subscribe: (id: string, b: { addressId: string; startDate: string; notes?: string }) => api<Subscription>(`/plans/${id}/subscribe`, { method: 'POST', body: b }),
+  mySubscriptions: () => api<Subscription[]>('/me/subscriptions'),
+  changeSubscription: (id: string, action: 'pause' | 'resume' | 'cancel') => api<Subscription[]>(`/subscriptions/${id}/${action}`, { method: 'POST' }),
+  kitchenPlans: () => api<MealPlan[]>('/kitchen/plans'),
+  createPlan: (b: PlanInput) => api<MealPlan>('/kitchen/plans', { method: 'POST', body: b }),
+  editPlan: (id: string, b: Partial<Omit<PlanInput, 'meal' | 'period' | 'days'>>) => api<MealPlan>(`/kitchen/plans/${id}`, { method: 'PATCH', body: b }),
+  subscribers: () => api<KitchenSubscriber[]>('/kitchen/subscribers'),
   // rider
   riderStatus: (online: boolean) => api('/rider/status', { method: 'PATCH', body: { online } }),
   riderTasks: () => api<RiderTask[]>('/rider/tasks'),

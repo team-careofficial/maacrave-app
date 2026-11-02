@@ -2,10 +2,10 @@ import { ChefHat, ClipboardList, LayoutDashboard, MessageSquare, User } from 'lu
 import { AppTabs } from '@/ui/tabs';
 
 export default function KitchenTabs() {
-  return <AppTabs tabs={[
-    { name: 'index', title: 'Today', Icon: LayoutDashboard },
+  return <AppTabs center="index" tabs={[
     { name: 'orders', title: 'Orders', Icon: ClipboardList },
     { name: 'requests', title: 'Requests', Icon: MessageSquare },
+    { name: 'index', title: 'Today', Icon: LayoutDashboard },
     { name: 'menu', title: 'Menu', Icon: ChefHat },
     { name: 'account', title: 'Kitchen', Icon: User },
   ]} />;

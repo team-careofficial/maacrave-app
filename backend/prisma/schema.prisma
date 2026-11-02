@@ -112,6 +112,7 @@ model User {
   complaints    Complaint[]
   refreshTokens RefreshToken[]
   documents     Document[]
+  subscriptions Subscription[]
   deletedAt     DateTime?
 }
 
@@ -197,6 +198,7 @@ model CookProfile {
   payouts         Payout[]
   favorites       Favorite[]
   reviews         Review[]
+  plans           MealPlan[]
 
   @@index([area])
 }
@@ -330,6 +332,7 @@ model Order {
   notes          String?
   scheduledFor   DateTime?
   idempotencyKey String?      @unique
+  subscriptionId String?      // set when the order was created from a meal plan
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   customer       User         @relation("CustomerOrders", fields: [customerId], references: [id])
@@ -522,7 +525,70 @@ model Spotlight {
   icon       String   // soup, fish, drumstick, beef, leaf, cake, cookie, sun, moon, flame, sparkles, users, gift, heart, utensils, request, percent, coffee
   theme      String   // crimson, saffron, forest, night, rose, ocean
   animation  String   // float, steam, pulse, shine, wiggle, spin
-  action     String   // browse | request | groups | category:<key> | maxPrice:<n>
+  action     String   // browse | request | groups | plans | category:<key> | maxPrice:<n>
+  layout     String   @default("arch") // arch: title on a curved band over the picture · poster: picture fills the card
+  imageMime  String?
+  imageData  String?  // optional illustration uploaded from the admin panel (base64)
   active     Boolean  @default(true)
   updatedAt  DateTime @updatedAt
+}
+
+enum MealSlot {
+  BREAKFAST
+  LUNCH
+  DINNER
+}
+
+enum PlanPeriod {
+  WEEKLY
+  MONTHLY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+  ENDED
+}
+
+/// A meal plan a cook offers: e.g. "Weekday lunch box", lunch, monthly, 6 days a week, ৳140 per meal.
+model MealPlan {
+  id          String         @id @default(cuid())
+  cookId      String
+  title       String
+  description String         @default("")
+  meal        MealSlot
+  period      PlanPeriod
+  days        Int[]          // weekdays it is delivered, 0 = Sunday … 6 = Saturday
+  pricePerMeal Int
+  deliverAt   String         // "08:00", "13:00", "20:30"
+  capacity    Int            @default(20)
+  active      Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  cook        CookProfile    @relation(fields: [cookId], references: [id], onDelete: Cascade)
+  subscriptions Subscription[]
+
+  @@index([meal, period, active])
+}
+
+/// A customer's subscription. Each delivery day the server creates a normal order (cash on delivery).
+model Subscription {
+  id          String             @id @default(cuid())
+  planId      String
+  customerId  String
+  status      SubscriptionStatus @default(ACTIVE)
+  startDate   DateTime
+  endDate     DateTime
+  addressText String
+  area        String
+  lat         Float?
+  lng         Float?
+  notes       String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  plan        MealPlan           @relation(fields: [planId], references: [id], onDelete: Cascade)
+  customer    User               @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([status, startDate, endDate])
 }

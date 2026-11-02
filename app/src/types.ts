@@ -46,3 +46,19 @@ export interface KitchenDashboard { kitchen: Kitchen; newRequests: number; activ
 export interface KitchenBatch extends Omit<Batch, 'participants' | 'myOrderId' | 'myPortions'> { drops: number }
 export interface RiderTask { key: string; isBatch: boolean; cook: { displayName: string; area: string }; drops: number; packages: number; dropAreas: string[]; earning: number }
 export interface RiderOrder extends Omit<Order, 'customer'> { groupKey: string; cashToCollect: number; customer: { name: string; phone: string | null }; cook: { id: string; displayName: string; area: string; user?: { phone: string } } }
+export type MealSlot = 'BREAKFAST' | 'LUNCH' | 'DINNER';
+export type PlanPeriod = 'WEEKLY' | 'MONTHLY';
+export type SubscriptionStatus = 'ACTIVE' | 'PAUSED' | 'CANCELLED' | 'ENDED';
+export interface MealPlan {
+  id: string; cookId: string; title: string; description: string; meal: MealSlot; period: PlanPeriod; days: number[]; pricePerMeal: number; deliverAt: string; capacity: number; active: boolean;
+  createdAt: string; cook?: CookPublic; _count?: { subscriptions: number };
+}
+export interface Subscription {
+  id: string; planId: string; status: SubscriptionStatus; startDate: string; endDate: string; addressText: string; area: string; notes: string | null; createdAt: string;
+  plan: MealPlan & { cook: CookPublic };
+}
+export interface KitchenSubscriber {
+  id: string; status: SubscriptionStatus; startDate: string; endDate: string; addressText: string; area: string; notes: string | null;
+  plan: { title: string; meal: MealSlot; deliverAt: string }; customer: { name: string | null };
+}
+export type PlanInput = { title: string; description?: string; meal: MealSlot; period: PlanPeriod; days: number[]; pricePerMeal: number; deliverAt: string; capacity: number; active?: boolean };

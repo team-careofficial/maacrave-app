@@ -107,3 +107,8 @@ tr:last-child td { border-bottom: 0; }
 .spot-saffron { border-top-color: #E07B12; } .spot-forest { border-top-color: #1E7F4F; } .spot-night { border-top-color: #261B36; } .spot-rose { border-top-color: #C93F66; } .spot-ocean { border-top-color: #2463B3; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 select.input { appearance: auto; }
+.spot-pic { display: flex; gap: 12px; align-items: flex-start; }
+.spot-pic-body { flex: 1; min-width: 0; display: grid; gap: 8px; }
+.spot-preview { width: 84px; height: 112px; object-fit: cover; border-radius: 12px; border: 3px solid var(--brand); background: var(--card); }
+.hide { display: none; }
+input[type=file].input { padding: 9px 10px; }

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { ArrowRight, Bell, ChevronDown, MapPin, MessageSquarePlus, Search, ShoppingBag, SlidersHorizontal, Truck, UtensilsCrossed } from 'lucide-react-native';
+import { ArrowRight, Bell, CalendarDays, ChevronDown, ChevronRight, MapPin, MessageSquarePlus, Search, ShoppingBag, SlidersHorizontal, Truck, UtensilsCrossed } from 'lucide-react-native';
 import { ScrollView, View } from 'react-native';
 import { API } from '@/api';
 import { useAuth } from '@/auth';
@@ -99,11 +99,17 @@ export default function Home() {
           <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center' }}><UtensilsCrossed size={19} color={C.brand} /></View>
           <View><T v="card" style={{ fontSize: 15 }}>Order now</T><T v="meta" numberOfLines={2}>Ready dishes cooking today</T></View>
         </Card>
-        <Card onPress={() => router.push('/request/new')} style={{ flex: 1, padding: S.md, gap: S.sm, backgroundColor: C.ink }}>
+        <Card onPress={() => router.push('/request/new')} style={{ flex: 1, padding: S.md, gap: S.sm, backgroundColor: '#FBE6E6' }}>
           <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.brand, alignItems: 'center', justifyContent: 'center' }}><MessageSquarePlus size={19} color="#fff" /></View>
-          <View><T v="card" color="#fff" style={{ fontSize: 15 }}>Request a dish</T><T v="meta" color="rgba(255,255,255,0.65)" numberOfLines={2}>Mothers reply with a price</T></View>
+          <View><T v="card" color={C.brandDark} style={{ fontSize: 15 }}>Request a dish</T><T v="meta" color={C.brandText} numberOfLines={2}>Mothers reply with a price</T></View>
         </Card>
       </Row>
+
+      <Card onPress={() => router.push('/plans')} style={{ marginTop: S.md, padding: S.md, flexDirection: 'row', alignItems: 'center', gap: S.md, backgroundColor: '#EEF3FE' }}>
+        <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: C.info, alignItems: 'center', justifyContent: 'center' }}><CalendarDays size={20} color="#fff" /></View>
+        <View style={{ flex: 1 }}><T v="card" style={{ fontSize: 15 }}>Meal plans</T><T v="meta" numberOfLines={1}>Breakfast, lunch or dinner · weekly or monthly</T></View>
+        <ChevronRight size={18} color={C.info} />
+      </Card>
 
       {active || openReqs.length ? (
         <FadeIn delay={80} style={{ gap: S.sm, marginTop: S.md }}>

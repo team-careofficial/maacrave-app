@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { Bell, MessageSquare, Plus, Users, Wallet } from 'lucide-react-native';
+import { Bell, MessageSquare, Plus, Users, Wallet, CalendarDays } from 'lucide-react-native';
 import { View } from 'react-native';
 import { API } from '@/api';
 import { firstName, tk } from '@/format';
@@ -58,6 +58,7 @@ export default function KitchenToday() {
             <Row gap={S.sm} wrap>
               <Button title="Add a dish" v="dark" icon={<Plus size={16} color="#fff" />} onPress={() => router.push('/kitchen/dish/new')} />
               <Button title="Open group batch" v="outline" icon={<Users size={16} color={C.text} />} onPress={() => router.push('/kitchen/new-batch')} />
+              <Button title="Meal plans" v="outline" icon={<CalendarDays size={16} color={C.text} />} onPress={() => router.push('/kitchen/plans')} />
               <Button title="Earnings" v="outline" icon={<Wallet size={16} color={C.text} />} onPress={() => router.push('/kitchen/earnings')} />
             </Row>
           </Section>

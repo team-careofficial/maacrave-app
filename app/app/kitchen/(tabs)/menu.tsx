@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { ChefHat, Plus } from 'lucide-react-native';
+import { ChefHat, Plus, CalendarDays } from 'lucide-react-native';
 import { View } from 'react-native';
 import { API } from '@/api';
 import { tk } from '@/format';
@@ -31,7 +31,7 @@ export default function Menu() {
   const q = useQuery({ queryKey: ['kitchenDishes'], queryFn: API.kitchenDishes });
   const live = (q.data || []).filter((d) => d.available).length;
   return (
-    <Screen header={<Header title="Menu" sub={q.data ? `${live} of ${q.data.length} dishes cooking today` : undefined} right={<Button title="Add dish" size="sm" v="secondary" icon={<Plus size={16} color={C.brandText} />} onPress={() => router.push('/kitchen/dish/new')} />} />} onRefresh={q.refetch} refreshing={q.isRefetching}>
+    <Screen header={<Header title="Menu" sub={q.data ? `${live} of ${q.data.length} dishes cooking today` : undefined} right={<Row gap={S.sm}><Button title="Plans" size="sm" v="ghost" icon={<CalendarDays size={16} color={C.text} />} onPress={() => router.push('/kitchen/plans')} /><Button title="Add dish" size="sm" v="secondary" icon={<Plus size={16} color={C.brandText} />} onPress={() => router.push('/kitchen/dish/new')} /></Row>} />} onRefresh={q.refetch} refreshing={q.isRefetching}>
       {q.isLoading ? <Loading /> : q.error ? <ErrorState error={q.error} onRetry={q.refetch} /> : q.data?.length ? (
         <View style={{ marginTop: S.sm }}><Grid>{q.data.map((d) => <MenuItem key={d.id} d={d} />)}</Grid></View>
       ) : <Empty Icon={ChefHat} title="Your menu is empty" text="Add the dishes you cook best. Customers see them as soon as you switch them on." action="Add your first dish" onAction={() => router.push('/kitchen/dish/new')} />}

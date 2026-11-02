@@ -1,4 +1,5 @@
-import { Controller, Get, Injectable, Module, NotFoundException, Param, Query } from '@nestjs/common';
+import { Controller, Get, Injectable, Module, NotFoundException, Param, Query, Res } from '@nestjs/common';
+import type { Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { Public } from '../common/auth';
 import { PrismaService } from '../common/prisma.service';
@@ -19,7 +20,11 @@ export class CatalogService {
     return { deletedAt: null, available: true, cook: { accepting: true, user: { suspended: false, roles: { some: { role: 'COOK', status: 'APPROVED' } } } }, ...extra };
   }
 
-  spotlights() { return this.prisma.spotlight.findMany({ where: { active: true }, orderBy: { slot: 'asc' } }); }
+  async spotlights() {
+    const rows = await this.prisma.spotlight.findMany({ where: { active: true }, orderBy: { slot: 'asc' } });
+    return rows.map(({ imageData, imageMime: _m, ...r }) => ({ ...r, hasImage: !!imageData }));
+  }
+  spotlightImage(slot: number) { return this.prisma.spotlight.findUnique({ where: { slot }, select: { imageMime: true, imageData: true } }); }
 
   async meta() {
     const s = await this.prisma.settings();
@@ -97,6 +102,15 @@ export class CatalogController {
   @Get('health') health() { return { ok: true, time: new Date().toISOString() }; }
   @Get('meta') meta() { return this.catalog.meta(); }
   @Get('spotlights') spotlights() { return this.catalog.spotlights(); }
+  /** Spotlight pictures are served as real image files so phones can cache them. */
+  @Get('spotlights/:slot/image') async spotlightImage(@Param('slot') slot: string, @Res() res: Response) {
+    const r = await this.catalog.spotlightImage(Number(slot));
+    if (!r?.imageData || !r.imageMime) return res.status(404).end();
+    res.setHeader('Content-Type', r.imageMime);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    return res.end(Buffer.from(r.imageData, 'base64'));
+  }
   @Get('dishes') dishes(@Query() q: Record<string, string>) { return this.catalog.dishes(q); }
   @Get('dishes/:id') dish(@Param('id') id: string) { return this.catalog.dish(id); }
   @Get('cooks') cooks(@Query('q') q?: string) { return this.catalog.cooks(q); }

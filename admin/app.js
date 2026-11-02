@@ -183,15 +183,16 @@
     async spotlights() {
       const rows = await api('/admin/spotlights');
       const DEF = [
-        { slot: 1, title: 'Friday Biryani', titleBn: 'শুক্রবারের বিরিয়ানি', subtitle: 'Kacchi & tehari from home kitchens', subtitleBn: 'ঘরের হাঁড়ির কাচ্চি আর তেহারি', icon: 'soup', theme: 'crimson', animation: 'steam', action: 'category:rice', active: true },
+        { slot: 1, layout: 'poster', title: 'Friday Biryani', titleBn: 'শুক্রবারের বিরিয়ানি', subtitle: 'Kacchi & tehari from home kitchens', subtitleBn: 'ঘরের হাঁড়ির কাচ্চি আর তেহারি', icon: 'soup', theme: 'crimson', animation: 'steam', action: 'category:rice', active: true },
         { slot: 2, title: 'Under ৳150', titleBn: '৳১৫০ এর মধ্যে', subtitle: 'Full meals on a student budget', subtitleBn: 'স্টুডেন্ট বাজেটে পেট ভরে', icon: 'percent', theme: 'saffron', animation: 'wiggle', action: 'maxPrice:150', active: true },
         { slot: 3, title: 'Light & healthy', titleBn: 'হালকা ও স্বাস্থ্যকর', subtitle: 'Less oil, more vegetables', subtitleBn: 'কম তেল, বেশি সবজি', icon: 'leaf', theme: 'forest', animation: 'float', action: 'category:healthy', active: true },
-        { slot: 4, title: 'Group dinner', titleBn: 'গ্রুপ ডিনার', subtitle: 'Join neighbours, pay less', subtitleBn: 'প্রতিবেশীদের সাথে, কম খরচে', icon: 'users', theme: 'night', animation: 'pulse', action: 'groups', active: true },
+        { slot: 4, title: 'Meal plans', titleBn: 'মিল প্ল্যান', subtitle: 'Lunch box every day', subtitleBn: 'প্রতিদিন দুপুরের টিফিন', icon: 'coffee', theme: 'ocean', animation: 'pulse', action: 'plans', active: true },
       ];
       const ICONS = ['soup', 'fish', 'drumstick', 'beef', 'leaf', 'cake', 'cookie', 'sun', 'moon', 'flame', 'sparkles', 'users', 'gift', 'heart', 'utensils', 'request', 'percent', 'coffee'];
       const THEMES = [['crimson', 'Crimson'], ['saffron', 'Saffron'], ['forest', 'Green'], ['night', 'Night'], ['rose', 'Rose'], ['ocean', 'Ocean']];
       const ANIMS = [['float', 'Float up & down'], ['steam', 'Rising steam'], ['pulse', 'Pulse rings'], ['shine', 'Light sweep'], ['wiggle', 'Wiggle'], ['spin', 'Slow spin']];
-      const ACTIONS = [['browse', 'Open Browse'], ['request', 'Request a dish'], ['groups', 'Group orders'], ['maxPrice:150', 'Under ৳150'], ['maxPrice:250', 'Under ৳250'],
+      const LAYOUTS = [['arch', 'Title band + picture'], ['poster', 'Full poster']];
+      const ACTIONS = [['browse', 'Open Browse'], ['request', 'Request a dish'], ['groups', 'Group orders'], ['plans', 'Meal plans'], ['maxPrice:150', 'Under ৳150'], ['maxPrice:250', 'Under ৳250'],
         ...['rice', 'bengali', 'fish', 'chicken', 'beef', 'veg', 'snacks', 'breakfast', 'lunch', 'dinner', 'dessert', 'healthy'].map((c) => ['category:' + c, 'Category: ' + c])];
       const sel = (name, opts, v) => `<select class="input" name="${name}">${opts.map((o) => { const [val, label] = Array.isArray(o) ? o : [o, o]; return `<option value="${esc(val)}" ${val === v ? 'selected' : ''}>${esc(label)}</option>`; }).join('')}</select>`;
       return `
@@ -209,6 +210,14 @@
               <label class="field">Colour${sel('theme', THEMES, r.theme)}</label>
               <label class="field">Animation${sel('animation', ANIMS, r.animation)}</label>
               <label class="field">When tapped${sel('action', ACTIONS, r.action)}</label>
+              <label class="field">Card style${sel('layout', LAYOUTS, r.layout || 'arch')}</label>
+            </div>
+            <div class="spot-pic">
+              <img class="spot-preview ${r.hasImage ? '' : 'hide'}" alt="" ${r.hasImage ? `src="${esc(API + '/spotlights/' + slot + '/image?v=' + encodeURIComponent(r.updatedAt || ''))}"` : ''}/>
+              <div class="spot-pic-body">
+                <label class="field">Picture <span class="muted small">(optional — JPG/PNG, shown with a slow zoom. Without one, the animated icon is used.)</span><input class="input" type="file" name="image" accept="image/jpeg,image/png,image/webp"/></label>
+                ${r.hasImage ? '<label class="row small"><input type="checkbox" name="removeImage"/> Remove picture</label>' : ''}
+              </div>
             </div>
             <button class="btn primary" type="submit">Save card ${slot}</button>
           </form>`;
@@ -257,6 +266,31 @@
     catch (e) { m.remove(); toast(e.message); }
   }
 
+  /** Resize a picture to at most 900px and turn it into a JPEG data URL (keeps uploads small). */
+  function shrink(file) {
+    return new Promise((resolve, reject) => {
+      if (file.size > 15 * 1024 * 1024) return reject(new Error('That picture is too big. Use one under 15 MB.'));
+      const url = URL.createObjectURL(file); const img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, 900 / Math.max(img.width, img.height));
+        const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        let q = 0.85, out = c.toDataURL('image/jpeg', q);
+        while (out.length > 1_400_000 && q > 0.4) { q -= 0.1; out = c.toDataURL('image/jpeg', q); }
+        resolve(out);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Couldn’t read that picture.')); };
+      img.src = url;
+    });
+  }
+  document.addEventListener('change', (e) => {
+    const el = e.target;
+    if (el.name !== 'image' || !el.files || !el.files[0]) return;
+    const prev = el.closest('form').querySelector('.spot-preview');
+    prev.src = URL.createObjectURL(el.files[0]); prev.classList.remove('hide');
+  });
+
   /* ---------- events ---------- */
   document.addEventListener('submit', (e) => {
     if (e.target.id === 'loginForm') { e.preventDefault(); submitLogin(e.target); }
@@ -265,8 +299,12 @@
       e.preventDefault();
       const f = e.target; const btn = f.querySelector('button[type=submit]'); btn.disabled = true;
       const g = (n) => f.elements.namedItem(n); // not f.title / f.action — those are built-in form properties
-      const body = { title: g('title').value.trim(), titleBn: g('titleBn').value.trim(), subtitle: g('subtitle').value.trim(), subtitleBn: g('subtitleBn').value.trim(), icon: g('icon').value, theme: g('theme').value, animation: g('animation').value, action: g('action').value, active: g('active').checked };
-      api('/admin/spotlights/' + f.dataset.spot, { method: 'POST', body }).then(() => { toast('Card ' + f.dataset.spot + ' saved'); render(); }).catch((err) => { btn.disabled = false; toast(err.message); });
+      const body = { title: g('title').value.trim(), titleBn: g('titleBn').value.trim(), subtitle: g('subtitle').value.trim(), subtitleBn: g('subtitleBn').value.trim(), icon: g('icon').value, theme: g('theme').value, animation: g('animation').value, action: g('action').value, layout: g('layout').value, active: g('active').checked };
+      const file = g('image').files && g('image').files[0];
+      const rm = g('removeImage');
+      if (rm && rm.checked && !file) body.removeImage = true;
+      (file ? shrink(file).then((img) => { body.image = img; }) : Promise.resolve())
+        .then(() => api('/admin/spotlights/' + f.dataset.spot, { method: 'POST', body })).then(() => { toast('Card ' + f.dataset.spot + ' saved'); render(); }).catch((err) => { btn.disabled = false; toast(err.message); });
     }
   });
   document.addEventListener('click', async (e) => {
