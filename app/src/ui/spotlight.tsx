@@ -95,9 +95,9 @@ function Card({ s, width }: { s: Spotlight; width: number }) {
   const sub = bn ? s.subtitleBn : s.subtitle;
   const Icon = ICONS[s.icon] || UtensilsCrossed;
   const img = s.hasImage ? { uri: `${API_URL}/spotlights/${s.slot}/image?v=${encodeURIComponent(s.updatedAt || '')}` } : null;
+  const small = width < 120;
   const h = width * (small ? 1.18 : 1.3);
   const poster = s.layout === 'poster';
-  const small = width < 120;
   const titleStyle = { fontFamily: bn ? 'HindSiliguri_600SemiBold' : F.displayX, fontSize: small ? (bn ? 12 : 10.5) : bn ? 15 : 14.5, lineHeight: small ? (bn ? 16 : 12.5) : bn ? 21 : 16, letterSpacing: bn ? 0 : 0.2, color: FRAME, textAlign: 'center' as const, textTransform: bn ? undefined : ('uppercase' as const) };
   return (
     <Tap onPress={() => go(s.action)} scale={0.95} label={title} style={{ width, height: h, borderRadius: small ? 16 : 20, borderWidth: small ? 1.5 : 2, borderColor: FRAME, backgroundColor: '#fff', overflow: 'hidden',
