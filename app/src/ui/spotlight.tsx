@@ -8,7 +8,7 @@ import { useEffect, useRef } from 'react';
 import { Animated, Easing, Image, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { api, API_URL } from '../api';
 import { useLang } from '../i18n';
-import { F, R, S } from '../theme';
+import { F, S } from '../theme';
 import { Tap } from './index';
 import { useCols } from './grid';
 import type React from 'react';
@@ -56,42 +56,59 @@ function useLoop(duration: number, delay = 0) {
   return v;
 }
 
-/** The moving bits inside a card, chosen in the admin panel. */
-function AnimatedIcon({ kind, Icon, big }: { kind: string; Icon: LucideIcon; big?: boolean }) {
-  const a = useLoop(kind === 'spin' ? 9000 : kind === 'shine' ? 2600 : 2200);
-  const b = useLoop(2200, 700);
-  const c = useLoop(2200, 1400);
+/** Soft tint of a theme colour for the white cards. */
+const TINT: Record<string, { soft: string; mid: string }> = {
+  crimson: { soft: '#FDEEEE', mid: '#F7D3D4' }, saffron: { soft: '#FFF4E5', mid: '#FDE0B8' }, forest: { soft: '#EAF6EF', mid: '#CBEBD8' },
+  night: { soft: '#F0EDF6', mid: '#DCD5EA' }, rose: { soft: '#FDEEF3', mid: '#F8D2DF' }, ocean: { soft: '#EBF3FC', mid: '#CFE1F6' },
+};
+
+/** The moving drawing inside a card, chosen in the admin panel (float, steam, pulse, wiggle, spin, shine). */
+function Scene({ kind, Icon, color, tint, size }: { kind: string; Icon: LucideIcon; color: string; tint: { soft: string; mid: string }; size: number }) {
+  const a = useLoop(kind === 'spin' ? 9000 : kind === 'shine' ? 2800 : 2400);
+  const b = useLoop(2400, 800);
+  const c = useLoop(2400, 1600);
+  const slow = useLoop(6000);
   const wave = a.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 1, 0] });
+  const breathe = slow.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 1, 0] });
   const iconStyle =
-    kind === 'float' ? { transform: [{ translateY: wave.interpolate({ inputRange: [0, 1], outputRange: [3, -5] }) }] }
+    kind === 'float' ? { transform: [{ translateY: wave.interpolate({ inputRange: [0, 1], outputRange: [4, -6] }) }] }
     : kind === 'wiggle' ? { transform: [{ rotate: a.interpolate({ inputRange: [0, 0.15, 0.3, 0.45, 0.6, 1], outputRange: ['0deg', '-14deg', '12deg', '-8deg', '0deg', '0deg'] }) }] }
     : kind === 'spin' ? { transform: [{ rotate: a.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] }
-    : kind === 'pulse' ? { transform: [{ scale: wave.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] }) }] }
+    : kind === 'pulse' ? { transform: [{ scale: wave.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] }) }] }
     : {};
-  const z = big ? 1.5 : 1;
+  const disc = size * 0.62;
   return (
-    <View style={{ width: 52, height: 52, alignItems: 'center', justifyContent: 'center', transform: [{ scale: z }] }}>
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      {/* slow breathing halo */}
+      <Animated.View style={{ position: 'absolute', width: size, height: size, borderRadius: size / 2, backgroundColor: tint.soft,
+        transform: [{ scale: breathe.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1.02] }) }] }} />
+      {/* little orbiting dots */}
+      <Animated.View style={{ position: 'absolute', width: size * 0.9, height: size * 0.9, transform: [{ rotate: slow.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] }}>
+        <View style={{ position: 'absolute', top: 0, left: size * 0.45 - 3, width: 6, height: 6, borderRadius: 3, backgroundColor: color, opacity: 0.55 }} />
+        <View style={{ position: 'absolute', bottom: size * 0.12, right: 2, width: 4, height: 4, borderRadius: 2, backgroundColor: color, opacity: 0.35 }} />
+      </Animated.View>
       {kind === 'pulse' ? [a, b].map((v, i) => (
-        <Animated.View key={i} style={{ position: 'absolute', width: 52, height: 52, borderRadius: 26, borderWidth: 2, borderColor: 'rgba(255,255,255,0.8)',
-          opacity: v.interpolate({ inputRange: [0, 1], outputRange: [0.6, 0] }), transform: [{ scale: v.interpolate({ inputRange: [0, 1], outputRange: [1, 1.8] }) }] }} />
+        <Animated.View key={i} style={{ position: 'absolute', width: disc, height: disc, borderRadius: disc / 2, borderWidth: 2, borderColor: color,
+          opacity: v.interpolate({ inputRange: [0, 1], outputRange: [0.45, 0] }), transform: [{ scale: v.interpolate({ inputRange: [0, 1], outputRange: [1, 1.6] }) }] }} />
       )) : null}
       {kind === 'steam' ? [a, b, c].map((v, i) => (
-        <Animated.View key={i} style={{ position: 'absolute', top: -6, left: 14 + i * 9, width: 5, height: 14, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.75)',
-          opacity: v.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 0.9, 0] }), transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [8, -16] }) }, { scaleX: v.interpolate({ inputRange: [0, 1], outputRange: [1, 1.8] }) }] }} />
+        <Animated.View key={i} style={{ position: 'absolute', top: size / 2 - disc / 2 - 6, left: size / 2 - 12 + i * 9, width: 5, height: 14, borderRadius: 3, backgroundColor: color,
+          opacity: v.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0, 0.5, 0] }), transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [8, -16] }) }, { scaleX: v.interpolate({ inputRange: [0, 1], outputRange: [1, 1.7] }) }] }} />
       )) : null}
-      <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255,255,255,0.2)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' }}>
-        <Animated.View style={iconStyle}><Icon size={25} color="#fff" strokeWidth={2} /></Animated.View>
+      <View style={{ width: disc, height: disc, borderRadius: disc / 2, backgroundColor: '#fff', borderWidth: 1.5, borderColor: tint.mid, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+        {kind === 'shine' ? <Shine color={tint.mid} /> : null}
+        <Animated.View style={iconStyle}><Icon size={disc * 0.46} color={color} strokeWidth={2} /></Animated.View>
       </View>
     </View>
   );
 }
 
-function Shine() {
+function Shine({ color = 'rgba(255,255,255,0.9)' }: { color?: string }) {
   const a = useLoop(3200, 400);
   return (
-    <Animated.View pointerEvents="none" style={{ position: 'absolute', top: -40, bottom: -40, width: 60, opacity: 0.35,
-      transform: [{ translateX: a.interpolate({ inputRange: [0, 1], outputRange: [-120, 360] }) }, { rotate: '20deg' }] }}>
-      <LinearGradient colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.9)', 'rgba(255,255,255,0)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+    <Animated.View pointerEvents="none" style={{ position: 'absolute', top: -40, bottom: -40, width: 30, opacity: 0.8,
+      transform: [{ translateX: a.interpolate({ inputRange: [0, 1], outputRange: [-80, 120] }) }, { rotate: '20deg' }] }}>
+      <LinearGradient colors={['rgba(255,255,255,0)', color, 'rgba(255,255,255,0)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
     </Animated.View>
   );
 }
@@ -102,63 +119,56 @@ const FRAME = '#C7272D';
 function Drift({ children }: { children: React.ReactNode }) {
   const a = useLoop(9000);
   const k = a.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 1, 0] });
-  return <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ scale: k.interpolate({ inputRange: [0, 1], outputRange: [1.02, 1.12] }) }, { translateX: k.interpolate({ inputRange: [0, 1], outputRange: [0, -6] }) }] }]}>{children}</Animated.View>;
+  return <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ scale: k.interpolate({ inputRange: [0, 1], outputRange: [1.02, 1.12] }) }, { translateX: k.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] }]}>{children}</Animated.View>;
 }
 
-/** Pathao-style tall card: crimson frame, title on a curved colour band, picture (or animated icon) below. */
+/** Pathao-style tall card: white inside, thin red border, title on top, animated drawing (or picture) below. */
 function Card({ s, width }: { s: Spotlight; width: number }) {
   const lang = useLang();
   const bn = lang === 'bn';
-  const colors = THEMES[s.theme] || THEMES.crimson;
+  const color = (THEMES[s.theme] || THEMES.crimson)[1];
+  const tint = TINT[s.theme] || TINT.crimson;
   const title = bn ? s.titleBn : s.title;
   const sub = bn ? s.subtitleBn : s.subtitle;
   const Icon = ICONS[s.icon] || UtensilsCrossed;
   const img = s.hasImage ? { uri: `${API_URL}/spotlights/${s.slot}/image?v=${encodeURIComponent(s.updatedAt || '')}` } : null;
-  const titleStyle = { fontFamily: bn ? 'HindSiliguri_600SemiBold' : F.displayX, fontSize: bn ? 21 : 21, lineHeight: bn ? 28 : 22, letterSpacing: bn ? 0 : -0.3, color: '#fff', textAlign: 'center' as const, textTransform: bn ? undefined : ('uppercase' as const) };
-  const scene = img ? (
-    <Drift><Image source={img} style={{ width: '100%', height: '100%' }} resizeMode="cover" /></Drift>
-  ) : (
-    <View style={StyleSheet.absoluteFill}>
-      <LinearGradient colors={[colors[2], colors[1]]} start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
-      {s.animation === 'shine' ? <Shine /> : null}
-      {[0, 1, 2].map((i) => <View key={i} style={{ position: 'absolute', bottom: -20 + i * 6, left: -10 + i * 52, width: 70, height: 60 + i * 18, borderTopLeftRadius: 10, borderTopRightRadius: 10, backgroundColor: 'rgba(0,0,0,0.12)' }} />)}
-      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 22, alignItems: 'center' }}><AnimatedIcon kind={s.animation} Icon={Icon} big /></View>
-    </View>
-  );
+  const h = width * 1.42;
+  const poster = s.layout === 'poster';
+  const titleStyle = { fontFamily: bn ? 'HindSiliguri_600SemiBold' : F.displayX, fontSize: bn ? 15 : 14.5, lineHeight: bn ? 21 : 16, letterSpacing: bn ? 0 : 0.2, color: FRAME, textAlign: 'center' as const, textTransform: bn ? undefined : ('uppercase' as const) };
   return (
-    <Tap onPress={() => go(s.action)} scale={0.96} label={title} style={{ width, borderRadius: 26, borderWidth: 3, borderColor: FRAME, padding: 3, backgroundColor: '#fff',
-      ...(Platform.select({ ios: { shadowColor: '#7C0E13', shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 8 } }, android: { elevation: 4 }, default: { boxShadow: '0 12px 24px -14px rgba(124,14,19,.45)' } }) as object) }}>
-      <View style={{ height: width * 1.36, borderRadius: 20, overflow: 'hidden', backgroundColor: colors[1] }}>
-        {s.layout === 'poster' ? (
-          <>
-            {img ? scene : (
-              <>
-                <LinearGradient colors={[colors[0], colors[2], '#1A0A0B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-                <Shine />
-              </>
-            )}
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 12, gap: 10 }}>
-              {!img ? <AnimatedIcon kind={s.animation} Icon={Icon} /> : null}
-              <Text style={titleStyle} numberOfLines={3}>{title}</Text>
-              <View style={{ backgroundColor: '#fff', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, transform: [{ rotate: '-4deg' }] }}>
-                <Text numberOfLines={1} style={{ fontFamily: bn ? 'HindSiliguri_600SemiBold' : F.bold, fontSize: 12, color: FRAME }}>{sub}</Text>
+    <Tap onPress={() => go(s.action)} scale={0.95} label={title} style={{ width, height: h, borderRadius: 20, borderWidth: 2, borderColor: FRAME, backgroundColor: '#fff', overflow: 'hidden',
+      ...(Platform.select({ ios: { shadowColor: '#7C0E13', shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 6 } }, android: { elevation: 2 }, default: { boxShadow: '0 10px 22px -16px rgba(124,14,19,.45)' } }) as object) }}>
+      {poster && img ? (
+        <>
+          <Drift><Image source={img} style={{ width: '100%', height: '100%' }} resizeMode="cover" /></Drift>
+        </>
+      ) : (
+        <View style={{ flex: 1, paddingTop: 12, paddingHorizontal: 8, alignItems: 'center' }}>
+          {!poster ? (
+            <>
+              <Text style={titleStyle} numberOfLines={2}>{title}</Text>
+              <Text numberOfLines={1} style={{ fontFamily: bn ? 'HindSiliguri_400Regular' : F.medium, fontSize: 10.5, color: '#8B8182', marginTop: 3, textAlign: 'center' }}>{sub}</Text>
+            </>
+          ) : null}
+          {img ? (
+            <View style={{ flex: 1, alignSelf: 'stretch', marginTop: 8, marginHorizontal: -8, overflow: 'hidden' }}>
+              <Drift><Image source={img} style={{ width: '100%', height: '100%' }} resizeMode="cover" /></Drift>
+            </View>
+          ) : (
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              <Scene kind={s.animation} Icon={Icon} color={color} tint={tint} size={Math.min(width * 0.78, poster ? 120 : 100)} />
+            </View>
+          )}
+          {poster ? (
+            <View style={{ paddingBottom: 14, alignItems: 'center', gap: 6 }}>
+              <Text style={titleStyle} numberOfLines={2}>{title}</Text>
+              <View style={{ backgroundColor: FRAME, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, transform: [{ rotate: '-3deg' }] }}>
+                <Text numberOfLines={1} style={{ fontFamily: bn ? 'HindSiliguri_600SemiBold' : F.bold, fontSize: 10, color: '#fff' }}>{sub}</Text>
               </View>
             </View>
-          </>
-        ) : (
-          <>
-            <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, top: '38%' }}>{scene}</View>
-            {/* curved colour band with the title */}
-            <View style={{ position: 'absolute', top: -width * 0.55, left: -width * 0.35, width: width * 1.7, height: width * 1.08, borderRadius: width, overflow: 'hidden' }}>
-              <LinearGradient colors={[colors[0], colors[1]]} style={StyleSheet.absoluteFill} />
-            </View>
-            <View style={{ paddingTop: 16, paddingHorizontal: 10, alignItems: 'center' }}>
-              <Text style={titleStyle} numberOfLines={2}>{title}</Text>
-              <Text numberOfLines={1} style={{ fontFamily: bn ? 'HindSiliguri_400Regular' : F.semibold, fontSize: 11, color: 'rgba(255,255,255,0.88)', marginTop: 3 }}>{sub}</Text>
-            </View>
-          </>
-        )}
-      </View>
+          ) : null}
+        </View>
+      )}
     </Tap>
   );
 }
@@ -170,9 +180,9 @@ export function SpotlightGrid() {
   const q = useQuery({ queryKey: ['spotlights'], queryFn: () => api<Spotlight[]>('/spotlights'), staleTime: 10 * 60_000 });
   const fromServer = q.data || [];
   const cards = (q.data && fromServer.length ? fromServer : DEFAULT_SPOTLIGHTS).slice(0, 4);
-  const cardW = cols >= 2 ? Math.min(230, (Math.min(width, 1080) - 32 - 36) / 4) : Math.min(168, width * 0.42);
+  const cardW = cols >= 2 ? Math.min(200, (Math.min(width, 1080) - 32 - 36) / 4) : Math.min(132, (width - 32 - 30) / 3.3);
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -S.lg }} contentContainerStyle={{ gap: 12, paddingHorizontal: S.lg, paddingVertical: 4 }}>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -S.lg }} contentContainerStyle={{ gap: 10, paddingHorizontal: S.lg, paddingVertical: 6 }}>
       {cards.map((s) => <Card key={s.slot} s={s} width={cardW} />)}
     </ScrollView>
   );

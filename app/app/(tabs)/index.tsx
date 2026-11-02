@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { ArrowRight, Bell, CalendarDays, ChevronDown, ChevronRight, MapPin, MessageSquarePlus, Search, ShoppingBag, SlidersHorizontal, Truck, UtensilsCrossed } from 'lucide-react-native';
+import { ArrowRight, Bell, MessageSquarePlus, Search, ShoppingBag, SlidersHorizontal, Truck, UtensilsCrossed } from 'lucide-react-native';
 import { ScrollView, View } from 'react-native';
 import { API } from '@/api';
 import { useAuth } from '@/auth';
@@ -57,16 +57,9 @@ export default function Home() {
           <IconButton label="Cart" badge={cart.count} onPress={() => router.push('/cart')}><ShoppingBag size={20} color={C.text} /></IconButton>
         </Row>
       } />}>
-      {/* delivery address */}
-      <Tap onPress={() => router.push('/addresses')} scale={0.97} style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.surface2, borderRadius: R.pill, paddingHorizontal: 12, height: 32, marginTop: 2, maxWidth: '100%' }}>
-        <MapPin size={14} color={C.brand} />
-        <T v="meta" color={C.text} numberOfLines={1} style={{ fontFamily: F.bold, flexShrink: 1 }}>{addr ? `${addr.label}, ${addr.area}` : 'Add delivery address'}</T>
-        <ChevronDown size={14} color={C.text} />
-      </Tap>
-
       {/* big greeting */}
       <FadeIn>
-        <T v="hero" style={{ marginTop: S.md, fontSize: 32, lineHeight: 38 }}>{tr(hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening')},{'\n'}<T v="hero" color={C.brand} style={{ fontSize: 32, lineHeight: 38 }}>{firstName(me?.name) || tr('friend')}</T></T>
+        <T v="hero" style={{ marginTop: S.sm, fontSize: 32, lineHeight: 38 }}>{tr(hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening')},{'\n'}<T v="hero" color={C.brand} style={{ fontSize: 32, lineHeight: 38 }}>{firstName(me?.name) || tr('friend')}</T></T>
       </FadeIn>
 
       <Row gap={S.sm} style={{ marginTop: S.md }}>
@@ -104,12 +97,6 @@ export default function Home() {
           <View><T v="card" color={C.brandDark} style={{ fontSize: 15 }}>Request a dish</T><T v="meta" color={C.brandText} numberOfLines={2}>Mothers reply with a price</T></View>
         </Card>
       </Row>
-
-      <Card onPress={() => router.push('/plans')} style={{ marginTop: S.md, padding: S.md, flexDirection: 'row', alignItems: 'center', gap: S.md, backgroundColor: '#EEF3FE' }}>
-        <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: C.info, alignItems: 'center', justifyContent: 'center' }}><CalendarDays size={20} color="#fff" /></View>
-        <View style={{ flex: 1 }}><T v="card" style={{ fontSize: 15 }}>Meal plans</T><T v="meta" numberOfLines={1}>Breakfast, lunch or dinner · weekly or monthly</T></View>
-        <ChevronRight size={18} color={C.info} />
-      </Card>
 
       {active || openReqs.length ? (
         <FadeIn delay={80} style={{ gap: S.sm, marginTop: S.md }}>

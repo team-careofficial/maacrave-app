@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { Bell, Bike, ChefHat, ChevronRight, FileText, Globe, Heart, HelpCircle, LogOut, MapPin, Shield, ShoppingBag, Trash2, type LucideIcon } from 'lucide-react-native';
+import { Bell, Bike, CalendarDays, ChefHat, ChevronRight, FileText, Globe, Heart, HelpCircle, LogOut, MapPin, Shield, ShoppingBag, Trash2, type LucideIcon } from 'lucide-react-native';
 import { Linking, Pressable, Text, View } from 'react-native';
 import { API } from '@/api';
 import { setLang, useLang } from '@/i18n';
@@ -82,6 +82,7 @@ export default function Account() {
       <Section title="Your food">
         <Group>
           <Item Icon={ShoppingBag} label="Orders" onPress={() => router.push('/orders')} /><Divider />
+          <Item Icon={CalendarDays} label="Meal plans" sub="Breakfast, lunch or dinner · weekly or monthly" onPress={() => router.push('/plans')} /><Divider />
           <Item Icon={Heart} label="Saved dishes & cooks" onPress={() => router.push('/favorites')} /><Divider />
           <Item Icon={MapPin} label="Delivery addresses" onPress={() => router.push('/addresses')} /><Divider />
           <Item Icon={Bell} label="Notifications" onPress={() => router.push('/notifications')} />
