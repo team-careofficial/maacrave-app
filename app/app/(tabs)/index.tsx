@@ -73,7 +73,7 @@ export default function Home() {
       </Row>
 
       {/* slim banner: line of the day + Explore */}
-      <Glossy style={{ marginTop: S.lg }} radius={22}>
+      <Glossy style={{ marginTop: S.lg }} radius={22} colors={['#A0181E', '#7A0F14', '#560A0E']}>
         <View style={{ paddingVertical: S.lg, paddingHorizontal: S.xl, flexDirection: 'row', alignItems: 'center', gap: S.md }}>
           <Rings size={190} right={-60} top={-70} />
           <View style={{ flex: 1, gap: 4 }}>

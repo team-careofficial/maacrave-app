@@ -23,7 +23,7 @@ function TabButton({ t, focused, onPress }: { t: TabDef; focused: boolean; onPre
       style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 8 }}>
       <View style={{ width: 52, height: 32, alignItems: 'center', justifyContent: 'center' }}>
         <Animated.View style={{ position: 'absolute', width: 52, height: 32, borderRadius: 16, backgroundColor: C.brandSoft, opacity: a, transform: [{ scaleX: a.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }] }} />
-        <t.Icon size={21} color={focused ? C.brand : C.muted} strokeWidth={focused ? 2.4 : 1.9} />
+        <View style={{ position: 'relative', zIndex: 1 }}><t.Icon size={21} color={focused ? C.brand : C.muted} strokeWidth={focused ? 2.4 : 1.9} /></View>
       </View>
       <Text numberOfLines={1} style={{ marginTop: 3, fontFamily: lang === 'bn' ? 'HindSiliguri_600SemiBold' : focused ? F.bold : F.semibold, fontSize: 10.5, color: focused ? C.brand : C.muted }}>{tr(t.title)}</Text>
     </Pressable>

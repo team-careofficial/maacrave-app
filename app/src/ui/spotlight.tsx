@@ -84,7 +84,7 @@ function Scene({ kind, Icon, color, tint, size }: { kind: string; Icon: LucideIc
         transform: [{ scale: breathe.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1.02] }) }] }} />
       {/* little orbiting dots */}
       <Animated.View style={{ position: 'absolute', width: size * 0.9, height: size * 0.9, transform: [{ rotate: slow.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] }}>
-        <View style={{ position: 'absolute', top: 0, left: size * 0.45 - 3, width: 6, height: 6, borderRadius: 3, backgroundColor: color, opacity: 0.55 }} />
+        <View style={{ position: 'absolute', top: 0, left: size * 0.45 - 3, width: 5, height: 5, borderRadius: 3, backgroundColor: color, opacity: 0.5 }} />
         <View style={{ position: 'absolute', bottom: size * 0.12, right: 2, width: 4, height: 4, borderRadius: 2, backgroundColor: color, opacity: 0.35 }} />
       </Animated.View>
       {kind === 'pulse' ? [a, b].map((v, i) => (
@@ -132,39 +132,40 @@ function Card({ s, width }: { s: Spotlight; width: number }) {
   const sub = bn ? s.subtitleBn : s.subtitle;
   const Icon = ICONS[s.icon] || UtensilsCrossed;
   const img = s.hasImage ? { uri: `${API_URL}/spotlights/${s.slot}/image?v=${encodeURIComponent(s.updatedAt || '')}` } : null;
-  const h = width * 1.42;
+  const h = width * 1.36;
   const poster = s.layout === 'poster';
-  const titleStyle = { fontFamily: bn ? 'HindSiliguri_600SemiBold' : F.displayX, fontSize: bn ? 15 : 14.5, lineHeight: bn ? 21 : 16, letterSpacing: bn ? 0 : 0.2, color: FRAME, textAlign: 'center' as const, textTransform: bn ? undefined : ('uppercase' as const) };
+  const small = width < 120;
+  const titleStyle = { fontFamily: bn ? 'HindSiliguri_600SemiBold' : F.displayX, fontSize: small ? (bn ? 12 : 10.5) : bn ? 15 : 14.5, lineHeight: small ? (bn ? 16 : 12.5) : bn ? 21 : 16, letterSpacing: bn ? 0 : 0.2, color: FRAME, textAlign: 'center' as const, textTransform: bn ? undefined : ('uppercase' as const) };
   return (
-    <Tap onPress={() => go(s.action)} scale={0.95} label={title} style={{ width, height: h, borderRadius: 20, borderWidth: 2, borderColor: FRAME, backgroundColor: '#fff', overflow: 'hidden',
+    <Tap onPress={() => go(s.action)} scale={0.95} label={title} style={{ width, height: h, borderRadius: small ? 16 : 20, borderWidth: small ? 1.5 : 2, borderColor: FRAME, backgroundColor: '#fff', overflow: 'hidden',
       ...(Platform.select({ ios: { shadowColor: '#7C0E13', shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 6 } }, android: { elevation: 2 }, default: { boxShadow: '0 10px 22px -16px rgba(124,14,19,.45)' } }) as object) }}>
       {poster && img ? (
         <>
           <Drift><Image source={img} style={{ width: '100%', height: '100%' }} resizeMode="cover" /></Drift>
         </>
       ) : (
-        <View style={{ flex: 1, paddingTop: 12, paddingHorizontal: 8, alignItems: 'center' }}>
+        <View style={{ flex: 1, paddingTop: small ? 9 : 12, paddingHorizontal: small ? 5 : 8, alignItems: 'center' }}>
           {!poster ? (
             <>
               <Text style={titleStyle} numberOfLines={2}>{title}</Text>
-              <Text numberOfLines={1} style={{ fontFamily: bn ? 'HindSiliguri_400Regular' : F.medium, fontSize: 10.5, color: '#8B8182', marginTop: 3, textAlign: 'center' }}>{sub}</Text>
+              {small ? null : <Text numberOfLines={1} style={{ fontFamily: bn ? 'HindSiliguri_400Regular' : F.medium, fontSize: 10.5, color: '#8B8182', marginTop: 3, textAlign: 'center' }}>{sub}</Text>}
             </>
           ) : null}
           {img ? (
-            <View style={{ flex: 1, alignSelf: 'stretch', marginTop: 8, marginHorizontal: -8, overflow: 'hidden' }}>
+            <View style={{ flex: 1, alignSelf: 'stretch', marginTop: 6, marginHorizontal: small ? -5 : -8, overflow: 'hidden' }}>
               <Drift><Image source={img} style={{ width: '100%', height: '100%' }} resizeMode="cover" /></Drift>
             </View>
           ) : (
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-              <Scene kind={s.animation} Icon={Icon} color={color} tint={tint} size={Math.min(width * 0.78, poster ? 120 : 100)} />
+              <Scene kind={s.animation} Icon={Icon} color={color} tint={tint} size={Math.min(width * (small ? 0.7 : 0.78), poster ? 120 : 100)} />
             </View>
           )}
           {poster ? (
-            <View style={{ paddingBottom: 14, alignItems: 'center', gap: 6 }}>
+            <View style={{ paddingBottom: small ? 9 : 14, alignItems: 'center', gap: 6 }}>
               <Text style={titleStyle} numberOfLines={2}>{title}</Text>
-              <View style={{ backgroundColor: FRAME, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, transform: [{ rotate: '-3deg' }] }}>
+              {small ? null : <View style={{ backgroundColor: FRAME, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, transform: [{ rotate: '-3deg' }] }}>
                 <Text numberOfLines={1} style={{ fontFamily: bn ? 'HindSiliguri_600SemiBold' : F.bold, fontSize: 10, color: '#fff' }}>{sub}</Text>
-              </View>
+              </View>}
             </View>
           ) : null}
         </View>
@@ -180,9 +181,9 @@ export function SpotlightGrid() {
   const q = useQuery({ queryKey: ['spotlights'], queryFn: () => api<Spotlight[]>('/spotlights'), staleTime: 10 * 60_000 });
   const fromServer = q.data || [];
   const cards = (q.data && fromServer.length ? fromServer : DEFAULT_SPOTLIGHTS).slice(0, 4);
-  const cardW = cols >= 2 ? Math.min(200, (Math.min(width, 1080) - 32 - 36) / 4) : Math.min(132, (width - 32 - 30) / 3.3);
+  const cardW = cols >= 2 ? Math.min(200, (Math.min(width, 1080) - 32 - 36) / 4) : Math.min(132, (Math.min(width, 520) - 32 - 24) / 4);
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -S.lg }} contentContainerStyle={{ gap: 10, paddingHorizontal: S.lg, paddingVertical: 6 }}>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -S.lg }} contentContainerStyle={{ gap: 8, paddingHorizontal: S.lg, paddingVertical: 6 }}>
       {cards.map((s) => <Card key={s.slot} s={s} width={cardW} />)}
     </ScrollView>
   );
