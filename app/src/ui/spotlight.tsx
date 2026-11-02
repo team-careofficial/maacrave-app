@@ -101,8 +101,10 @@ function Card({ s, width, height }: { s: Spotlight; width: number; height: numbe
   const poster = s.layout === 'poster';
   const titleStyle = { fontFamily: bn ? 'HindSiliguri_600SemiBold' : F.displayX, fontSize: small ? (bn ? 11 : 9.5) : bn ? 15 : 14.5, lineHeight: small ? (bn ? 15 : 11.5) : bn ? 21 : 16, letterSpacing: bn ? 0 : 0.2, color: FRAME, textAlign: 'center' as const, textTransform: bn ? undefined : ('uppercase' as const) };
   return (
-    <Tap onPress={() => go(s.action)} scale={0.95} label={title} style={{ width, height: h, borderRadius: small ? 16 : 20, borderWidth: 1, borderColor: FRAME, backgroundColor: '#fff', overflow: 'hidden',
-      ...(Platform.select({ ios: { shadowColor: '#7C0E13', shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 6 } }, android: { elevation: 2 }, default: { boxShadow: '0 10px 22px -16px rgba(124,14,19,.45)' } }) as object) }}>
+    <Tap onPress={() => go(s.action)} scale={0.95} label={title} style={{ width, height: h, borderRadius: small ? 16 : 20, backgroundColor: '#fff',
+      // no border — just a soft shadow (kept on the outer box so iOS doesn't clip it)
+      ...(Platform.select({ ios: { shadowColor: '#2A0B0D', shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } }, android: { elevation: 3 }, default: { boxShadow: '0 4px 16px -4px rgba(42,11,13,.14), 0 1px 3px rgba(42,11,13,.06)' } }) as object) }}>
+      <View style={{ flex: 1, borderRadius: small ? 16 : 20, overflow: 'hidden' }}>
       {poster && img ? (
         <>
           <Drift><Image source={img} style={{ width: '100%', height: '100%' }} resizeMode="cover" /></Drift>
@@ -134,6 +136,7 @@ function Card({ s, width, height }: { s: Spotlight; width: number; height: numbe
           ) : null}
         </View>
       )}
+      </View>
     </Tap>
   );
 }
@@ -150,7 +153,7 @@ export function SpotlightGrid() {
   const cardW = cols >= 2 ? Math.min(180, (Math.min(width, 1080) - 32 - 4 * 12) / 5) : Math.min(72, (Math.min(width, 520) - 32 - 4 * 8) / 5);
   const cardH = cols >= 2 ? cardW * 1.25 : 88;
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -S.lg }} contentContainerStyle={{ gap: cols >= 2 ? 12 : 8, paddingHorizontal: S.lg, paddingVertical: 6 }}>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -S.lg }} contentContainerStyle={{ gap: cols >= 2 ? 12 : 8, paddingHorizontal: S.lg, paddingVertical: 12 }}>
       {cards.map((s) => <Card key={s.slot} s={s} width={cardW} height={cardH} />)}
     </ScrollView>
   );
