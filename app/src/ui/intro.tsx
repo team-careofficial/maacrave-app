@@ -3,9 +3,9 @@ import { useEffect, useRef } from 'react';
 import { Animated, Easing, Platform, StyleSheet, Text, View } from 'react-native';
 import { F } from '../theme';
 
-/** Deep maroon for the launch screen (darker than the brand crimson). */
-const INTRO = ['#5C0B10', '#3F070B', '#260406'] as const;
-const GLOW = ['rgba(226,55,60,0.35)', 'rgba(226,55,60,0)'] as const;
+/** Rich crimson-to-maroon for the launch screen. */
+const INTRO = ['#B3171D', '#8C1015', '#5E0B0F'] as const;
+const GLOW = ['rgba(255,190,170,0.28)', 'rgba(255,190,170,0)'] as const;
 /** Never keep people on the intro longer than this, even if the server is slow to wake up. */
 const MAX_MS = 4500;
 import { Logo } from './brand';
@@ -58,6 +58,9 @@ export function Intro({ ready, onDone }: { ready: boolean; onDone: () => void })
       <LinearGradient colors={INTRO} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
       <LinearGradient colors={GLOW} start={{ x: 0.5, y: 0.2 }} end={{ x: 0.5, y: 0.8 }} style={{ position: 'absolute', left: 0, right: 0, top: '20%', height: '45%' }} />
       <Animated.View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', transform: [{ translateY: out.interpolate({ inputRange: [0, 1], outputRange: [0, -30] }) }, { scale: out.interpolate({ inputRange: [0, 1], outputRange: [1, 1.04] }) }] }}>
+        <View pointerEvents="none" style={{ position: 'absolute', width: 520, height: 520, alignItems: 'center', justifyContent: 'center', opacity: 0.5 }}>
+          {[520, 400, 290].map((d) => <View key={d} style={{ position: 'absolute', width: d, height: d, borderRadius: d / 2, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' }} />)}
+        </View>
         <View style={{ width: 120, height: 120, alignItems: 'center', justifyContent: 'center' }}>
           <Animated.View style={{ position: 'absolute', width: 120, height: 120, borderRadius: 60, borderWidth: 2, borderColor: '#fff',
             opacity: ripple.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0, 0.5, 0] }), transform: [{ scale: ripple.interpolate({ inputRange: [0, 1], outputRange: [0.6, 2.2] }) }] }} />

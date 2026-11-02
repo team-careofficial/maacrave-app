@@ -1,11 +1,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { MapPin, Plus, Trash2 } from 'lucide-react-native';
+import * as Location from 'expo-location';
+import { LocateFixed, MapPin, Plus, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { API } from '@/api';
 import { useAuth } from '@/auth';
+import { AREA_COORDS, DHAKA, type Point } from '@/geo';
 import { useAddresses, useMeta } from '@/hooks';
+import { PinPicker } from '@/ui/map';
 import { C, S } from '@/theme';
 import { Badge, Button, Card, Chip, confirm, Empty, Field, Header, Input, Loading, Note, Row, Screen, T, useToast } from '@/ui';
 
@@ -20,8 +23,21 @@ function AddressForm({ onDone }: { onDone: () => void }) {
   const [house, setHouse] = useState('');
   const [floor, setFloor] = useState('');
   const [landmark, setLandmark] = useState('');
+  const [pin, setPin] = useState<Point | null>(null);
+  const [goto, setGoto] = useState<Point | null>(null);
+  const [locating, setLocating] = useState(false);
+  async function myLocation() {
+    setLocating(true);
+    try {
+      const perm = await Location.requestForegroundPermissionsAsync();
+      if (!perm.granted) { toast('Allow location access to use this.'); return; }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const p = { lat: +pos.coords.latitude.toFixed(6), lng: +pos.coords.longitude.toFixed(6) };
+      setGoto(p); setPin(p);
+    } catch { toast('Couldn’t get your location. Move the map instead.'); } finally { setLocating(false); }
+  }
   const m = useMutation({
-    mutationFn: () => API.addAddress({ label, area, road: road.trim(), house: house.trim(), floor: floor.trim() || null, landmark: landmark.trim() || null }),
+    mutationFn: () => API.addAddress({ label, area, road: road.trim(), house: house.trim(), floor: floor.trim() || null, landmark: landmark.trim() || null, ...(pin ? { lat: pin.lat, lng: pin.lng } : {}) }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['addresses'] }); toast('Address saved'); onDone(); },
   });
   const ok = !!area && road.trim().length >= 2 && house.trim().length >= 1;
@@ -33,6 +49,12 @@ function AddressForm({ onDone }: { onDone: () => void }) {
           {(meta.data?.areas || []).map((a) => <Chip key={a} label={a} on={area === a} onPress={() => setArea(a)} />)}
         </ScrollView>
       </Field>
+      {area ? (
+        <Field label="Pin on map" hint="Drag the map to put the pin on your door.">
+          <PinPicker key={area} center={AREA_COORDS[area] || DHAKA} goto={goto} onChange={setPin} />
+          <Button title={locating ? 'Finding you…' : 'Use my location'} v="outline" size="sm" icon={<LocateFixed size={16} color={C.text} />} onPress={myLocation} loading={locating} style={{ alignSelf: 'flex-start', marginTop: S.sm }} />
+        </Field>
+      ) : null}
       <Input label="Road / block" value={road} onChangeText={setRoad} placeholder="Road 7, Block C" maxLength={120} />
       <Row gap={S.md}>
         <View style={{ flex: 1 }}><Input label="House" value={house} onChangeText={setHouse} placeholder="12/A" maxLength={120} /></View>

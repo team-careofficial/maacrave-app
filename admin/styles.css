@@ -102,3 +102,8 @@ tr:last-child td { border-bottom: 0; }
 .tabs { max-width: 100%; overflow-x: auto; }
 .tab { white-space: nowrap; }
 @media (max-width: 900px) { .top > * { max-width: 100%; } .card { overflow-wrap: anywhere; } }
+.spots { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.spot { display: grid; gap: 12px; border-top: 6px solid var(--brand); }
+.spot-saffron { border-top-color: #E07B12; } .spot-forest { border-top-color: #1E7F4F; } .spot-night { border-top-color: #261B36; } .spot-rose { border-top-color: #C93F66; } .spot-ocean { border-top-color: #2463B3; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+select.input { appearance: auto; }

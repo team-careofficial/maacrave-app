@@ -4,7 +4,7 @@ import { Public } from '../common/auth';
 import { PrismaService } from '../common/prisma.service';
 import { CATEGORIES, DHAKA_AREAS } from '../common/util';
 
-const cookPublic = { id: true, displayName: true, area: true, intro: true, specialties: true, rating: true, ratingCount: true, completedOrders: true, hours: true, accepting: true } as const;
+const cookPublic = { id: true, displayName: true, area: true, intro: true, specialties: true, rating: true, ratingCount: true, completedOrders: true, hours: true, accepting: true, lat: true, lng: true } as const;
 const firstName = (n?: string | null) => (n ? n.split(' ')[0] + ((n.split(' ')[1] || '')[0] ? ' ' + n.split(' ')[1][0] + '.' : '') : 'Neighbour');
 
 export function batchFilled(orders: { status: string; items: { quantity: number }[] }[]) {
@@ -18,6 +18,8 @@ export class CatalogService {
   private liveDish(extra: Prisma.DishWhereInput = {}): Prisma.DishWhereInput {
     return { deletedAt: null, available: true, cook: { accepting: true, user: { suspended: false, roles: { some: { role: 'COOK', status: 'APPROVED' } } } }, ...extra };
   }
+
+  spotlights() { return this.prisma.spotlight.findMany({ where: { active: true }, orderBy: { slot: 'asc' } }); }
 
   async meta() {
     const s = await this.prisma.settings();
@@ -94,6 +96,7 @@ export class CatalogController {
   constructor(private catalog: CatalogService) {}
   @Get('health') health() { return { ok: true, time: new Date().toISOString() }; }
   @Get('meta') meta() { return this.catalog.meta(); }
+  @Get('spotlights') spotlights() { return this.catalog.spotlights(); }
   @Get('dishes') dishes(@Query() q: Record<string, string>) { return this.catalog.dishes(q); }
   @Get('dishes/:id') dish(@Param('id') id: string) { return this.catalog.dish(id); }
   @Get('cooks') cooks(@Query('q') q?: string) { return this.catalog.cooks(q); }

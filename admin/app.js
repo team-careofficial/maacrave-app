@@ -180,13 +180,48 @@
         </tr>`).join('')}</tbody></table>` : empty('No payout requests.')}`;
     },
 
+    async spotlights() {
+      const rows = await api('/admin/spotlights');
+      const DEF = [
+        { slot: 1, title: 'Friday Biryani', titleBn: 'শুক্রবারের বিরিয়ানি', subtitle: 'Kacchi & tehari from home kitchens', subtitleBn: 'ঘরের হাঁড়ির কাচ্চি আর তেহারি', icon: 'soup', theme: 'crimson', animation: 'steam', action: 'category:rice', active: true },
+        { slot: 2, title: 'Under ৳150', titleBn: '৳১৫০ এর মধ্যে', subtitle: 'Full meals on a student budget', subtitleBn: 'স্টুডেন্ট বাজেটে পেট ভরে', icon: 'percent', theme: 'saffron', animation: 'wiggle', action: 'maxPrice:150', active: true },
+        { slot: 3, title: 'Light & healthy', titleBn: 'হালকা ও স্বাস্থ্যকর', subtitle: 'Less oil, more vegetables', subtitleBn: 'কম তেল, বেশি সবজি', icon: 'leaf', theme: 'forest', animation: 'float', action: 'category:healthy', active: true },
+        { slot: 4, title: 'Group dinner', titleBn: 'গ্রুপ ডিনার', subtitle: 'Join neighbours, pay less', subtitleBn: 'প্রতিবেশীদের সাথে, কম খরচে', icon: 'users', theme: 'night', animation: 'pulse', action: 'groups', active: true },
+      ];
+      const ICONS = ['soup', 'fish', 'drumstick', 'beef', 'leaf', 'cake', 'cookie', 'sun', 'moon', 'flame', 'sparkles', 'users', 'gift', 'heart', 'utensils', 'request', 'percent', 'coffee'];
+      const THEMES = [['crimson', 'Crimson'], ['saffron', 'Saffron'], ['forest', 'Green'], ['night', 'Night'], ['rose', 'Rose'], ['ocean', 'Ocean']];
+      const ANIMS = [['float', 'Float up & down'], ['steam', 'Rising steam'], ['pulse', 'Pulse rings'], ['shine', 'Light sweep'], ['wiggle', 'Wiggle'], ['spin', 'Slow spin']];
+      const ACTIONS = [['browse', 'Open Browse'], ['request', 'Request a dish'], ['groups', 'Group orders'], ['maxPrice:150', 'Under ৳150'], ['maxPrice:250', 'Under ৳250'],
+        ...['rice', 'bengali', 'fish', 'chicken', 'beef', 'veg', 'snacks', 'breakfast', 'lunch', 'dinner', 'dessert', 'healthy'].map((c) => ['category:' + c, 'Category: ' + c])];
+      const sel = (name, opts, v) => `<select class="input" name="${name}">${opts.map((o) => { const [val, label] = Array.isArray(o) ? o : [o, o]; return `<option value="${esc(val)}" ${val === v ? 'selected' : ''}>${esc(label)}</option>`; }).join('')}</select>`;
+      return `
+        <div class="top"><div><h1>Home spotlight</h1><p class="muted">The four animated cards under “What are you craving?” in the app. Changes appear within about 10 minutes.</p></div></div>
+        <div class="spots">${[1, 2, 3, 4].map((slot) => {
+          const r = rows.find((x) => x.slot === slot) || DEF[slot - 1];
+          return `<form class="card spot spot-${esc(r.theme)}" data-spot="${slot}">
+            <div class="row between"><h3>Card ${slot}</h3><label class="row small"><input type="checkbox" name="active" ${r.active ? 'checked' : ''}/> Show in app</label></div>
+            <label class="field">Title (English)<input class="input" name="title" maxlength="40" required value="${esc(r.title)}"/></label>
+            <label class="field">শিরোনাম (বাংলা)<input class="input" name="titleBn" maxlength="40" required value="${esc(r.titleBn)}"/></label>
+            <label class="field">Subtitle (English)<input class="input" name="subtitle" maxlength="70" required value="${esc(r.subtitle)}"/></label>
+            <label class="field">উপশিরোনাম (বাংলা)<input class="input" name="subtitleBn" maxlength="70" required value="${esc(r.subtitleBn)}"/></label>
+            <div class="grid2">
+              <label class="field">Icon${sel('icon', ICONS, r.icon)}</label>
+              <label class="field">Colour${sel('theme', THEMES, r.theme)}</label>
+              <label class="field">Animation${sel('animation', ANIMS, r.animation)}</label>
+              <label class="field">When tapped${sel('action', ACTIONS, r.action)}</label>
+            </div>
+            <button class="btn primary" type="submit">Save card ${slot}</button>
+          </form>`;
+        }).join('')}</div>`;
+    },
+
     async activity() {
       const list = await api('/admin/activity');
       return `<div class="top"><div><h1>Activity log</h1><p class="muted">Every admin action, newest first.</p></div></div>
         ${list.length ? `<table><thead><tr><th>When</th><th>Admin</th><th>Action</th><th>Detail</th></tr></thead><tbody>${list.map((l) => `<tr><td>${when(l.createdAt)}</td><td>${esc(l.adminEmail)}</td><td>${esc(l.action.replace(/_/g, ' ').toLowerCase())}</td><td class="muted small">${esc(l.detail || l.targetId || '')}</td></tr>`).join('')}</tbody></table>` : empty('Nothing yet.')}`;
     },
   };
-  const NAV = [['dashboard', 'Dashboard'], ['applications', 'Applications'], ['reports', 'Reports'], ['users', 'People'], ['orders', 'Orders'], ['payouts', 'Payouts'], ['activity', 'Activity log']];
+  const NAV = [['dashboard', 'Dashboard'], ['applications', 'Applications'], ['reports', 'Reports'], ['users', 'People'], ['orders', 'Orders'], ['payouts', 'Payouts'], ['spotlights', 'Home spotlight'], ['activity', 'Activity log']];
 
   async function render() {
     const s = session.get();
@@ -226,6 +261,13 @@
   document.addEventListener('submit', (e) => {
     if (e.target.id === 'loginForm') { e.preventDefault(); submitLogin(e.target); }
     if (e.target.id === 'userSearch') { e.preventDefault(); state.filters.users = e.target.q.value.trim(); render(); }
+    if (e.target.dataset.spot) {
+      e.preventDefault();
+      const f = e.target; const btn = f.querySelector('button[type=submit]'); btn.disabled = true;
+      const g = (n) => f.elements.namedItem(n); // not f.title / f.action — those are built-in form properties
+      const body = { title: g('title').value.trim(), titleBn: g('titleBn').value.trim(), subtitle: g('subtitle').value.trim(), subtitleBn: g('subtitleBn').value.trim(), icon: g('icon').value, theme: g('theme').value, animation: g('animation').value, action: g('action').value, active: g('active').checked };
+      api('/admin/spotlights/' + f.dataset.spot, { method: 'POST', body }).then(() => { toast('Card ' + f.dataset.spot + ' saved'); render(); }).catch((err) => { btn.disabled = false; toast(err.message); });
+    }
   });
   document.addEventListener('click', async (e) => {
     const el = e.target.closest('button'); if (!el) return;

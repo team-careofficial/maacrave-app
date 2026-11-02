@@ -12,6 +12,7 @@ import { C, S } from '@/theme';
 import type { PaymentMethod } from '@/types';
 import { Button, Card, Choice, Divider, ErrorState, Header, Input, KV, Loading, Note, Row, Screen, Section, T, useToast } from '@/ui';
 import { Grid } from '@/ui/grid';
+import { DeliveryRoute } from '@/ui/route';
 
 const newKey = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
@@ -35,6 +36,12 @@ export default function Checkout() {
     if (p.kind === 'cart' && cart.lines.length) return { kind: 'cart', items: cart.lines.map((l) => ({ dishId: l.dishId, quantity: l.quantity })), couponCode: coupon };
     return null;
   }, [p.kind, p.batchId, p.quantity, p.requestId, p.proposalId, p.allowGroup, cart.lines, coupon]);
+
+  // Which kitchen is cooking: the cart's kitchen, the group order's kitchen, or the cook whose price was accepted.
+  const batchQ = useQuery({ queryKey: ['batch', p.batchId], queryFn: () => API.batch(p.batchId!), enabled: p.kind === 'batch' && !!p.batchId });
+  const reqQ = useQuery({ queryKey: ['requests'], queryFn: API.requests, enabled: p.kind === 'request' });
+  const cookId = p.kind === 'cart' ? cart.cookId : p.kind === 'batch' ? batchQ.data?.cookId : reqQ.data?.find((r) => r.id === p.requestId)?.proposals.find((x) => x.id === p.proposalId)?.cook.id;
+  const cookQ = useQuery({ queryKey: ['cook', cookId], queryFn: () => API.cook(cookId!), enabled: !!cookId });
 
   const quote = useQuery({ queryKey: ['quote', body], queryFn: () => API.quote(body!), enabled: !!body });
   const addr = addresses.data?.find((a) => a.id === addressId) || addresses.data?.find((a) => a.isDefault) || addresses.data?.[0];
@@ -91,7 +98,12 @@ export default function Checkout() {
         </View>
 
         <View>
-          <Section title="Order summary" style={{ marginTop: S.sm }}>
+          {cookQ.data && addr ? (
+            <View style={{ marginTop: S.sm }}>
+              <DeliveryRoute kitchen={{ name: cookQ.data.displayName, area: cookQ.data.area, lat: cookQ.data.lat, lng: cookQ.data.lng }} drop={{ name: addr.label, area: addr.area, lat: addr.lat, lng: addr.lng }} />
+            </View>
+          ) : null}
+          <Section title="Order summary" style={{ marginTop: S.lg }}>
             {quote.isLoading ? <Loading /> : quote.error ? <ErrorState error={quote.error} onRetry={quote.refetch} /> : f ? (
               <Card style={{ gap: S.sm }}>
                 {quote.data!.items.map((i, k) => <KV key={k} k={`${i.quantity} × ${i.name}`} v={tk(i.unitPrice * i.quantity)} />)}

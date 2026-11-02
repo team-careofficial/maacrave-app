@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { API, clearTokens, restoreSession, setSessionEndHandler, setTokens } from './api';
+import { setLang } from './i18n';
 import { storage } from './storage';
 import type { Me, Role } from './types';
 
@@ -29,6 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const u = await API.me();
       setMe(u);
+      if (u.language === 'bn' || u.language === 'en') setLang(u.language);
       setStatus(u.name ? 'ready' : 'needsProfile');
       const saved = (await storage.get(MODE_KEY)) as Mode | null;
       setModeState(saved && canUseFor(u, saved) ? saved : 'CUSTOMER');

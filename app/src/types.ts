@@ -4,7 +4,7 @@ export type OrderStatus = 'AWAITING_PAYMENT' | 'SUBMITTED' | 'COOK_ACCEPTED' | '
 export type BatchStatus = 'OPEN' | 'FULL' | 'CONFIRMED' | 'COOKING' | 'READY' | 'DONE' | 'FAILED';
 export type PaymentMethod = 'BKASH' | 'SSLCOMMERZ' | 'COD';
 
-export interface CookPublic { id: string; displayName: string; area: string; intro: string; specialties: string[]; rating: number; ratingCount: number; completedOrders: number; hours: string; accepting: boolean }
+export interface CookPublic { id: string; displayName: string; area: string; intro: string; specialties: string[]; rating: number; ratingCount: number; completedOrders: number; hours: string; accepting: boolean; lat?: number | null; lng?: number | null }
 export interface Kitchen extends CookPublic { dailyCapacity: number; hygieneChecks: number; payoutWallet: string | null; kitchenInfo: string | null; experience: string | null }
 export interface Me {
   id: string; phone: string | null; email: string | null; name: string | null; area: string | null; language: 'en' | 'bn'; loyaltyPoints: number; referralCode: string | null;
@@ -22,16 +22,16 @@ export interface Batch {
 }
 export interface DishDetail extends Dish { reviews: Review[]; openBatch: Batch | null }
 export interface CookDetail extends CookPublic { dishes: Dish[]; reviews: Review[]; openBatches: Batch[] }
-export interface Address { id: string; label: string; area: string; road: string; house: string; floor: string | null; landmark: string | null; isDefault: boolean }
+export interface Address { id: string; label: string; area: string; road: string; house: string; floor: string | null; landmark: string | null; isDefault: boolean; lat?: number | null; lng?: number | null }
 export interface Fees { subtotal: number; serviceFee: number; deliveryFee: number; discount: number; total: number; couponCode: string | null }
 export interface OrderItem { id: string; dishId: string | null; name: string; unitPrice: number; quantity: number }
 export interface Order {
   id: string; code: string; status: OrderStatus; customerId: string; cookId: string; batchId: string | null; requestId: string | null;
   subtotal: number; serviceFee: number; deliveryFee: number; discount: number; total: number; cookEarning: number; couponCode: string | null;
-  addressText: string; area: string; deliveryOtp?: string; notes: string | null; createdAt: string; updatedAt: string;
+  addressText: string; area: string; lat?: number | null; lng?: number | null; deliveryOtp?: string; notes: string | null; createdAt: string; updatedAt: string;
   items: OrderItem[]; events: { id: string; status: OrderStatus; createdAt: string }[];
   payment: { method: PaymentMethod; status: string; amount: number } | null; review: { stars: number } | null;
-  cook: { id: string; displayName: string; area: string }; rider: { id: string; name: string | null } | null; batch: { id: string; title: string; readyBy: string; status: BatchStatus } | null;
+  cook: { id: string; displayName: string; area: string; lat?: number | null; lng?: number | null }; rider: { id: string; name: string | null } | null; batch: { id: string; title: string; readyBy: string; status: BatchStatus } | null;
   customer?: { name: string | null };
 }
 export interface Proposal { id: string; pricePerPortion: number; note: string | null; status: 'PENDING' | 'ACCEPTED' | 'REJECTED'; cook: { id: string; displayName: string; area: string; rating: number; ratingCount: number } }

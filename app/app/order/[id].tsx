@@ -10,6 +10,7 @@ import { C, R, S } from '@/theme';
 import type { Order } from '@/types';
 import { Button, Card, Chip, confirm, Divider, ErrorState, Header, Input, KV, Loading, Note, Row, Screen, Section, StatusBadge, T, Toggle, useToast } from '@/ui';
 import { Grid } from '@/ui/grid';
+import { DeliveryRoute } from '@/ui/route';
 
 const CANCELLABLE = ['AWAITING_PAYMENT', 'SUBMITTED', 'COOK_ACCEPTED', 'CONFIRMED'];
 const PAY_LABEL = { BKASH: 'bKash', SSLCOMMERZ: 'Card / wallet', COD: 'Cash on delivery' } as const;
@@ -121,6 +122,9 @@ export default function OrderScreen() {
               </Card>
             ) : null}
 
+            {o.status !== 'CANCELLED' && o.status !== 'DELIVERED' ? (
+              <DeliveryRoute title={STATUS_LABEL[o.status]} kitchen={{ name: o.cook.displayName, area: o.cook.area, lat: o.cook.lat, lng: o.cook.lng }} drop={{ name: 'You', area: o.area, lat: o.lat, lng: o.lng }} />
+            ) : null}
             {o.status !== 'CANCELLED' ? <Card><Timeline o={o} /></Card> : <Note>This order was cancelled. Any online payment is refunded to the same account within 3–7 working days.</Note>}
 
             {o.rider ? <Card><KV k="Rider" v={o.rider.name || 'Assigned'} /></Card> : null}

@@ -1,7 +1,7 @@
 import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, HttpCode, Injectable, Module, NotFoundException, Param, Patch, Post, Query } from '@nestjs/common';
 import { OrderStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { IsArray, IsBoolean, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
 import { batchFilled } from '../catalog/catalog.module';
 import { AuthUser, CurrentUser, Roles } from '../common/auth';
 import { PrismaService } from '../common/prisma.service';
@@ -11,6 +11,8 @@ import { OrdersModule } from '../orders/orders.module';
 import { orderInclude, OrdersService } from '../orders/orders.service';
 
 class KitchenDto {
+  @IsOptional() @Type(() => Number) @IsNumber() @Min(20.5) @Max(26.8) lat?: number;
+  @IsOptional() @Type(() => Number) @IsNumber() @Min(88) @Max(92.8) lng?: number;
   @IsOptional() @IsString() @MaxLength(300) intro?: string;
   @IsOptional() @IsArray() @IsString({ each: true }) specialties?: string[];
   @IsOptional() @IsIn(DHAKA_AREAS) area?: string;

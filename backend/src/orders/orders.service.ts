@@ -43,7 +43,7 @@ const MESSAGES: Partial<Record<OrderStatus, [string, string]>> = {
 
 export const orderInclude = {
   items: true, events: { orderBy: { createdAt: 'asc' } }, payment: true, review: true,
-  cook: { select: { id: true, displayName: true, area: true, userId: true } },
+  cook: { select: { id: true, displayName: true, area: true, userId: true, lat: true, lng: true } },
   rider: { select: { id: true, name: true } },
   batch: { select: { id: true, title: true, readyBy: true, status: true } },
 } satisfies Prisma.OrderInclude;
@@ -138,7 +138,7 @@ export class OrdersService {
           code: orderCode(), customerId: user.id, cookId: r.cookId, batchId, requestId: r.request?.id ?? null,
           status: firstStatus, subtotal: fees.subtotal, serviceFee: fees.serviceFee, deliveryFee: fees.deliveryFee, discount: fees.discount, total: fees.total,
           commission: fees.commission, cookEarning: fees.cookEarning, riderPayout: fees.riderPayout, couponCode: fees.couponCode,
-          addressText, area: address.area, deliveryOtp: digits(4), notes: input.notes?.slice(0, 300), scheduledFor: input.scheduledFor ? new Date(input.scheduledFor) : null,
+          addressText, area: address.area, lat: address.lat, lng: address.lng, deliveryOtp: digits(4), notes: input.notes?.slice(0, 300), scheduledFor: input.scheduledFor ? new Date(input.scheduledFor) : null,
           idempotencyKey: input.idempotencyKey,
           items: { create: r.items },
           events: { create: { status: firstStatus, actorId: user.id } },

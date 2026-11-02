@@ -5,7 +5,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { Throttle } from '@nestjs/throttler';
 import { ComplaintStatus, OrderStatus, RoleStatus } from '@prisma/client';
-import { IsBoolean, IsEmail, IsIn, IsOptional, IsString, Length, MaxLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsIn, IsOptional, IsString, Length, Matches, MaxLength } from 'class-validator';
 import { Public } from '../common/auth';
 import { PrismaService } from '../common/prisma.service';
 import { digits, sha256 } from '../common/util';
@@ -59,6 +59,20 @@ class ComplaintDto {
   @IsIn(['INVESTIGATING', 'RESOLVED']) status: ComplaintStatus;
   @IsOptional() @IsBoolean() refund?: boolean;
   @IsOptional() @IsString() @MaxLength(300) note?: string;
+}
+export const SPOT_ICONS = ['soup', 'fish', 'drumstick', 'beef', 'leaf', 'cake', 'cookie', 'sun', 'moon', 'flame', 'sparkles', 'users', 'gift', 'heart', 'utensils', 'request', 'percent', 'coffee'];
+export const SPOT_THEMES = ['crimson', 'saffron', 'forest', 'night', 'rose', 'ocean'];
+export const SPOT_ANIMS = ['float', 'steam', 'pulse', 'shine', 'wiggle', 'spin'];
+class SpotlightDto {
+  @IsString() @Length(2, 40) title: string;
+  @IsString() @Length(2, 40) titleBn: string;
+  @IsString() @Length(2, 70) subtitle: string;
+  @IsString() @Length(2, 70) subtitleBn: string;
+  @IsIn(SPOT_ICONS) icon: string;
+  @IsIn(SPOT_THEMES) theme: string;
+  @IsIn(SPOT_ANIMS) animation: string;
+  @Matches(/^(browse|request|groups|category:[a-z]+|maxPrice:\d{2,4})$/) action: string;
+  @IsBoolean() active: boolean;
 }
 class PayoutDto { @IsIn(['PROCESSING', 'PAID', 'FAILED']) status: 'PROCESSING' | 'PAID' | 'FAILED'; @IsOptional() @IsString() @MaxLength(60) reference?: string; }
 
@@ -227,6 +241,15 @@ export class AdminService {
   }
 
   activity() { return this.prisma.adminLog.findMany({ orderBy: { createdAt: 'desc' }, take: 100 }); }
+
+  /* ---------- Home spotlight cards ---------- */
+  spotlights() { return this.prisma.spotlight.findMany({ orderBy: { slot: 'asc' } }); }
+  async saveSpotlight(admin: string, slot: number, dto: SpotlightDto) {
+    if (![1, 2, 3, 4].includes(slot)) throw new BadRequestException('Slot must be 1–4.');
+    const row = await this.prisma.spotlight.upsert({ where: { slot }, update: dto, create: { slot, ...dto } });
+    await this.audit(admin, 'SPOTLIGHT_SAVE', String(slot), `${dto.title} · ${dto.animation}`);
+    return row;
+  }
 }
 
 @Public()
@@ -258,6 +281,8 @@ export class AdminController {
   @Get('payouts') payouts(@Query('status') status?: string) { return this.admin.payouts(status); }
   @Post('payouts/:id') @HttpCode(200) payout(@CurrentAdmin() a: string, @Param('id') id: string, @Body() dto: PayoutDto) { return this.admin.setPayout(a, id, dto); }
   @Get('activity') activity() { return this.admin.activity(); }
+  @Get('spotlights') spotlights() { return this.admin.spotlights(); }
+  @Post('spotlights/:slot') @HttpCode(200) saveSpotlight(@CurrentAdmin() a: string, @Param('slot') slot: string, @Body() dto: SpotlightDto) { return this.admin.saveSpotlight(a, Number(slot), dto); }
 }
 
 @Module({ imports: [OrdersModule], providers: [AdminService, AdminGuard, EmailService], controllers: [AdminAuthController, AdminController] })

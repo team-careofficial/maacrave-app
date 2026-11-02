@@ -89,7 +89,7 @@ export const API = {
   me: () => api<Me>('/me'),
   updateMe: (b: Partial<Pick<Me, 'name' | 'area' | 'language'>> & { phone?: string }) => api<Me>('/me', { method: 'PATCH', body: b }),
   addresses: () => api<Address[]>('/me/addresses'),
-  addAddress: (b: Omit<Address, 'id' | 'isDefault'> & { isDefault?: boolean }) => api<Address>('/me/addresses', { method: 'POST', body: b }),
+  addAddress: (b: Omit<Address, 'id' | 'isDefault' | 'lat' | 'lng'> & { isDefault?: boolean; lat?: number; lng?: number }) => api<Address>('/me/addresses', { method: 'POST', body: b }),
   setDefaultAddress: (id: string) => api<Address[]>(`/me/addresses/${id}/default`, { method: 'POST' }),
   deleteAddress: (id: string) => api<Address[]>(`/me/addresses/${id}`, { method: 'DELETE' }),
   applyCook: (b: { displayName: string; area: string; specialties: string[]; experience?: string; kitchenInfo?: string; hours?: string; dailyCapacity: number; nidLast4: string; documents: UploadDoc[] }) => api<Me>('/me/apply/cook', { method: 'POST', body: b }),
@@ -123,7 +123,7 @@ export const API = {
   declineProposal: (id: string, pid: string) => api<FoodRequest[]>(`/requests/${id}/proposals/${pid}/decline`, { method: 'POST' }),
   // kitchen (cook mode)
   kitchen: () => api<KitchenDashboard>('/kitchen'),
-  updateKitchen: (b: Partial<Pick<Kitchen, 'intro' | 'specialties' | 'hours' | 'dailyCapacity' | 'accepting' | 'hygieneChecks' | 'payoutWallet'>> & { area?: string }) => api<Kitchen>('/kitchen', { method: 'PATCH', body: b }),
+  updateKitchen: (b: Partial<Pick<Kitchen, 'intro' | 'specialties' | 'hours' | 'dailyCapacity' | 'accepting' | 'hygieneChecks' | 'payoutWallet'>> & { area?: string; lat?: number; lng?: number }) => api<Kitchen>('/kitchen', { method: 'PATCH', body: b }),
   kitchenDishes: () => api<Dish[]>('/kitchen/dishes'),
   saveDish: (id: string | null, b: Partial<Dish>) => (id ? api<Dish>(`/kitchen/dishes/${id}`, { method: 'PATCH', body: b }) : api<Dish>('/kitchen/dishes', { method: 'POST', body: b })),
   removeDish: (id: string) => api(`/kitchen/dishes/${id}`, { method: 'DELETE' }),

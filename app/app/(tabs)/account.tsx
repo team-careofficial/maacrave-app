@@ -1,8 +1,9 @@
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { Bell, Bike, ChefHat, ChevronRight, FileText, Globe, Heart, HelpCircle, LogOut, MapPin, Shield, ShoppingBag, Trash2, type LucideIcon } from 'lucide-react-native';
-import { Linking, Pressable, View } from 'react-native';
+import { Linking, Pressable, Text, View } from 'react-native';
 import { API } from '@/api';
+import { setLang, useLang } from '@/i18n';
 import { homeFor, useAuth } from '@/auth';
 import { C, R, S } from '@/theme';
 import { Badge, Card, confirm, Divider, Glossy, Header, IconTile, Rings, Screen, Section, T, useToast } from '@/ui';
@@ -23,10 +24,23 @@ const Group = ({ children }: { children: React.ReactNode }) => (
   <View style={{ backgroundColor: C.card, borderRadius: R.lg, overflow: 'hidden' }}>{children}</View>
 );
 
+function LangSwitch({ value, onChange }: { value: 'en' | 'bn'; onChange: (l: 'en' | 'bn') => void }) {
+  return (
+    <View style={{ flexDirection: 'row', backgroundColor: C.sunken, borderRadius: R.pill, padding: 3 }}>
+      {(['en', 'bn'] as const).map((l) => (
+        <Pressable key={l} onPress={() => onChange(l)} style={{ paddingHorizontal: 12, height: 30, borderRadius: R.pill, justifyContent: 'center', backgroundColor: value === l ? C.ink : 'transparent' }}>
+          <Text style={{ fontFamily: l === 'bn' ? 'HindSiliguri_600SemiBold' : 'PlusJakartaSans_700Bold', fontSize: 13, color: value === l ? '#fff' : C.text2 }}>{l === 'en' ? 'English' : 'বাংলা'}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
 export default function Account() {
+  const current = useLang();
   const { me, signOut, canUse, roleStatus, setMode, reload } = useAuth();
   const toast = useToast();
-  const lang = useMutation({ mutationFn: (language: 'en' | 'bn') => API.updateMe({ language }), onSuccess: () => { reload(); toast('Language updated'); } });
+  const lang = useMutation({ mutationFn: (language: 'en' | 'bn') => { setLang(language); return API.updateMe({ language }); }, onSuccess: () => { reload(); toast('Language updated'); } });
   async function deleteAccount() {
     if (!(await confirm('Delete your account?', 'Your name, phone, email, addresses and saved items will be removed. Past orders are kept without your details. This cannot be undone.', 'Continue', true))) return;
     if (!(await confirm('Are you sure?', 'This permanently deletes your MaaCrave account.', 'Delete account', true))) return;
@@ -80,8 +94,8 @@ export default function Account() {
 
       <Section title="Settings">
         <Group>
-          <Item Icon={Globe} label="Language" sub={me.language === 'bn' ? 'বাংলা' : 'English'} onPress={() => lang.mutate(me.language === 'bn' ? 'en' : 'bn')}
-            right={<T v="label" color={C.brandText}>{me.language === 'bn' ? 'Switch to English' : 'বাংলা'}</T>} /><Divider />
+          <Item Icon={Globe} label="Language" sub={current === 'bn' ? 'বাংলা' : 'English'} onPress={() => lang.mutate(current === 'bn' ? 'en' : 'bn')}
+            right={<LangSwitch value={current} onChange={(l) => lang.mutate(l)} />} /><Divider />
           <Item Icon={HelpCircle} label="Help & support" sub="support@maacrave.app" onPress={() => Linking.openURL('mailto:support@maacrave.app')} /><Divider />
           <Item Icon={Shield} label="Privacy policy" onPress={() => router.push('/privacy')} /><Divider />
           <Item Icon={FileText} label="Terms of service" onPress={() => router.push('/terms')} /><Divider />

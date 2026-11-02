@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, Delete, Get, Injectable, Module, NotFoundException, Param, Patch, Post } from '@nestjs/common';
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, Length, Matches, Max, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsIn, IsInt, IsNumber, IsOptional, IsString, Length, Matches, Max, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
 import { AuthUser, CurrentUser } from '../common/auth';
 import { PrismaService } from '../common/prisma.service';
 import { BD_PHONE, DHAKA_AREAS, normalizePhone } from '../common/util';
@@ -20,6 +20,8 @@ class AddressDto {
   @IsOptional() @IsString() @MaxLength(60) floor?: string;
   @IsOptional() @IsString() @MaxLength(120) landmark?: string;
   @IsOptional() @IsBoolean() isDefault?: boolean;
+  @IsOptional() @Type(() => Number) @IsNumber() @Min(20.5) @Max(26.8) lat?: number;
+  @IsOptional() @Type(() => Number) @IsNumber() @Min(88) @Max(92.8) lng?: number;
 }
 /** A photo sent as a data URL (data:image/jpeg;base64,...). The app compresses it to well under 1.5 MB. */
 class DocumentDto {

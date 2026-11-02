@@ -182,6 +182,8 @@ model CookProfile {
   hygieneChecks   Int         @default(0)
   nidLast4        String?
   payoutWallet    String?
+  lat             Float?      // kitchen location for the delivery map
+  lng             Float?
   rating          Float       @default(0)
   ratingCount     Int         @default(0)
   completedOrders Int         @default(0)
@@ -321,6 +323,8 @@ model Order {
   riderPayout    Int
   couponCode     String?
   addressText    String
+  lat            Float?      // delivery point copied from the address at checkout
+  lng            Float?
   area           String
   deliveryOtp    String
   notes          String?
@@ -506,4 +510,19 @@ model AdminLog {
   createdAt  DateTime @default(now())
 
   @@index([createdAt])
+}
+
+/// The four animated cards under "What are you craving?" on the Home screen. Edited from the admin panel.
+model Spotlight {
+  slot       Int      @id // 1–4
+  title      String
+  titleBn    String
+  subtitle   String
+  subtitleBn String
+  icon       String   // soup, fish, drumstick, beef, leaf, cake, cookie, sun, moon, flame, sparkles, users, gift, heart, utensils, request, percent, coffee
+  theme      String   // crimson, saffron, forest, night, rose, ocean
+  animation  String   // float, steam, pulse, shine, wiggle, spin
+  action     String   // browse | request | groups | category:<key> | maxPrice:<n>
+  active     Boolean  @default(true)
+  updatedAt  DateTime @updatedAt
 }

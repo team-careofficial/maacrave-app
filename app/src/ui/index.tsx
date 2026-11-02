@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { countdown, statusTone, STATUS_LABEL, tk } from '../format';
+import { tr, useLang } from '../i18n';
+import { Logo } from './logo';
 import { C, CATEGORY_META, F, GLOSS, MATTE, R, redShadow, S, shadow, SHEEN, TYPE, TypeKey } from '../theme';
 import type { Batch, CookPublic, Dish, Order, OrderStatus } from '../types';
 
@@ -17,14 +19,26 @@ const ND = Platform.OS !== 'web';
 const APressable = Animated.createAnimatedComponent(Pressable);
 
 /* ---------- text ---------- */
+const BN_FONT = (family?: string) => (family === F.regular || family === F.medium ? F.bn : F.bnBold);
+/** Every piece of text in the app. Plain-string children are translated in Bangla mode and use the Bangla font. */
 export function T({ v = 'body', color, style, children, bn, numberOfLines, center }: { v?: TypeKey; color?: string; style?: StyleProp<TextStyle>; children: React.ReactNode; bn?: boolean; numberOfLines?: number; center?: boolean }) {
+  const lang = useLang();
   const base = TYPE[v] as TextStyle;
   const defaultColor = v === 'sub' || v === 'meta' || v === 'eyebrow' ? C.muted : C.text;
+  const flat = StyleSheet.flatten(style) as TextStyle | undefined;
+  const bangla = bn || lang === 'bn';
+  const body = Array.isArray(children) ? children.map((c) => (typeof c === 'string' ? tr(c) : c)) : tr(children);
   return (
-    <Text numberOfLines={numberOfLines} style={[base, { color: color || defaultColor }, bn && { fontFamily: base.fontFamily === F.regular ? F.bn : F.bnBold }, center && { textAlign: 'center' }, style]}>
-      {children}
+    <Text numberOfLines={numberOfLines} style={[base, { color: color || defaultColor }, center && { textAlign: 'center' }, style,
+      bangla && { fontFamily: BN_FONT(flat?.fontFamily || base.fontFamily), letterSpacing: 0, lineHeight: undefined }]}>
+      {body}
     </Text>
   );
+}
+/** Raw <Text> helper for places that render text outside <T> (buttons, chips, badges). */
+function useTxt() {
+  const lang = useLang();
+  return (s: string | undefined, family: string) => ({ text: tr(s), font: lang === 'bn' ? BN_FONT(family) : family });
 }
 
 /* ---------- motion ---------- */
@@ -114,7 +128,7 @@ export function Screen({ children, header, footer, scroll = true, onRefresh, ref
     <SafeAreaView edges={['top']} style={styles.screen}>
       {header}
       {scroll ? (
-        <ScrollView contentContainerStyle={{ paddingBottom: footer ? 130 : S.x4 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}
+        <ScrollView contentContainerStyle={{ paddingBottom: footer ? 130 : 128 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}
           refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={C.brand} colors={[C.brand]} /> : undefined}>
           {inner}
         </ScrollView>
@@ -131,20 +145,58 @@ export function Footer({ children }: { children: React.ReactNode }) {
     </View>
   );
 }
+/** Logo + MaaCrave wordmark, shown at the top-left of every screen. */
+export function Wordmark({ size = 34, onDark }: { size?: number; onDark?: boolean }) {
+  const fs = Math.round(size * 0.6);
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: size * 0.26 }}>
+      <Logo size={size} />
+      <Text style={{ fontFamily: F.displayX, fontSize: fs, letterSpacing: -0.6, color: onDark ? '#fff' : C.text }}>
+        Maa<Text style={{ color: onDark ? '#FFD9D9' : C.brand }}>Crave</Text>
+      </Text>
+    </View>
+  );
+}
+
+/**
+ * Screen header. Main screens: logo + wordmark on top, then a large title.
+ * Inner screens (back): back button and title, with the logo + wordmark kept at the top-right.
+ */
 export function Header({ title, sub, back, right }: { title: string; sub?: string; back?: boolean; right?: React.ReactNode }) {
+  if (back) {
+    return (
+      <View style={styles.header}>
+        <View style={[styles.inner, { paddingHorizontal: S.lg, gap: S.sm }]}>
+          <Row style={{ justifyContent: 'space-between' }}>
+            <Tap label="Back" hitSlop={10} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={styles.backBtn}>
+              <ChevronLeft size={22} color={C.text} />
+            </Tap>
+            <Tap onPress={() => router.replace('/')} scale={0.95} label="MaaCrave home"><Wordmark size={28} /></Tap>
+          </Row>
+          {title ? (
+            <Row style={{ alignItems: 'flex-end' }}>
+              <View style={{ flex: 1 }}>
+                <T v="title" numberOfLines={2} style={{ fontSize: 24, lineHeight: 29 }}>{title}</T>
+                {sub ? <T v="meta" numberOfLines={1} style={{ marginTop: 2 }}>{sub}</T> : null}
+              </View>
+              {right}
+            </Row>
+          ) : null}
+        </View>
+      </View>
+    );
+  }
   return (
     <View style={styles.header}>
-      <View style={[styles.inner, { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingHorizontal: S.lg }]}>
-        {back ? (
-          <Tap label="Back" hitSlop={10} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={styles.backBtn}>
-            <ChevronLeft size={22} color={C.text} />
-          </Tap>
-        ) : null}
-        <View style={{ flex: 1 }}>
-          <T v={back ? 'section' : 'title'} numberOfLines={1} style={back ? { fontSize: 19 } : undefined}>{title}</T>
-          {sub ? <T v="meta" numberOfLines={1} style={{ marginTop: 1 }}>{sub}</T> : null}
-        </View>
-        {right}
+      <View style={[styles.inner, { paddingHorizontal: S.lg, gap: S.md }]}>
+        <Wordmark />
+        <Row style={{ alignItems: 'flex-end' }}>
+          <View style={{ flex: 1 }}>
+            <T v="hero" numberOfLines={1} style={{ fontSize: 30, lineHeight: 34 }}>{title}</T>
+            {sub ? <T v="sub" numberOfLines={1} style={{ marginTop: 2 }}>{sub}</T> : null}
+          </View>
+          {right}
+        </Row>
       </View>
     </View>
   );
@@ -181,6 +233,7 @@ export const Divider = () => <View style={{ height: 1, backgroundColor: C.line2,
 /* ---------- buttons ---------- */
 type BtnVariant = 'primary' | 'dark' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'ok' | 'light';
 export function Button({ title, sub, onPress, v = 'primary', size = 'md', loading, disabled, icon, style, full }: { title: string; sub?: string; onPress?: () => void; v?: BtnVariant; size?: 'sm' | 'md' | 'lg'; loading?: boolean; disabled?: boolean; icon?: React.ReactNode; style?: StyleProp<ViewStyle>; full?: boolean }) {
+  const tx = useTxt()(title, F.bold);
   const h = size === 'lg' ? 56 : size === 'sm' ? 38 : 48;
   const fg = v === 'primary' || v === 'dark' || v === 'ok' ? '#FFFFFF' : v === 'secondary' || v === 'light' ? C.brandText : v === 'danger' ? C.err : C.text;
   const bg = v === 'dark' ? C.ink : v === 'secondary' ? C.brandSoft : v === 'ok' ? C.ok : v === 'outline' || v === 'light' ? C.surface : 'transparent';
@@ -191,7 +244,7 @@ export function Button({ title, sub, onPress, v = 'primary', size = 'md', loadin
         <>
           {icon}
           <View style={{ alignItems: 'center' }}>
-            <Text style={{ fontFamily: F.bold, fontSize: size === 'sm' ? 13.5 : size === 'lg' ? 16 : 15, color: fg, letterSpacing: -0.1 }}>{title}</Text>
+            <Text style={{ fontFamily: tx.font, fontSize: size === 'sm' ? 13.5 : size === 'lg' ? 16 : 15, color: fg, letterSpacing: -0.1 }}>{tx.text}</Text>
             {sub ? <Text style={{ fontFamily: F.bn, fontSize: 13, color: fg, opacity: 0.85, marginTop: 1 }}>{sub}</Text> : null}
           </View>
         </>
@@ -250,16 +303,17 @@ export function Input({ label, hint, error, prefix, style, ...rest }: TextInputP
       <View style={[styles.input, focus && styles.inputFocus, !!error && { borderColor: C.err, backgroundColor: C.errSoft }, rest.multiline && { minHeight: 96, alignItems: 'flex-start', paddingVertical: 12 }]}>
         {prefix ? <Text style={{ fontFamily: F.semibold, fontSize: 15, color: C.text2, marginRight: 10 }}>{prefix}</Text> : null}
         <TextInput placeholderTextColor="#ADA4A4" selectionColor={C.brand} onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
-          style={[{ flex: 1, fontFamily: F.medium, fontSize: 15, color: C.text, minHeight: 22 }, Platform.OS === 'web' && ({ outlineStyle: 'none' } as object), style]} {...rest} />
+          {...rest} placeholder={tr(rest.placeholder)} style={[{ flex: 1, fontFamily: F.medium, fontSize: 15, color: C.text, minHeight: 22 }, Platform.OS === 'web' && ({ outlineStyle: 'none' } as object), style]} />
       </View>
     </Field>
   );
 }
 export function Chip({ label, on, onPress, icon }: { label: string; on?: boolean; onPress: () => void; icon?: React.ReactNode }) {
+  const tx = useTxt()(label, on ? F.bold : F.semibold);
   return (
     <Tap onPress={onPress} scale={0.94} role="button" style={[styles.chip, on && { backgroundColor: C.brand }]}>
       {icon}
-      {label ? <Text style={{ fontFamily: on ? F.bold : F.semibold, fontSize: 13.5, color: on ? '#fff' : C.text2 }}>{label}</Text> : null}
+      {label ? <Text style={{ fontFamily: tx.font, fontSize: 13.5, color: on ? '#fff' : C.text2 }}>{tx.text}</Text> : null}
     </Tap>
   );
 }
@@ -276,13 +330,14 @@ export function Choice({ label, sub, on, onPress, right, disabled }: { label: st
   );
 }
 export function Segmented<K extends string>({ items, value, onChange }: { items: { key: K; label: string }[]; value: K; onChange: (k: K) => void }) {
+  const txt = useTxt();
   return (
     <View style={styles.seg}>
       {items.map((i) => {
         const on = value === i.key;
         return (
           <Tap key={i.key} onPress={() => onChange(i.key)} scale={0.95} style={[styles.segItem, on && styles.segOn]}>
-            <Text numberOfLines={1} style={{ fontFamily: on ? F.bold : F.semibold, fontSize: 13.5, color: on ? '#fff' : C.text2 }}>{i.label}</Text>
+            <Text numberOfLines={1} style={{ fontFamily: txt(i.label, on ? F.bold : F.semibold).font, fontSize: 13.5, color: on ? '#fff' : C.text2 }}>{txt(i.label, F.bold).text}</Text>
           </Tap>
         );
       })}
@@ -320,10 +375,11 @@ export function Toggle({ value, onChange, label, sub, bare }: { value: boolean; 
 const TONE: Record<string, [string, string]> = { ok: [C.okSoft, C.ok], warn: [C.warnSoft, C.warn], err: [C.errSoft, C.err], info: [C.infoSoft, C.info], brand: [C.brandSoft, C.brandText], neutral: [C.sunken, C.text2] };
 export function Badge({ label, tone = 'neutral', icon }: { label: string; tone?: keyof typeof TONE; icon?: React.ReactNode }) {
   const [bg, fg] = TONE[tone];
+  const tx = useTxt()(label, F.bold);
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: bg, borderRadius: R.pill, paddingHorizontal: 10, height: 24, alignSelf: 'flex-start' }}>
       {icon}
-      <Text style={{ fontFamily: F.bold, fontSize: 11.5, color: fg }}>{label}</Text>
+      <Text style={{ fontFamily: tx.font, fontSize: 11.5, color: fg }}>{tx.text}</Text>
     </View>
   );
 }
@@ -394,7 +450,8 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry: () => 
 }
 export function Note({ children, tone = 'neutral' }: { children: React.ReactNode; tone?: keyof typeof TONE }) {
   const [bg, fg] = TONE[tone];
-  return <View style={{ backgroundColor: tone === 'neutral' ? C.card : bg, borderRadius: R.md, padding: 14 }}><Text style={{ fontFamily: F.medium, fontSize: 13.5, lineHeight: 20, color: tone === 'neutral' ? C.text2 : fg }}>{children}</Text></View>;
+  const tx = useTxt()(typeof children === 'string' ? children : undefined, F.medium);
+  return <View style={{ backgroundColor: tone === 'neutral' ? C.card : bg, borderRadius: R.md, padding: 14 }}><Text style={{ fontFamily: tx.font, fontSize: 13.5, lineHeight: 20, color: tone === 'neutral' ? C.text2 : fg }}>{typeof children === 'string' ? tx.text : children}</Text></View>;
 }
 export function KV({ k, v, strong, color }: { k: string; v: string; strong?: boolean; color?: string }) {
   return (
@@ -518,7 +575,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const timer = useRef<ReturnType<typeof setTimeout>>();
   const insets = useSafeAreaInsets();
   const show = useCallback((m: string) => {
-    setMsg(m);
+    setMsg(tr(m));
     Animated.spring(a, { toValue: 1, useNativeDriver: ND, speed: 18, bounciness: 7 }).start();
     clearTimeout(timer.current);
     timer.current = setTimeout(() => Animated.timing(a, { toValue: 0, duration: 200, useNativeDriver: ND }).start(() => setMsg(null)), 2600);
@@ -537,9 +594,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   );
 }
 export const useToast = () => useContext(ToastCtx);
-export function confirm(title: string, message: string, ok = 'OK', destructive = false): Promise<boolean> {
+export function confirm(rawTitle: string, rawMessage: string, rawOk = 'OK', destructive = false): Promise<boolean> {
+  const title = tr(rawTitle); const message = tr(rawMessage); const ok = tr(rawOk);
   if (Platform.OS === 'web') return Promise.resolve(globalThis.confirm?.(`${title}\n\n${message}`) ?? true);
-  return new Promise((resolve) => Alert.alert(title, message, [{ text: 'Cancel', style: 'cancel', onPress: () => resolve(false) }, { text: ok, style: destructive ? 'destructive' : 'default', onPress: () => resolve(true) }], { cancelable: true, onDismiss: () => resolve(false) }));
+  return new Promise((resolve) => Alert.alert(title, message, [{ text: tr('Cancel'), style: 'cancel', onPress: () => resolve(false) }, { text: ok, style: destructive ? 'destructive' : 'default', onPress: () => resolve(true) }], { cancelable: true, onDismiss: () => resolve(false) }));
 }
 
 const styles = StyleSheet.create({

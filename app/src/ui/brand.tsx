@@ -1,30 +1,11 @@
 import type React from 'react';
-import { LinearGradient } from 'expo-linear-gradient';
 import { View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
-import { C, GLOSS, SHEEN } from '@/theme';
-import { T } from './index';
+import { C } from '@/theme';
+import { T, Wordmark } from './index';
+import { Logo } from './logo';
 
-/** App mark: a home roof with a heart over a bowl. `inverse` draws a white tile with a crimson mark. */
-export function Logo({ size = 40, inverse }: { size?: number; inverse?: boolean }) {
-  const fg = inverse ? C.brand : '#fff';
-  return (
-    <View style={{ width: size, height: size, borderRadius: size * 0.3, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: inverse ? '#fff' : undefined }}>
-      {inverse ? null : (
-        <>
-          <LinearGradient colors={GLOSS} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} />
-          <LinearGradient colors={SHEEN} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '50%' }} />
-        </>
-      )}
-      <Svg width={size * 0.78} height={size * 0.78} viewBox="6 4 52 52">
-        <Path d="M32 16.2c-2.3-1.8-5.2-3.6-5.2-5.8 0-2.5 3.2-3.4 5.2-1.3 2-2.1 5.2-1.2 5.2 1.3 0 2.2-2.9 4-5.2 5.8z" fill={fg} />
-        <Path d="M13.5 32 32 21l18.5 11" fill="none" stroke={fg} strokeWidth={4.2} strokeLinecap="round" strokeLinejoin="round" />
-        <Path d="M16 35.5h32v5.2C48 47.5 42.5 53 35.7 53h-7.4C21.5 53 16 47.5 16 40.7z" fill={fg} />
-        <Path d="M26 42.5c3.6 3 8.4 3 12 0" fill="none" stroke={inverse ? '#fff' : C.brand2} strokeWidth={2.6} strokeLinecap="round" />
-      </Svg>
-    </View>
-  );
-}
+export { Logo };
+
 export function Brand({ light }: { light?: boolean }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -34,14 +15,13 @@ export function Brand({ light }: { light?: boolean }) {
   );
 }
 
-/** Logo + wordmark for the top-left corner of the main screens. */
+/** Logo + wordmark for the top-left corner of the main screens, with actions on the right. */
 export function BrandBar({ right, sub }: { right?: React.ReactNode; sub?: string }) {
   return (
     <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 6, width: '100%', maxWidth: 1080, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-      <Logo size={36} />
       <View style={{ flex: 1 }}>
-        <T v="section" style={{ fontSize: 22, lineHeight: 25, letterSpacing: -0.6 }}>Maa<T v="section" color={C.brand} style={{ fontSize: 22, lineHeight: 25, letterSpacing: -0.6 }}>Crave</T></T>
-        {sub ? <T v="meta" numberOfLines={1}>{sub}</T> : null}
+        <Wordmark size={36} />
+        {sub ? <T v="meta" numberOfLines={1} style={{ marginTop: 4 }}>{sub}</T> : null}
       </View>
       {right}
     </View>

@@ -7,10 +7,12 @@ import { useAuth } from '@/auth';
 import { useCart } from '@/cart';
 import { ACTIVE_STATUSES, firstName, STATUS_LABEL } from '@/format';
 import { useAddresses, useAddToCart, useFavorites } from '@/hooks';
-import { C, CATEGORY_META, F, R, S } from '@/theme';
-import { BatchCard, Card, CategoryTile, CookCard, DishCard, FadeIn, Glossy, IconButton, Loading, Rings, Row, Screen, Section, T, Tap } from '@/ui';
+import { C, F, R, S } from '@/theme';
+import { BatchCard, Card, CookCard, DishCard, FadeIn, Glossy, IconButton, Loading, Rings, Row, Screen, Section, T, Tap } from '@/ui';
 import { BrandBar } from '@/ui/brand';
+import { SpotlightGrid } from '@/ui/spotlight';
 import { Grid, useCols } from '@/ui/grid';
+import { tr, useLang } from '@/i18n';
 
 /** A short line for the banner; changes every day. */
 const QUOTES = [
@@ -22,6 +24,7 @@ const QUOTES = [
 ];
 
 export default function Home() {
+  useLang();
   const { me } = useAuth();
   const cart = useCart();
   const add = useAddToCart();
@@ -54,14 +57,17 @@ export default function Home() {
           <IconButton label="Cart" badge={cart.count} onPress={() => router.push('/cart')}><ShoppingBag size={20} color={C.text} /></IconButton>
         </Row>
       } />}>
-      {/* delivery address + greeting */}
-      <Tap onPress={() => router.push('/addresses')} scale={0.98} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-        <MapPin size={15} color={C.brand} />
-        <T v="meta" color={C.text2} numberOfLines={1} style={{ flexShrink: 1 }}>
-          {hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'}, {firstName(me?.name) || 'friend'} · <T v="meta" color={C.text} style={{ fontFamily: F.bold }}>{addr ? `${addr.label}, ${addr.area}` : 'Add delivery address'}</T>
-        </T>
+      {/* delivery address */}
+      <Tap onPress={() => router.push('/addresses')} scale={0.97} style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.surface2, borderRadius: R.pill, paddingHorizontal: 12, height: 32, marginTop: 2, maxWidth: '100%' }}>
+        <MapPin size={14} color={C.brand} />
+        <T v="meta" color={C.text} numberOfLines={1} style={{ fontFamily: F.bold, flexShrink: 1 }}>{addr ? `${addr.label}, ${addr.area}` : 'Add delivery address'}</T>
         <ChevronDown size={14} color={C.text} />
       </Tap>
+
+      {/* big greeting */}
+      <FadeIn>
+        <T v="hero" style={{ marginTop: S.md, fontSize: 32, lineHeight: 38 }}>{tr(hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening')},{'\n'}<T v="hero" color={C.brand} style={{ fontSize: 32, lineHeight: 38 }}>{firstName(me?.name) || tr('friend')}</T></T>
+      </FadeIn>
 
       <Row gap={S.sm} style={{ marginTop: S.md }}>
         <Tap onPress={() => router.push('/browse')} scale={0.98} style={{ flex: 1, height: 50, borderRadius: R.pill, backgroundColor: C.surface2, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18 }}>
@@ -123,14 +129,7 @@ export default function Home() {
       ) : null}
 
       <Section title="What are you craving?" style={{ marginTop: S.xl }}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -S.lg }} contentContainerStyle={{ gap: S.md, paddingHorizontal: S.lg }}>
-          {Object.entries(CATEGORY_META).map(([k, m]) => (
-            <Tap key={k} onPress={() => router.push({ pathname: '/browse', params: { category: k } })} scale={0.92} style={{ width: 74, alignItems: 'center', gap: 8 }}>
-              <View style={{ width: 66, height: 66, borderRadius: 22, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' }}><CategoryTile category={k} size={46} solid /></View>
-              <T v="meta" center color={C.text2} numberOfLines={2} style={{ fontFamily: F.semibold }}>{m.label}</T>
-            </Tap>
-          ))}
-        </ScrollView>
+        <SpotlightGrid />
       </Section>
 
       <Section title="Available now" sub={area ? `Cooking today near ${area}` : 'Cooking today near you'} action="See all" onAction={() => router.push('/browse')}>
