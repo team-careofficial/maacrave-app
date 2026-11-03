@@ -3,7 +3,7 @@ name: Android APK
 # so anyone can download it from https://github.com/<owner>/<repo>/releases/latest
 on:
   push:
-    branches: [main]
+    branches: [main, app-updates]
     paths: ['app/**', '.github/workflows/android.yml']
   workflow_dispatch:
 permissions:
@@ -16,6 +16,7 @@ jobs:
     defaults: { run: { working-directory: app } }
     env:
       EXPO_PUBLIC_API_URL: https://maacrave-api.onrender.com/v1
+      EXPO_PUBLIC_BUILD_SHA: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -26,6 +27,10 @@ jobs:
       - run: npm install --no-audit --no-fund --legacy-peer-deps
       - name: Align native packages with Expo SDK 52
         run: npx expo install --fix -- --legacy-peer-deps
+      - name: Build stamp and version number
+        run: |
+          echo "EXPO_PUBLIC_BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+          node -e "const fs=require('fs');const a=JSON.parse(fs.readFileSync('app.json'));a.expo.android.versionCode=Number(process.env.GITHUB_RUN_NUMBER)+1;fs.writeFileSync('app.json',JSON.stringify(a,null,2));"
       - name: Generate the native Android project
         run: npx expo prebuild --platform android --no-install --clean
       - name: Signing key
@@ -55,11 +60,17 @@ jobs:
       - name: Build APK
         working-directory: app/android
         run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=armeabi-v7a,arm64-v8a
-      - name: Name the file
+      - name: Name the file and write version.json (the app checks it to offer updates)
         run: |
           mkdir -p ../dist-apk
           cp android/app/build/outputs/apk/release/app-release.apk ../dist-apk/MaaCrave.apk
-          ls -lh ../dist-apk
+          node -e "
+            const fs=require('fs');
+            const notes=fs.existsSync('whats-new.json')?JSON.parse(fs.readFileSync('whats-new.json')):undefined;
+            fs.writeFileSync('../dist-apk/version.json',JSON.stringify({sha:process.env.GITHUB_SHA,builtAt:process.env.EXPO_PUBLIC_BUILD_TIME,notes,url:'https://github.com/'+process.env.GITHUB_REPOSITORY+'/releases/download/android-latest/MaaCrave.apk'}));"
+          cat ../dist-apk/version.json; ls -lh ../dist-apk
+          echo "Signing certificate (must stay the same for updates to install):"
+          keytool -printcert -jarfile ../dist-apk/MaaCrave.apk | grep -E "SHA256|Owner" || true
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: android-latest
@@ -69,4 +80,6 @@ jobs:
             Latest MaaCrave Android app, built from `${{ github.sha }}`.
             Download **MaaCrave.apk** below on your Android phone and open it to install
             (allow "Install unknown apps" for your browser when asked).
-          files: dist-apk/MaaCrave.apk
+          files: |
+            dist-apk/MaaCrave.apk
+            dist-apk/version.json

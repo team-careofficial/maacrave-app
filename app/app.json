@@ -17,7 +17,7 @@
     "android": {
       "package": "app.maacrave.mobile",
       "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#A9151B" },
-      "permissions": ["POST_NOTIFICATIONS", "ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION", "CAMERA"]
+      "permissions": ["POST_NOTIFICATIONS", "ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION", "CAMERA", "REQUEST_INSTALL_PACKAGES"]
     },
     "web": { "bundler": "metro", "output": "single", "favicon": "./assets/favicon.png", "name": "MaaCrave", "themeColor": "#FFFFFF" },
     "plugins": [

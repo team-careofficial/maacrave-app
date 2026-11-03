@@ -12,6 +12,7 @@ import { CartProvider } from '@/cart';
 import { registerForPush } from '@/push';
 import { C } from '@/theme';
 import { ToastProvider } from '@/ui';
+import { AppUpdate } from '@/ui/appUpdate';
 import { Intro } from '@/ui/intro';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -67,6 +68,7 @@ export default function RootLayout() {
               <Gate />
               <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg }, animation: 'slide_from_right' }} />
               <Launch />
+              <AppUpdate />
             </ToastProvider>
           </CartProvider>
         </AuthProvider>
