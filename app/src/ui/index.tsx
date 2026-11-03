@@ -155,7 +155,7 @@ export function Wordmark({ size = 34, onDark }: { size?: number; onDark?: boolea
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: size * 0.26 }}>
       <Logo size={size} />
       <Text style={{ fontFamily: F.displayX, fontSize: fs, letterSpacing: -0.6, color: onDark ? '#fff' : C.text }}>
-        Maa<Text style={{ color: onDark ? '#F8C65C' : C.brand }}>Crave</Text>
+        Maa<Text style={{ color: onDark ? '#FFD9D9' : C.brand }}>Crave</Text>
       </Text>
     </View>
   );

@@ -97,7 +97,7 @@ export function MotherOfWeek({ c }: { c: NonNullable<HomeData['featured']> }) {
   return (
     <Tap onPress={() => router.push(`/cook/${c.id}`)} scale={0.99} style={{ borderRadius: R.xl, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, overflow: 'hidden', ...(shadow as object) }}>
       {/* fine mango-to-paprika line along the top */}
-      <LinearGradient colors={['#F5B942', '#C2441F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ height: 3 }} />
+      <LinearGradient colors={['#E9A23B', '#A9151B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ height: 3 }} />
       <View style={{ padding: S.lg, gap: S.lg }}>
         <Row style={{ justifyContent: 'space-between' }}>
           <Row gap={6}><Star size={13} color={C.turmeric} fill={C.turmeric} /><Eyebrow>{t('Mother of the week', 'এই সপ্তাহের মা')}</Eyebrow></Row>
