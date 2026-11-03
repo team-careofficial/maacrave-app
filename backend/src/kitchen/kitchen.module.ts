@@ -5,7 +5,8 @@ import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsInt, IsNumber, IsOptional, Is
 import { batchFilled } from '../catalog/catalog.module';
 import { AuthUser, CurrentUser, Roles } from '../common/auth';
 import { PrismaService } from '../common/prisma.service';
-import { CATEGORIES, DHAKA_AREAS } from '../common/util';
+import { CATEGORIES, DHAKA_AREAS, HEALTH_TAGS, REGIONS } from '../common/util';
+import { MediaService } from '../media/media.module';
 import { NotificationsService } from '../notifications/notifications.module';
 import { BusinessService } from '../business/business.module';
 import { OrdersModule } from '../orders/orders.module';
@@ -22,6 +23,10 @@ class KitchenDto {
   @IsOptional() @IsBoolean() accepting?: boolean;
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(5) hygieneChecks?: number;
   @IsOptional() @IsString() @MaxLength(20) payoutWallet?: string;
+  @IsOptional() @IsString() @MaxLength(600) story?: string;
+  @IsOptional() @IsIn([...REGIONS, '']) region?: string;
+  @IsOptional() @IsString() @MaxLength(40) portraitId?: string;
+  @IsOptional() @IsString() @MaxLength(40) kitchenPhotoId?: string;
 }
 class DishDto {
   @IsString() @MinLength(2) @MaxLength(60) name: string;
@@ -36,6 +41,10 @@ class DishDto {
   @Type(() => Number) @IsInt() @Min(0) @Max(3) spice: number;
   @Type(() => Number) @IsInt() @Min(1) @Max(300) dailyCapacity: number;
   @IsOptional() @IsBoolean() available?: boolean;
+  @IsOptional() @IsString() @MaxLength(40) photoId?: string;
+  @IsOptional() @IsIn([...REGIONS, '']) region?: string;
+  @IsOptional() @IsArray() @ArrayMaxSize(6) @IsIn(HEALTH_TAGS, { each: true }) healthTags?: string[];
+  @IsOptional() @IsString() @MaxLength(40) festivalId?: string;
 }
 class EditDishDto {
   @IsOptional() @IsString() @MinLength(2) @MaxLength(60) name?: string;
@@ -50,6 +59,10 @@ class EditDishDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(3) spice?: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(300) dailyCapacity?: number;
   @IsOptional() @IsBoolean() available?: boolean;
+  @IsOptional() @IsString() @MaxLength(40) photoId?: string;
+  @IsOptional() @IsIn([...REGIONS, '']) region?: string;
+  @IsOptional() @IsArray() @ArrayMaxSize(6) @IsIn(HEALTH_TAGS, { each: true }) healthTags?: string[];
+  @IsOptional() @IsString() @MaxLength(40) festivalId?: string;
 }
 class ProposeDto { @Type(() => Number) @IsInt() @Min(30) @Max(5000) pricePerPortion: number; @IsOptional() @IsString() @MaxLength(140) note?: string; }
 class BatchDto {
@@ -65,7 +78,16 @@ const ACTIVE: OrderStatus[] = ['SUBMITTED', 'COOK_ACCEPTED', 'CONFIRMED', 'PREPA
 
 @Injectable()
 export class KitchenService {
-  constructor(private prisma: PrismaService, private orders: OrdersService, private notify: NotificationsService, private business: BusinessService) {}
+  constructor(private prisma: PrismaService, private orders: OrdersService, private notify: NotificationsService, private business: BusinessService, private media: MediaService) {}
+
+  /** Photos must be the cook's own uploads; a festival must exist and still be taking orders. Empty strings clear a field. */
+  private async clean<T extends { photoId?: string; portraitId?: string; kitchenPhotoId?: string; region?: string; festivalId?: string }>(user: AuthUser, dto: T) {
+    const out: Record<string, unknown> = { ...dto };
+    for (const k of ['photoId', 'portraitId', 'kitchenPhotoId', 'region', 'festivalId'] as const) if (out[k] === '') out[k] = null;
+    for (const k of ['photoId', 'portraitId', 'kitchenPhotoId'] as const) if (out[k] && !(await this.media.owns(user.id, out[k] as string))) throw new BadRequestException('Please upload that photo again.');
+    if (out.festivalId && !(await this.prisma.festival.findFirst({ where: { id: out.festivalId as string, active: true, closesAt: { gt: new Date() } } }))) throw new BadRequestException('That festival menu is closed.');
+    return out as T;
+  }
 
   private cookOf(user: AuthUser) { if (!user.cook) throw new ForbiddenException('No kitchen profile.'); return user.cook; }
 
@@ -87,15 +109,15 @@ export class KitchenService {
   async update(user: AuthUser, dto: KitchenDto) {
     const cook = this.cookOf(user);
     if (dto.accepting) await this.business.requireAccepted(user.id, 'COOK');
-    return this.prisma.cookProfile.update({ where: { id: cook.id }, data: dto });
+    return this.prisma.cookProfile.update({ where: { id: cook.id }, data: await this.clean(user, dto) });
   }
 
   dishes(user: AuthUser) { return this.prisma.dish.findMany({ where: { cookId: this.cookOf(user).id, deletedAt: null }, orderBy: { createdAt: 'desc' } }); }
-  addDish(user: AuthUser, dto: DishDto) { return this.prisma.dish.create({ data: { ...dto, description: dto.description || '', cookId: this.cookOf(user).id } }); }
+  async addDish(user: AuthUser, dto: DishDto) { const d = await this.clean(user, dto); return this.prisma.dish.create({ data: { ...d, description: d.description || '', cookId: this.cookOf(user).id } }); }
   async editDish(user: AuthUser, id: string, dto: EditDishDto) {
     const d = await this.prisma.dish.findFirst({ where: { id, cookId: this.cookOf(user).id, deletedAt: null } });
     if (!d) throw new NotFoundException();
-    return this.prisma.dish.update({ where: { id }, data: dto });
+    return this.prisma.dish.update({ where: { id }, data: await this.clean(user, dto) });
   }
   async removeDish(user: AuthUser, id: string) {
     await this.prisma.dish.updateMany({ where: { id, cookId: this.cookOf(user).id }, data: { deletedAt: new Date(), available: false } });

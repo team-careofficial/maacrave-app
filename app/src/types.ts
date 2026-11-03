@@ -4,16 +4,24 @@ export type OrderStatus = 'AWAITING_PAYMENT' | 'SUBMITTED' | 'COOK_ACCEPTED' | '
 export type BatchStatus = 'OPEN' | 'FULL' | 'CONFIRMED' | 'COOKING' | 'READY' | 'DONE' | 'FAILED';
 export type PaymentMethod = 'BKASH' | 'SSLCOMMERZ' | 'COD';
 
-export interface CookPublic { id: string; displayName: string; area: string; intro: string; specialties: string[]; rating: number; ratingCount: number; completedOrders: number; hours: string; accepting: boolean; lat?: number | null; lng?: number | null }
+export interface CookPublic { id: string; displayName: string; area: string; intro: string; specialties: string[]; rating: number; ratingCount: number; completedOrders: number; hours: string; accepting: boolean; lat?: number | null; lng?: number | null;
+  story?: string; region?: string | null; portraitId?: string | null; kitchenPhotoId?: string | null; createdAt?: string }
 export interface Kitchen extends CookPublic { dailyCapacity: number; hygieneChecks: number; payoutWallet: string | null; kitchenInfo: string | null; experience: string | null }
 export interface Me {
   id: string; phone: string | null; email: string | null; name: string | null; area: string | null; language: 'en' | 'bn'; loyaltyPoints: number; referralCode: string | null; termsAcceptedAt?: string | null; phoneVerifiedAt?: string | null; createdAt?: string;
+  dietPrefs?: string[]; allergies?: string[];
   roles: { role: Role; status: RoleStatus; note?: string | null }[]; cook: Kitchen | null; rider: { id: string; vehicle: string; online: boolean } | null;
 }
 export interface Dish {
   id: string; cookId: string; name: string; nameBn: string | null; category: string; price: number; portion: string; prepMinutes: number;
   ingredients: string[]; allergens: string[]; description: string; spice: number; dailyCapacity: number; available: boolean; rating: number; ratingCount: number; orderCount: number;
+  photoId?: string | null; region?: string | null; healthTags?: string[]; festivalId?: string | null;
   cook?: CookPublic;
+}
+export interface Festival { id: string; title: string; titleBn: string; blurb: string; blurbBn: string; opensAt: string; closesAt: string; deliverOn: string; active: boolean; dishCount?: number }
+export interface HomeData {
+  featured: (CookPublic & { dishes: Pick<Dish, 'id' | 'name' | 'nameBn' | 'price' | 'photoId'>[] }) | null;
+  festivals: Festival[]; regions: { key: string; dishes: number }[]; healthyCount: number;
 }
 export interface Review { id: string; stars: number; text: string | null; createdAt: string; user: { name: string }; dish?: { name: string } | null }
 export interface Batch {
@@ -43,7 +51,7 @@ export interface FoodRequest {
   proposals: Proposal[]; order: { id: string; code: string; status: OrderStatus } | null; customer?: { name: string };
 }
 export interface Notification { id: string; title: string; body: string; read: boolean; createdAt: string }
-export interface Meta { categories: string[]; areas: string[]; fees: { serviceFee: number; deliveryFee: number; batchDeliveryFee: number; commissionPct: number }; coupons: { code: string; description: string }[]; payments: { bkash: boolean; card: boolean; cod: boolean } }
+export interface Meta { categories: string[]; areas: string[]; regions?: string[]; healthTags?: string[]; allergens?: string[]; fees: { serviceFee: number; deliveryFee: number; batchDeliveryFee: number; commissionPct: number }; coupons: { code: string; description: string }[]; payments: { bkash: boolean; card: boolean; cod: boolean } }
 export interface KitchenDashboard { kitchen: Kitchen; newRequests: number; activeBatches: number; activeOrders: number; today: number; last7Days: { date: string; amount: number }[]; delivered: number; gross: number; commission: number; net: number; available: number }
 export interface KitchenBatch extends Omit<Batch, 'participants' | 'myOrderId' | 'myPortions'> { drops: number }
 export interface RiderTask { key: string; isBatch: boolean; cook: { displayName: string; area: string }; drops: number; packages: number; dropAreas: string[]; earning: number; tips?: number; cashToCollect: number; tripKm: number; kmToKitchen: number | null }

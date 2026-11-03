@@ -1,5 +1,5 @@
 import { storage } from './storage';
-import type { KitchenSubscriber, MealPlan, PartnerTerms, PlanInput, RiderWallet, Subscription, SupportContact, SupportTicket, Address, Batch, CookDetail, CookPublic, Dish, DishDetail, Fees, FoodRequest, Kitchen, KitchenBatch, KitchenDashboard, Me, Meta, Notification, Order, PaymentMethod, Proposal, Role, RiderOrder, RiderTask } from './types';
+import type { Festival, HomeData, KitchenSubscriber, MealPlan, PartnerTerms, PlanInput, RiderWallet, Subscription, SupportContact, SupportTicket, Address, Batch, CookDetail, CookPublic, Dish, DishDetail, Fees, FoodRequest, Kitchen, KitchenBatch, KitchenDashboard, Me, Meta, Notification, Order, PaymentMethod, Proposal, Role, RiderOrder, RiderTask } from './types';
 
 export const API_URL = (process.env.EXPO_PUBLIC_API_URL || '').replace(/\/$/, '');
 const RT_KEY = 'maacrave.rt';
@@ -87,7 +87,7 @@ export const API = {
   deleteAccount: () => api<{ ok: true }>('/me', { method: 'DELETE' }),
   verifyOtp: (to: SignInTarget, code: string) => api<{ accessToken: string; refreshToken: string; isNew: boolean }>('/auth/otp/verify', { method: 'POST', body: { ...to, code } }),
   me: () => api<Me>('/me'),
-  updateMe: (b: Partial<Pick<Me, 'name' | 'area' | 'language'>> & { acceptTerms?: boolean; referralCode?: string }) => api<Me>('/me', { method: 'PATCH', body: b }),
+  updateMe: (b: Partial<Pick<Me, 'name' | 'area' | 'language' | 'dietPrefs' | 'allergies'>> & { acceptTerms?: boolean; referralCode?: string }) => api<Me>('/me', { method: 'PATCH', body: b }),
   contactRequest: (to: SignInTarget) => api<{ sent: boolean; saved?: boolean; expiresInSeconds: number }>('/me/contact/request', { method: 'POST', body: to }),
   contactVerify: (to: SignInTarget, code: string) => api<Me>('/me/contact/verify', { method: 'POST', body: { ...to, code } }),
   signOutEverywhere: () => api<{ ok: true }>('/me/sessions/revoke-all', { method: 'POST' }),
@@ -104,14 +104,17 @@ export const API = {
   pushToken: (token: string, platform: string) => api('/notifications/push-token', { method: 'POST', body: { token, platform } }),
   // catalog
   meta: () => api<Meta>('/meta'),
-  dishes: (q: { q?: string; category?: string; sort?: string; area?: string; maxPrice?: number; take?: number }) => api<(Dish & { cook: CookPublic })[]>('/dishes', { query: q }),
+  home: () => api<HomeData>('/home'),
+  festival: (id: string) => api<Festival & { open: boolean; dishes: (Dish & { cook: CookPublic })[] }>(`/festivals/${id}`),
+  uploadPhoto: (kind: 'DISH' | 'PORTRAIT' | 'KITCHEN', data: string) => api<{ id: string; url: string }>('/media', { method: 'POST', body: { kind, data } }),
+  dishes: (q: { q?: string; category?: string; sort?: string; area?: string; maxPrice?: number; take?: number; region?: string; tag?: string }) => api<(Dish & { cook: CookPublic })[]>('/dishes', { query: q }),
   dish: (id: string) => api<DishDetail>(`/dishes/${id}`),
   cooks: (q?: string) => api<CookPublic[]>('/cooks', { query: { q } }),
   cook: (id: string) => api<CookDetail>(`/cooks/${id}`),
   batches: (filter: string, area?: string) => api<Batch[]>('/batches', { query: { filter, area } }),
   batch: (id: string) => api<Batch>(`/batches/${id}`),
   // orders
-  quote: (b: CheckoutBody & { addressId?: string; tip?: number }) => api<{ fees: Fees; couponError: string | null; items: { name: string; unitPrice: number; quantity: number }[] }>('/orders/quote', { method: 'POST', body: b }),
+  quote: (b: CheckoutBody & { addressId?: string; tip?: number }) => api<{ fees: Fees; couponError: string | null; scheduledFor?: string | null; items: { name: string; unitPrice: number; quantity: number }[] }>('/orders/quote', { method: 'POST', body: b }),
   placeOrder: (b: CheckoutBody & { tip?: number; addressId: string; paymentMethod: PaymentMethod; notes?: string; idempotencyKey: string; client: 'app' | 'web' }) => api<{ order: Order; paymentUrl: string | null; paymentError?: string | null }>('/orders', { method: 'POST', body: b }),
   orders: (scope: 'active' | 'past') => api<Order[]>('/orders', { query: { scope } }),
   order: (id: string) => api<Order>(`/orders/${id}`),
@@ -126,7 +129,7 @@ export const API = {
   declineProposal: (id: string, pid: string) => api<FoodRequest[]>(`/requests/${id}/proposals/${pid}/decline`, { method: 'POST' }),
   // kitchen (cook mode)
   kitchen: () => api<KitchenDashboard>('/kitchen'),
-  updateKitchen: (b: Partial<Pick<Kitchen, 'intro' | 'specialties' | 'hours' | 'dailyCapacity' | 'accepting' | 'hygieneChecks' | 'payoutWallet'>> & { area?: string; lat?: number; lng?: number }) => api<Kitchen>('/kitchen', { method: 'PATCH', body: b }),
+  updateKitchen: (b: Partial<Pick<Kitchen, 'intro' | 'specialties' | 'hours' | 'dailyCapacity' | 'accepting' | 'hygieneChecks' | 'payoutWallet'>> & { area?: string; lat?: number; lng?: number; story?: string; region?: string; portraitId?: string; kitchenPhotoId?: string }) => api<Kitchen>('/kitchen', { method: 'PATCH', body: b }),
   kitchenDishes: () => api<Dish[]>('/kitchen/dishes'),
   saveDish: (id: string | null, b: Partial<Dish>) => (id ? api<Dish>(`/kitchen/dishes/${id}`, { method: 'PATCH', body: b }) : api<Dish>('/kitchen/dishes', { method: 'POST', body: b })),
   removeDish: (id: string) => api(`/kitchen/dishes/${id}`, { method: 'DELETE' }),

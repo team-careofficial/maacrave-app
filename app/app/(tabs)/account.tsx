@@ -1,9 +1,9 @@
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { Bell, Bike, CalendarDays, MonitorSmartphone, Smartphone, ChefHat, ChevronRight, FileText, Globe, Heart, HelpCircle, LogOut, MapPin, Shield, ShoppingBag, Trash2, type LucideIcon } from 'lucide-react-native';
+import { Bell, Bike, CalendarDays, MonitorSmartphone, Smartphone, ChefHat, ChevronRight, FileText, Globe, Heart, HelpCircle, Salad, LogOut, MapPin, Shield, ShoppingBag, Trash2, type LucideIcon } from 'lucide-react-native';
 import { Linking, Pressable, Text, View } from 'react-native';
 import { API } from '@/api';
-import { setLang, useLang } from '@/i18n';
+import { num, setLang, t, useLang } from '@/i18n';
 import { homeFor, useAuth } from '@/auth';
 import { C, ON_GLOSS, ON_GLOSS_SOFT, R, S } from '@/theme';
 import { Badge, Card, confirm, Divider, Glossy, Header, IconTile, Rings, Screen, Section, T, useToast } from '@/ui';
@@ -89,6 +89,7 @@ export default function Account() {
           <Item Icon={ShoppingBag} label="Orders" onPress={() => router.push('/orders')} /><Divider />
           <Item Icon={CalendarDays} label="Meal plans" sub="Breakfast, lunch or dinner · weekly or monthly" onPress={() => router.push('/plans')} /><Divider />
           <Item Icon={Heart} label="Saved dishes & cooks" onPress={() => router.push('/favorites')} /><Divider />
+          <Item Icon={Salad} label={t('My food preferences', 'আমার খাদ্যাভ্যাস')} sub={me.allergies?.length || me.dietPrefs?.length ? t(`${(me.dietPrefs || []).length} preferences · ${(me.allergies || []).length} allergies`, `${num((me.dietPrefs || []).length)}টি পছন্দ · ${num((me.allergies || []).length)}টি অ্যালার্জি`) : t('Diabetic, low oil, kids, allergies', 'ডায়াবেটিস, কম তেল, বাচ্চা, অ্যালার্জি')} onPress={() => router.push('/diet')} /><Divider />
           <Item Icon={MapPin} label="Delivery addresses" onPress={() => router.push('/addresses')} /><Divider />
           <Item Icon={Smartphone} label="Phone & email" sub={[me.phone ? `+88 ${me.phone}` : null, me.email].filter(Boolean).join(' · ')} onPress={() => router.push('/contact')} /><Divider />
           <Item Icon={Bell} label="Notifications" onPress={() => router.push('/notifications')} />

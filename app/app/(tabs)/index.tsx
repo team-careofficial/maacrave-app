@@ -14,7 +14,8 @@ import { BrandBar } from '@/ui/brand';
 import { SpotlightGrid } from '@/ui/spotlight';
 import { KitchenTicker } from '@/ui/kitchenTicker';
 import { Grid, useCols } from '@/ui/grid';
-import { tr, useLang } from '@/i18n';
+import { t, tr, useLang } from '@/i18n';
+import { CareRow, FestivalBanner, MotherOfWeek, RegionRow, Stitch } from '@/ui/maa';
 
 /** A short line for the banner; changes every day. */
 const QUOTES = [
@@ -40,6 +41,8 @@ export default function Home() {
   const cooks = useQuery({ queryKey: ['cooks'], queryFn: () => API.cooks() });
   const orders = useQuery({ queryKey: ['orders', 'active'], queryFn: () => API.orders('active'), refetchInterval: 30_000 });
   const requests = useQuery({ queryKey: ['requests'], queryFn: API.requests });
+  const home = useQuery({ queryKey: ['home'], queryFn: API.home, staleTime: 5 * 60_000 });
+  const care = useQuery({ queryKey: ['dishes', 'care', me?.dietPrefs?.[0]], queryFn: () => API.dishes({ tag: me!.dietPrefs![0], take: 6 }), enabled: !!me?.dietPrefs?.length });
   const notifs = useQuery({ queryKey: ['notifications', 'CUSTOMER'], queryFn: () => API.notifications('CUSTOMER') });
 
   const active = orders.data?.find((o) => ACTIVE_STATUSES.includes(o.status));
@@ -49,7 +52,7 @@ export default function Home() {
   const unread = (notifs.data || []).filter((n) => !n.read).length;
   const quote = QUOTES[Math.floor(Date.now() / 86_400_000) % QUOTES.length];
   const hour = new Date().getHours();
-  const refresh = () => { dishes.refetch(); batches.refetch(); orders.refetch(); requests.refetch(); cooks.refetch(); };
+  const refresh = () => { home.refetch(); dishes.refetch(); batches.refetch(); orders.refetch(); requests.refetch(); cooks.refetch(); };
 
   return (
     <Screen onRefresh={refresh} refreshing={dishes.isRefetching}
@@ -124,9 +127,22 @@ export default function Home() {
         </FadeIn>
       ) : null}
 
+      {/* festival pre-orders sit right on top while they're open */}
+      {home.data?.festivals.length ? (
+        <FadeIn delay={100} style={{ gap: S.md, marginTop: S.lg }}>
+          {home.data.festivals.map((f) => <FestivalBanner key={f.id} f={f} />)}
+        </FadeIn>
+      ) : null}
+
       <Section title="What are you craving?">
         <SpotlightGrid />
       </Section>
+
+      {home.data?.featured ? (
+        <View style={{ marginTop: S.xxl }}>
+          <MotherOfWeek c={home.data.featured} />
+        </View>
+      ) : null}
 
       <Section title="Available now" sub={area ? `Cooking today near ${area}` : 'Cooking today near you'} action="See all" onAction={() => router.push('/browse')}>
         {dishes.isLoading ? <Loading rows={2} /> : dishes.data?.length ? (
@@ -139,6 +155,19 @@ export default function Home() {
           </Card>
         )}
       </Section>
+
+      {home.data?.regions.length ? (
+        <Section title={t('A taste of home', 'নিজের জেলার স্বাদ')} sub={t('Mothers from every district, cooking in Dhaka', 'প্রতিটি জেলার মায়েরা, ঢাকায় বসে রান্না করছেন')}>
+          <RegionRow regions={home.data.regions} />
+        </Section>
+      ) : null}
+
+      <Section title={t('Health & care', 'স্বাস্থ্য ও যত্ন')} sub={t('Cooked the way a mother cooks for someone unwell, a child or a diabetic', 'অসুস্থ মানুষ, বাচ্চা বা ডায়াবেটিস রোগীর জন্য মা যেভাবে রাঁধেন')}>
+        <CareRow mine={me?.dietPrefs} />
+        {care.data?.length ? <Grid>{care.data.slice(0, cols === 1 ? 2 : 3).map((d) => <DishCard key={d.id} d={d} onAdd={() => add(d)} saved={fav.dishIds.has(d.id)} onToggleSave={() => fav.toggle({ dishId: d.id })} />)}</Grid> : null}
+      </Section>
+
+      <Stitch style={{ marginTop: S.xxl }} />
 
       <Section title="Group orders" sub="Join neighbours, share one rider, pay less for delivery." action={batches.data?.length ? 'See all' : undefined} onAction={() => router.push({ pathname: '/browse', params: { tab: 'groups' } })}>
         {batches.data?.length ? <Grid>{batches.data.slice(0, 3).map((b) => <BatchCard key={b.id} b={b} />)}</Grid> : (

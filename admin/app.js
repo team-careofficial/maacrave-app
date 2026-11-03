@@ -285,13 +285,62 @@
         }).join('')}</div>`;
     },
 
+    async festivals() {
+      const list = await api('/admin/festivals');
+      // Times are entered and shown in Dhaka time (UTC+6).
+      const local = (iso) => (iso ? new Date(new Date(iso).getTime() + 6 * 3600_000).toISOString().slice(0, 16) : '');
+      const form = (f) => `<form class="card" data-fest="${f ? esc(f.id) : 'new'}" autocomplete="off">
+          <div class="row between"><h3>${f ? esc(f.title) : 'New festival'}</h3>${f ? `<label class="row small"><input type="checkbox" name="active" ${f.active ? 'checked' : ''}/> Show in app</label>` : '<input type="hidden" name="active" value="on"/>'}</div>
+          <div class="grid2">
+            <label class="field">Name (English)<input class="input" name="title" maxlength="60" required value="${esc(f?.title || '')}" placeholder="Eid-ul-Adha feast"/></label>
+            <label class="field">নাম (বাংলা)<input class="input" name="titleBn" maxlength="60" required value="${esc(f?.titleBn || '')}" placeholder="ঈদের দাওয়াত"/></label>
+            <label class="field">Line (English)<input class="input" name="blurb" maxlength="240" value="${esc(f?.blurb || '')}" placeholder="Korma, polao and firni from mothers' kitchens"/></label>
+            <label class="field">লাইন (বাংলা)<input class="input" name="blurbBn" maxlength="240" value="${esc(f?.blurbBn || '')}" placeholder="মায়েদের হাতের কোরমা, পোলাও আর ফিরনি"/></label>
+            <label class="field">Pre-orders open (Dhaka time)<input class="input" type="datetime-local" name="opensAt" required value="${local(f?.opensAt)}"/></label>
+            <label class="field">Pre-orders close<input class="input" type="datetime-local" name="closesAt" required value="${local(f?.closesAt)}"/></label>
+            <label class="field">Delivery day &amp; time<input class="input" type="datetime-local" name="deliverOn" required value="${local(f?.deliverOn)}"/></label>
+          </div>
+          <button class="btn primary mt" type="submit">${f ? 'Save' : 'Create — cooks are notified'}</button>
+        </form>`;
+      return `<div class="top"><div><h1>Festivals</h1><p class="muted">Pre-order windows for Eid, Pohela Boishakh, pitha season, iftar… Cooks add special dishes; customers order ahead and food arrives on the day. Shown on Home from two weeks before opening.</p></div></div>
+        ${form(null)}
+        ${list.length ? `<h2 class="mt">All festivals</h2><div class="stack">${list.map(form).join('')}</div>` : ''}`;
+    },
+
+    async mothers() {
+      const r = await api('/admin/featured');
+      const cur = r.cooks.find((c) => c.id === r.featuredCookId);
+      const img = (id) => (id ? `<img class="face" alt="" src="${esc(API + '/media/' + id)}"/>` : '<span class="face none">—</span>');
+      return `<div class="top"><div><h1>Mother of the week</h1><p class="muted">One mother is featured at the top of Home with her photo, story and best dishes. Pick someone with a real photo and story; she is notified.</p></div>
+          ${cur ? '<button class="btn" data-feature="">Remove feature</button>' : ''}</div>
+        ${cur ? `<div class="card row">${img(cur.portraitId)}<div><b>${esc(cur.displayName)}</b> · ${esc(cur.area)}<div class="muted small">Featured now</div></div></div>` : '<p class="muted">Nobody is featured, so Home skips the card.</p>'}
+        ${r.cooks.length ? `<table class="mt"><thead><tr><th></th><th>Mother</th><th>Rating</th><th>Meals</th><th>Story</th><th></th></tr></thead><tbody>${r.cooks.map((c) => `<tr>
+          <td>${img(c.portraitId)}</td><td><b>${esc(c.displayName)}</b><div class="muted small">${esc(c.area)}${c.region ? ' · ' + esc(c.region) : ''}</div></td>
+          <td>${c.ratingCount ? c.rating.toFixed(1) + '★ (' + c.ratingCount + ')' : 'New'}</td><td>${c.completedOrders}</td>
+          <td class="small muted">${c.story ? esc(c.story.slice(0, 90)) + (c.story.length > 90 ? '…' : '') : '<i>No story yet</i>'}</td>
+          <td>${c.id === r.featuredCookId ? '<span class="badge ok">Featured</span>' : `<button class="btn small" data-feature="${esc(c.id)}">Feature</button>`}</td></tr>`).join('')}</tbody></table>` : empty('No approved cooks yet.')}`;
+    },
+
+    async photos() {
+      const kind = state.filters.photos || '';
+      const list = await api('/admin/photos' + (kind ? '?kind=' + kind : ''));
+      const tabs = [['', 'All'], ['DISH', 'Dishes'], ['PORTRAIT', 'Portraits'], ['KITCHEN', 'Kitchens']];
+      return `<div class="top"><div><h1>Photos</h1><p class="muted">Every photo cooks upload, newest first. Remove anything that isn't their own real food, face or kitchen; the cook is told why.</p></div></div>
+        <div class="tabs">${tabs.map(([k, l]) => `<button class="tab ${kind === k ? 'on' : ''}" data-filter="photos" data-value="${k}">${l}</button>`).join('')}</div>
+        ${list.length ? `<div class="photos">${list.map((p) => `<figure class="card photo">
+            <img loading="lazy" alt="" src="${esc(API + '/media/' + p.id)}"/>
+            <figcaption><b>${esc(p.cook)}</b><span class="muted small">${esc(p.kind.toLowerCase())} · ${when(p.createdAt)}</span></figcaption>
+            <button class="btn small danger" data-photo-remove="${esc(p.id)}">Remove</button>
+          </figure>`).join('')}</div>` : empty('No photos yet.')}`;
+    },
+
     async activity() {
       const list = await api('/admin/activity');
       return `<div class="top"><div><h1>Activity log</h1><p class="muted">Every admin action, newest first.</p></div></div>
         ${list.length ? `<table><thead><tr><th>When</th><th>Admin</th><th>Action</th><th>Detail</th></tr></thead><tbody>${list.map((l) => `<tr><td>${when(l.createdAt)}</td><td>${esc(l.adminEmail)}</td><td>${esc(l.action.replace(/_/g, ' ').toLowerCase())}</td><td class="muted small">${esc(l.detail || l.targetId || '')}</td></tr>`).join('')}</tbody></table>` : empty('Nothing yet.')}`;
     },
   };
-  const NAV = [['dashboard', 'Dashboard'], ['applications', 'Applications'], ['reports', 'Reports'], ['support', 'Support'], ['users', 'People'], ['orders', 'Orders'], ['payouts', 'Cook payouts'], ['riders', 'Rider cash'], ['rates', 'Rates'], ['spotlights', 'Home spotlight'], ['activity', 'Activity log']];
+  const NAV = [['dashboard', 'Dashboard'], ['applications', 'Applications'], ['reports', 'Reports'], ['support', 'Support'], ['users', 'People'], ['orders', 'Orders'], ['payouts', 'Cook payouts'], ['riders', 'Rider cash'], ['rates', 'Rates'], ['spotlights', 'Home spotlight'], ['festivals', 'Festivals'], ['mothers', 'Mother of the week'], ['photos', 'Photos'], ['activity', 'Activity log']];
 
   async function render() {
     const s = session.get();
@@ -382,6 +431,17 @@
       const body = { body: f.elements.namedItem('body').value.trim(), close: f.elements.namedItem('close').checked };
       api('/admin/tickets/' + f.dataset.ticket + '/reply', { method: 'POST', body }).then(() => { toast('Reply sent'); render(); }).catch((err) => { btn.disabled = false; toast(err.message); });
     }
+    if (e.target.dataset.fest) {
+      e.preventDefault();
+      const f = e.target; const btn = f.querySelector('button[type=submit]');
+      const g = (n) => f.elements.namedItem(n);
+      const dt = (n) => g(n).value + ':00+06:00';
+      const act = g('active');
+      const body = { title: g('title').value.trim(), titleBn: g('titleBn').value.trim(), blurb: g('blurb').value.trim(), blurbBn: g('blurbBn').value.trim(), opensAt: dt('opensAt'), closesAt: dt('closesAt'), deliverOn: dt('deliverOn'), active: act.type === 'checkbox' ? act.checked : true };
+      const id = f.dataset.fest;
+      btn.disabled = true;
+      api('/admin/festivals' + (id === 'new' ? '' : '/' + id), { method: 'POST', body }).then(() => { toast(id === 'new' ? 'Festival created — cooks notified' : 'Saved'); render(); }).catch((err) => { btn.disabled = false; toast(err.message); });
+    }
     if (e.target.dataset.spot) {
       e.preventDefault();
       const f = e.target; const btn = f.querySelector('button[type=submit]'); btn.disabled = true;
@@ -403,6 +463,18 @@
       if (d.go) { state.view = d.go; return render(); }
       if (d.filter) { state.filters[d.filter] = d.value; return render(); }
       if (d.doc) return showDoc(d.doc);
+      if ('feature' in d) {
+        el.disabled = true;
+        await api('/admin/featured', { method: 'POST', body: { cookId: d.feature || null } });
+        toast(d.feature ? 'Featured — she has been notified' : 'Feature removed'); return render();
+      }
+      if (d.photoRemove) {
+        const note = await ask('Remove this photo?', 'Tell the cook why (e.g. “Not your own food”, “Blurry”)', true);
+        if (note === null) return;
+        el.disabled = true;
+        await api('/admin/photos/' + d.photoRemove + '/remove', { method: 'POST', body: { note } });
+        toast('Removed — the cook has been told'); return render();
+      }
       if (d.decide) {
         const note = d.decide === 'approve' ? await ask('Approve this applicant?', 'Optional note (e.g. “Video call done 2 Nov”)', false)
           : await ask(d.decide === 'reject' ? 'What should they fix?' : 'Why suspend?', 'They will see this message', true);

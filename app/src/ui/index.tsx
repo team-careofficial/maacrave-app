@@ -1,12 +1,12 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import {
-  BadgeCheck, Beef, CakeSlice, Check, ChevronLeft, ChevronRight, Clock, Cookie, Drumstick, Fish, Heart, Leaf, Minus, Moon, Plus, Soup, Star, Sun, Users, Utensils,
+  AlertTriangle, BadgeCheck, Beef, CakeSlice, Check, ChevronLeft, ChevronRight, Clock, Cookie, Drumstick, Fish, Heart, Leaf, Minus, Moon, Plus, Soup, Star, Sun, Users, Utensils,
   type LucideIcon,
 } from 'lucide-react-native';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Animated, Easing, Platform, Pressable, RefreshControl, ScrollView, StyleProp, StyleSheet, Switch, Text, TextInput, TextInputProps, TextStyle, View, ViewStyle,
+  ActivityIndicator, Alert, Animated, Easing, Image, Platform, Pressable, RefreshControl, ScrollView, StyleProp, StyleSheet, Switch, Text, TextInput, TextInputProps, TextStyle, View, ViewStyle,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { countdown, statusTone, STATUS_LABEL, tk } from '../format';
@@ -15,6 +15,8 @@ import { Logo } from './logo';
 import { C, CATEGORY_META, F, GLOSS, MAROON, MATTE, ON_GLOSS, R, S, SHEEN, TYPE, TypeKey, redShadow, shadow } from '../theme';
 import type { Batch, CookPublic, Dish, Order, OrderStatus } from '../types';
 import { onAppError } from '../errors';
+import { useAuth } from '../auth';
+import { allergyHits, HEALTH, mediaUrl, regionOf, REGIONS } from '../maa';
 
 const ND = Platform.OS !== 'web';
 const APressable = Animated.createAnimatedComponent(Pressable);
@@ -109,7 +111,7 @@ export function CategoryTile({ category, size = 44, solid }: { category: string;
   return (
     <View style={{ width: size, height: size, borderRadius: size * 0.3, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: solid ? C.surface : undefined }}>
       {solid ? null : <LinearGradient colors={[m.color + '14', m.color + '2E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />}
-      <Icon size={size * 0.46} color={m.color} strokeWidth={1.9} />
+      <View style={{ position: 'relative', zIndex: 1 }}><Icon size={size * 0.46} color={m.color} strokeWidth={1.9} /></View>
     </View>
   );
 }
@@ -281,7 +283,7 @@ export function AddButton({ onPress, disabled, label = 'Add to cart' }: { onPres
       <View style={{ flex: 1, borderRadius: 19, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
         <LinearGradient colors={GLOSS} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
         <LinearGradient colors={SHEEN} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '50%' }} pointerEvents="none" />
-        <Plus size={19} color={ON_GLOSS} strokeWidth={2.6} />
+        <View style={{ position: 'relative', zIndex: 1 }}><Plus size={19} color={ON_GLOSS} strokeWidth={2.6} /></View>
       </View>
     </Tap>
   );
@@ -465,11 +467,17 @@ export function KV({ k, v, strong, color }: { k: string; v: string; strong?: boo
 
 /* ---------- domain cards ---------- */
 export function DishCard({ d, onAdd, saved, onToggleSave, groupPrice }: { d: Dish & { cook?: CookPublic }; onAdd?: () => void; saved?: boolean; onToggleSave?: () => void; groupPrice?: number }) {
+  const lang = useLang();
+  const { me } = useAuth();
+  const hits = allergyHits(d, me?.allergies);
+  const photo = mediaUrl(d.photoId);
+  const region = regionOf(d);
+  const tags = (d.healthTags || []).filter((k) => HEALTH[k]).slice(0, 2);
   return (
     <Card onPress={() => router.push(`/dish/${d.id}`)} style={{ padding: 0, overflow: 'hidden' }}>
       <View style={{ padding: S.lg, paddingBottom: S.md, gap: S.md }}>
         <Row style={{ alignItems: 'flex-start' }}>
-          <CategoryTile category={d.category} size={58} solid />
+          {photo ? <Image source={{ uri: photo }} style={{ width: 72, height: 72, borderRadius: 18, backgroundColor: C.sunken }} resizeMode="cover" /> : <CategoryTile category={d.category} size={58} solid />}
           <View style={{ flex: 1, gap: 3 }}>
             <T v="card" numberOfLines={1} style={{ fontSize: 16.5 }}>{d.name}</T>
             {d.cook ? (
@@ -491,6 +499,18 @@ export function DishCard({ d, onAdd, saved, onToggleSave, groupPrice }: { d: Dis
           ) : null}
         </Row>
         {d.description ? <T v="sub" numberOfLines={2} color={C.text2}>{d.description}</T> : null}
+        {tags.length || (region && REGIONS[region]) ? (
+          <Row gap={6} wrap>
+            {region && REGIONS[region] ? <View style={[styles.miniPill, { backgroundColor: C.turmericSoft }]}><Text style={[styles.miniTx, { color: C.onTurmeric, fontFamily: lang === 'bn' ? F.bnBold : F.semibold }]}>📍 {lang === 'bn' ? REGIONS[region].bn : REGIONS[region].en}</Text></View> : null}
+            {tags.map((k) => <View key={k} style={[styles.miniPill, { backgroundColor: HEALTH[k].color + '14' }]}><Text style={[styles.miniTx, { color: HEALTH[k].color, fontFamily: lang === 'bn' ? F.bnBold : F.semibold }]}>{lang === 'bn' ? HEALTH[k].bn : HEALTH[k].en}</Text></View>)}
+          </Row>
+        ) : null}
+        {hits.length ? (
+          <Row gap={6} style={{ backgroundColor: C.errSoft, borderRadius: R.sm, paddingHorizontal: 10, paddingVertical: 6 }}>
+            <AlertTriangle size={13} color={C.err} />
+            <T v="meta" color={C.err} style={{ flex: 1 }}>{lang === 'bn' ? 'আপনার অ্যালার্জির উপাদান আছে' : `Contains ${hits.join(', ').toLowerCase()}`}</T>
+          </Row>
+        ) : null}
       </View>
       <Row style={{ justifyContent: 'space-between', paddingHorizontal: S.lg, paddingBottom: S.lg }}>
         <View>
@@ -537,7 +557,7 @@ export function CookCard({ c }: { c: CookPublic }) {
   return (
     <Card onPress={() => router.push(`/cook/${c.id}`)}>
       <Row>
-        <Avatar name={c.displayName} size={50} />
+        {mediaUrl(c.portraitId) ? <Image source={{ uri: mediaUrl(c.portraitId)! }} style={{ width: 50, height: 50, borderRadius: 25, borderWidth: 2, borderColor: C.turmeric, backgroundColor: C.sunken }} /> : <Avatar name={c.displayName} size={50} />}
         <View style={{ flex: 1, gap: 2 }}>
           <Row gap={4}><T v="card" numberOfLines={1} style={{ flexShrink: 1 }}>{c.displayName}</T><BadgeCheck size={15} color={C.brand} /></Row>
           <T v="meta" numberOfLines={1}>{c.specialties.slice(0, 2).join(' · ') || c.area}</T>
@@ -603,6 +623,8 @@ export function confirm(rawTitle: string, rawMessage: string, rawOk = 'OK', dest
 }
 
 const styles = StyleSheet.create({
+  miniPill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, height: 22, borderRadius: 999 },
+  miniTx: { fontSize: 11.5 },
   screen: { flex: 1, backgroundColor: C.bg },
   inner: { width: '100%', maxWidth: MAX_W, alignSelf: 'center' },
   header: { backgroundColor: C.bg, paddingVertical: S.sm },

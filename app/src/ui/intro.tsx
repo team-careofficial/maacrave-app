@@ -83,8 +83,9 @@ export function Intro({ ready, onDone }: { ready: boolean; onDone: () => void })
           </View>
 
           <Animated.View style={{ alignItems: 'center', marginTop: 8, opacity: tag, transform: [{ translateY: tag.interpolate({ inputRange: [0, 1], outputRange: [6, 0] }) }] }}>
-            <View style={{ width: 28, height: 2, borderRadius: 1, backgroundColor: 'rgba(122,31,36,0.35)', marginBottom: 10 }} />
-            <Text style={{ fontFamily: F.bnBold, fontSize: 16, color: C.brand }}>ঘরের খাবার, মায়ের হাতের</Text>
+            <View style={{ backgroundColor: C.brandDark, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 6, marginTop: 4 }}>
+              <Text style={{ fontFamily: F.bnBold, fontSize: 16.5, lineHeight: 24, color: '#FCEFCB' }}>ঘরের খাবার, মায়ের হাতের</Text>
+            </View>
           </Animated.View>
         </Animated.View>
       </Animated.View>
