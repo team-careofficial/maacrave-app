@@ -24,7 +24,10 @@ function TaskCard({ t }: { t: RiderTask }) {
     <Card style={{ gap: S.md }}>
       <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <View style={{ flex: 1 }}><T v="card">{t.cook.displayName}</T><Row gap={4}><MapPin size={13} color={C.muted} /><T v="meta">Pick up in {t.cook.area}</T></Row></View>
-        <T v="price" color={C.ok}>{tk(t.earning)}</T>
+        <View style={{ alignItems: 'flex-end' }}>
+          <T v="price" color={C.ok}>{tk(t.earning)}</T>
+          {t.tips ? <T v="meta" color={C.ok}>{tt(`incl. ${tk(t.tips)} tip`, `${tk(t.tips)} টিপসহ`)}</T> : null}
+        </View>
       </Row>
       <Row gap={S.sm} wrap>
         {t.isBatch ? <Badge tone="brand" label="Group route" icon={<Users size={12} color={C.brandText} />} /> : null}

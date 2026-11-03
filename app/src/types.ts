@@ -23,11 +23,11 @@ export interface Batch {
 export interface DishDetail extends Dish { reviews: Review[]; openBatch: Batch | null }
 export interface CookDetail extends CookPublic { dishes: Dish[]; reviews: Review[]; openBatches: Batch[] }
 export interface Address { id: string; label: string; area: string; road: string; house: string; floor: string | null; landmark: string | null; isDefault: boolean; lat?: number | null; lng?: number | null }
-export interface Fees { subtotal: number; serviceFee: number; deliveryFee: number; discount: number; total: number; couponCode: string | null; distanceKm?: number }
+export interface Fees { subtotal: number; serviceFee: number; deliveryFee: number; discount: number; total: number; couponCode: string | null; distanceKm?: number; tip?: number }
 export interface OrderItem { id: string; dishId: string | null; name: string; unitPrice: number; quantity: number }
 export interface Order {
   id: string; code: string; status: OrderStatus; customerId: string; cookId: string; batchId: string | null; requestId: string | null;
-  subtotal: number; serviceFee: number; deliveryFee: number; discount: number; total: number; commission: number; cookEarning: number; riderPayout?: number; couponCode: string | null;
+  subtotal: number; serviceFee: number; deliveryFee: number; discount: number; total: number; commission: number; cookEarning: number; riderPayout?: number; tip?: number; couponCode: string | null;
   addressText: string; area: string; lat?: number | null; lng?: number | null; deliveryOtp?: string; notes: string | null; createdAt: string; updatedAt: string;
   items: OrderItem[]; events: { id: string; status: OrderStatus; createdAt: string }[];
   payment: { method: PaymentMethod; status: string; amount: number } | null; review: { stars: number } | null;
@@ -46,7 +46,7 @@ export interface Notification { id: string; title: string; body: string; read: b
 export interface Meta { categories: string[]; areas: string[]; fees: { serviceFee: number; deliveryFee: number; batchDeliveryFee: number; commissionPct: number }; coupons: { code: string; description: string }[]; payments: { bkash: boolean; card: boolean; cod: boolean } }
 export interface KitchenDashboard { kitchen: Kitchen; newRequests: number; activeBatches: number; activeOrders: number; today: number; last7Days: { date: string; amount: number }[]; delivered: number; gross: number; commission: number; net: number; available: number }
 export interface KitchenBatch extends Omit<Batch, 'participants' | 'myOrderId' | 'myPortions'> { drops: number }
-export interface RiderTask { key: string; isBatch: boolean; cook: { displayName: string; area: string }; drops: number; packages: number; dropAreas: string[]; earning: number; cashToCollect: number; tripKm: number; kmToKitchen: number | null }
+export interface RiderTask { key: string; isBatch: boolean; cook: { displayName: string; area: string }; drops: number; packages: number; dropAreas: string[]; earning: number; tips?: number; cashToCollect: number; tripKm: number; kmToKitchen: number | null }
 export interface RiderOrder extends Omit<Order, 'customer'> { groupKey: string; cashToCollect: number; customer: { name: string; phone: string | null }; cook: { id: string; displayName: string; area: string; user?: { phone: string } } }
 export type MealSlot = 'BREAKFAST' | 'LUNCH' | 'DINNER';
 export type PlanPeriod = 'WEEKLY' | 'MONTHLY';

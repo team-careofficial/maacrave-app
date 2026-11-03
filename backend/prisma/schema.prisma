@@ -330,6 +330,7 @@ model Order {
   commission     Int
   cookEarning    Int
   riderPayout    Int
+  tip            Int          @default(0) // added by the customer at checkout; 100% goes to the rider
   couponCode     String?
   addressText    String
   lat            Float?      // delivery point copied from the address at checkout

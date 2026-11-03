@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { router, useLocalSearchParams } from 'expo-router';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
+import { useAuth } from '@/auth';
 import { BadgeCheck, Banknote, Bike, ChefHat, FileText, Route, Wallet } from 'lucide-react-native';
 import { View } from 'react-native';
 import { API } from '@/api';
@@ -74,15 +75,19 @@ export default function PartnerTermsScreen() {
   useLang();
   const { role: raw } = useLocalSearchParams<{ role: string }>();
   const role = raw === 'rider' ? 'RIDER' : 'COOK';
+  const { status, canUse } = useAuth();
+  const allowed = canUse(role);
   const qc = useQueryClient();
   const toast = useToast();
-  const q = useQuery({ queryKey: ['terms', role], queryFn: () => API.partnerTerms(role) });
+  const q = useQuery({ queryKey: ['terms', role], queryFn: () => API.partnerTerms(role), enabled: allowed });
   const accept = useMutation({
     mutationFn: () => API.acceptTerms(role),
     onSuccess: (d) => { qc.setQueryData(['terms', role], d); toast(t('Thanks — you can go online now', 'ধন্যবাদ — এখন অনলাইনে যেতে পারবেন')); router.back(); },
     onError: (e: Error) => toast(e.message),
   });
   const d = q.data;
+  if (status === 'loading') return null;
+  if (!allowed) return <Redirect href="/" />;
   return (
     <Screen header={<Header back title="Rates & terms" sub={role === 'COOK' ? 'Mother / Cook partner' : 'Rider partner'} />}
       footer={d && !d.accepted ? <Footer><Button full size="lg" title="I agree to the rates and terms" loading={accept.isPending} onPress={() => accept.mutate()} /></Footer> : undefined}

@@ -157,6 +157,7 @@ export default function OrderScreen() {
                 <KV k="Subtotal" v={tk(o.subtotal)} />
                 <KV k={o.distanceKm ? t(`Delivery · ${o.distanceKm.toFixed(1)} km`, `ডেলিভারি · ${num(o.distanceKm.toFixed(1))} কিমি`) : 'Delivery'} v={tk(o.deliveryFee)} />
                 <KV k="Service fee" v={tk(o.serviceFee)} />
+                {o.tip ? <KV k={t('Rider tip', 'রাইডার টিপ')} v={tk(o.tip)} /> : null}
                 {o.discount ? <KV k={`Discount${o.couponCode ? ` (${o.couponCode})` : ''}`} v={`−${tk(o.discount)}`} color={C.ok} /> : null}
                 <Divider />
                 <KV k="Total" v={tk(o.total)} strong />

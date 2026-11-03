@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { BadgeCheck, ChevronRight, FileText, Mail, ShieldCheck } from 'lucide-react-native';
 import { Linking, View } from 'react-native';
+import { useAuth } from '../auth';
 import { num, setLang, useLang } from '../i18n';
 import { type Bi, LEGAL_DOCS, type LegalDoc } from '../legal/content';
 import { C, R, S } from '../theme';
@@ -12,7 +13,9 @@ const ROUTES: Record<string, string> = { terms: '/terms', privacy: '/privacy', r
 export function LegalPage({ doc }: { doc: LegalDoc }) {
   const lang = useLang();
   const pick = (b: Bi) => (lang === 'bn' ? b.bn : b.en);
-  const related = Object.values(LEGAL_DOCS).filter((d) => d.key !== doc.key);
+  const { canUse } = useAuth();
+  // Partner terms are listed only for people who are cooks or riders.
+  const related = Object.values(LEGAL_DOCS).filter((d) => d.key !== doc.key && (d.key !== 'cook-terms' || canUse('COOK')) && (d.key !== 'rider-terms' || canUse('RIDER')));
   return (
     <Screen header={<Header back title={pick(doc.title)} />}>
       <View style={{ width: '100%', maxWidth: 760, alignSelf: 'center', gap: S.lg, marginTop: S.sm }}>

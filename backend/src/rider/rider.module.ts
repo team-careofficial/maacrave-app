@@ -39,13 +39,13 @@ export class RiderService {
   async wallet(riderUserId: string) {
     const [cod, earned, ledger, s] = await Promise.all([
       this.prisma.order.aggregate({ where: { riderId: riderUserId, status: 'DELIVERED', payment: { method: 'COD' } }, _sum: { total: true } }),
-      this.prisma.order.aggregate({ where: { riderId: riderUserId, status: 'DELIVERED' }, _sum: { riderPayout: true } }),
+      this.prisma.order.aggregate({ where: { riderId: riderUserId, status: 'DELIVERED' }, _sum: { riderPayout: true, tip: true } }),
       this.prisma.riderLedger.groupBy({ by: ['kind'], where: { riderId: riderUserId }, _sum: { amount: true } }),
       this.prisma.platformSetting.findUniqueOrThrow({ where: { id: 1 } }),
     ]);
     const sum = (k: string) => ledger.find((l) => l.kind === k)?._sum.amount || 0;
     const cashCollected = cod._sum.total || 0, deposited = sum('CASH_DEPOSIT');
-    const earnedTotal = earned._sum.riderPayout || 0, paidOut = sum('PAYOUT');
+    const earnedTotal = (earned._sum.riderPayout || 0) + (earned._sum.tip || 0), paidOut = sum('PAYOUT');
     const cashInHand = cashCollected - deposited;
     const unpaidEarnings = earnedTotal - paidOut;
     // Positive: rider owes MaaCrave. Negative: MaaCrave owes the rider.
@@ -70,7 +70,7 @@ export class RiderService {
     return [...groups.entries()].map(([key, os]) => ({
       key, isBatch: !!os[0].batchId, cook: { displayName: os[0].cook.displayName, area: os[0].cook.area }, drops: os.length,
       packages: os.reduce((a, o) => a + o.items.reduce((s, i) => s + i.quantity, 0), 0),
-      dropAreas: [...new Set(os.map((o) => o.area))], earning: os.reduce((a, o) => a + o.riderPayout, 0),
+      dropAreas: [...new Set(os.map((o) => o.area))], earning: os.reduce((a, o) => a + o.riderPayout + o.tip, 0), tips: os.reduce((a, o) => a + o.tip, 0),
       cashToCollect: os.filter((o) => o.payment?.method === 'COD').reduce((a, o) => a + o.total, 0),
       tripKm: Math.round(os.reduce((a, o) => a + (o.distanceKm || 0), 0) * 10) / 10,
       kmToKitchen: me ? roadKm(me, pointOf(os[0].cook)) : null,
@@ -129,11 +129,11 @@ export class RiderService {
   }
 
   async earnings(user: AuthUser) {
-    const done = await this.prisma.order.findMany({ where: { riderId: user.id, status: 'DELIVERED' }, select: { id: true, code: true, area: true, riderPayout: true, distanceKm: true, batchId: true, total: true, payment: { select: { method: true } }, updatedAt: true }, orderBy: { updatedAt: 'desc' }, take: 200 });
+    const done = await this.prisma.order.findMany({ where: { riderId: user.id, status: 'DELIVERED' }, select: { id: true, code: true, area: true, riderPayout: true, tip: true, distanceKm: true, batchId: true, total: true, payment: { select: { method: true } }, updatedAt: true }, orderBy: { updatedAt: 'desc' }, take: 200 });
     const [wallet, ledger] = await Promise.all([this.wallet(user.id), this.prisma.riderLedger.findMany({ where: { riderId: user.id }, orderBy: { createdAt: 'desc' }, take: 20 })]);
     const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - (6 - i)); return d; });
-    const last7Days = days.map((d) => ({ date: d.toISOString().slice(0, 10), amount: done.filter((o) => o.updatedAt >= d && o.updatedAt < new Date(d.getTime() + 86400_000)).reduce((a, o) => a + o.riderPayout, 0) }));
-    return { total: done.reduce((a, o) => a + o.riderPayout, 0), drops: done.length, today: last7Days[6].amount, week: last7Days.reduce((a, d) => a + d.amount, 0), last7Days, recent: done.slice(0, 20).map(({ payment, ...o }) => ({ ...o, cash: payment?.method === 'COD' ? o.total : 0 })), wallet, ledger };
+    const last7Days = days.map((d) => ({ date: d.toISOString().slice(0, 10), amount: done.filter((o) => o.updatedAt >= d && o.updatedAt < new Date(d.getTime() + 86400_000)).reduce((a, o) => a + o.riderPayout + o.tip, 0) }));
+    return { total: done.reduce((a, o) => a + o.riderPayout + o.tip, 0), tips: done.reduce((a, o) => a + o.tip, 0), drops: done.length, today: last7Days[6].amount, week: last7Days.reduce((a, d) => a + d.amount, 0), last7Days, recent: done.slice(0, 20).map(({ payment, ...o }) => ({ ...o, cash: payment?.method === 'COD' ? o.total : 0 })), wallet, ledger };
   }
 }
 

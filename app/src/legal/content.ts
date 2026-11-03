@@ -39,6 +39,7 @@ export const TERMS: LegalDoc = {
         { en: 'Online payments (bKash, cards, wallets) are processed by licensed payment providers. MaaCrave never sees your card number or PIN.', bn: 'অনলাইন পেমেন্ট (বিকাশ, কার্ড, ওয়ালেট) লাইসেন্সপ্রাপ্ত পেমেন্ট প্রতিষ্ঠান প্রসেস করে। আপনার কার্ড নম্বর বা পিন MaaCrave দেখে না।' },
         { en: 'Cash on delivery is paid to the rider when the food arrives. Please keep change ready.', bn: 'ক্যাশ অন ডেলিভারিতে খাবার পৌঁছালে রাইডারকে টাকা দিন। খুচরা রাখলে সুবিধা হয়।' },
         { en: 'Coupons have their own conditions shown when you apply them.', bn: 'কুপনের নিজস্ব শর্ত কুপন দেওয়ার সময় দেখানো হয়।' },
+        { en: 'You can add an optional tip for your rider at checkout. 100% of it goes to the rider; it is refunded if the order never arrives.', bn: 'চেকআউটে রাইডারের জন্য ঐচ্ছিক টিপ দিতে পারেন। পুরোটাই রাইডার পান; অর্ডার না পৌঁছালে টিপও ফেরত দেওয়া হয়।' },
       ] },
     { h: { en: 'Orders, group orders and requests', bn: 'অর্ডার, গ্রুপ অর্ডার ও অনুরোধ' }, p: {
       en: 'An order is a contract between you and the cook, made through MaaCrave. Group orders start cooking only when the minimum number of portions is reached; if not, everyone is refunded. When you accept a cook’s price for a dish request, an order is created at that price.',

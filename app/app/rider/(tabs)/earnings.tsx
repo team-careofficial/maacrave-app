@@ -58,7 +58,10 @@ export default function RiderEarnings() {
                         <T v="label">{r.code}{r.batchId ? ` · ${t('group', 'গ্রুপ')}` : ''}</T>
                         <T v="meta">{day(r.updatedAt)} · {r.area}{r.distanceKm ? ` · ${num(r.distanceKm.toFixed(1))} ${t('km', 'কিমি')}` : ''}{r.cash ? ` · ${t('cash', 'নগদ')} ${tk(r.cash)}` : ''}</T>
                       </View>
-                      <T v="price" style={{ fontSize: 15 }} color={C.ok}>+{tk(r.riderPayout)}</T>
+                      <View style={{ alignItems: 'flex-end' }}>
+                        <T v="price" style={{ fontSize: 15 }} color={C.ok}>+{tk(r.riderPayout + (r.tip || 0))}</T>
+                        {r.tip ? <T v="meta" color={C.ok}>{t(`incl. ${tk(r.tip)} tip`, `${tk(r.tip)} টিপসহ`)}</T> : null}
+                      </View>
                     </Row>
                   </View>
                 ))}

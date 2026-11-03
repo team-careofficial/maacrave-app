@@ -20,6 +20,8 @@ class CheckoutDto {
   @IsOptional() @IsString() @MaxLength(20) couponCode?: string;
   /** Lets the quote price delivery by distance. */
   @IsOptional() @IsString() addressId?: string;
+  /** Optional tip for the rider, 0–500 taka. */
+  @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(500) tip?: number;
 }
 class PlaceDto extends CheckoutDto {
   @IsString() addressId: string;

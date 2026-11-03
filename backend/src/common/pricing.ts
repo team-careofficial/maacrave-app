@@ -2,7 +2,7 @@ import { Coupon, PlatformSetting } from '@prisma/client';
 
 export interface Fees {
   subtotal: number; serviceFee: number; deliveryFee: number; discount: number; total: number;
-  commission: number; cookEarning: number; riderPayout: number; couponCode: string | null; distanceKm: number;
+  commission: number; cookEarning: number; riderPayout: number; couponCode: string | null; distanceKm: number; tip: number;
 }
 
 export function couponDiscount(coupon: Coupon | null | undefined, subtotal: number, isBatch: boolean): { amount: number; error?: string } {
@@ -24,16 +24,17 @@ export function deliveryMoney(km: number, isBatch: boolean, s: PlatformSetting) 
 }
 
 /** Single source of truth for order money. All values are whole taka. `km` is the kitchen → customer road distance. */
-export function computeFees(subtotal: number, isBatch: boolean, s: PlatformSetting, coupon?: Coupon | null, km = 2): Fees {
+export function computeFees(subtotal: number, isBatch: boolean, s: PlatformSetting, coupon?: Coupon | null, km = 2, tipIn = 0): Fees {
+  const tip = Math.max(0, Math.min(500, Math.round(tipIn || 0)));
   const discount = couponDiscount(coupon, subtotal, isBatch).amount;
   const serviceFee = s.serviceFee;
   const { deliveryFee, riderPayout } = deliveryMoney(km, isBatch, s);
   const commission = Math.round((subtotal * s.commissionPct) / 100);
   return {
     subtotal, serviceFee, deliveryFee, discount,
-    total: subtotal + serviceFee + deliveryFee - discount,
+    total: subtotal + serviceFee + deliveryFee - discount + tip,
     commission, cookEarning: subtotal - commission, riderPayout,
-    couponCode: discount > 0 && coupon ? coupon.code : null, distanceKm: km,
+    couponCode: discount > 0 && coupon ? coupon.code : null, distanceKm: km, tip,
   };
 }
 

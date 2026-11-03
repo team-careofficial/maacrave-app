@@ -108,8 +108,8 @@ export const API = {
   batches: (filter: string, area?: string) => api<Batch[]>('/batches', { query: { filter, area } }),
   batch: (id: string) => api<Batch>(`/batches/${id}`),
   // orders
-  quote: (b: CheckoutBody & { addressId?: string }) => api<{ fees: Fees; couponError: string | null; items: { name: string; unitPrice: number; quantity: number }[] }>('/orders/quote', { method: 'POST', body: b }),
-  placeOrder: (b: CheckoutBody & { addressId: string; paymentMethod: PaymentMethod; notes?: string; idempotencyKey: string; client: 'app' | 'web' }) => api<{ order: Order; paymentUrl: string | null; paymentError?: string | null }>('/orders', { method: 'POST', body: b }),
+  quote: (b: CheckoutBody & { addressId?: string; tip?: number }) => api<{ fees: Fees; couponError: string | null; items: { name: string; unitPrice: number; quantity: number }[] }>('/orders/quote', { method: 'POST', body: b }),
+  placeOrder: (b: CheckoutBody & { tip?: number; addressId: string; paymentMethod: PaymentMethod; notes?: string; idempotencyKey: string; client: 'app' | 'web' }) => api<{ order: Order; paymentUrl: string | null; paymentError?: string | null }>('/orders', { method: 'POST', body: b }),
   orders: (scope: 'active' | 'past') => api<Order[]>('/orders', { query: { scope } }),
   order: (id: string) => api<Order>(`/orders/${id}`),
   pay: (id: string, client: 'app' | 'web') => api<{ paymentUrl: string }>(`/orders/${id}/pay`, { method: 'POST', body: { client } }),
@@ -156,7 +156,7 @@ export const API = {
   pickup: (key: string) => api<RiderOrder[]>(`/rider/groups/${key}/pickup`, { method: 'POST' }),
   startTrip: (key: string) => api<RiderOrder[]>(`/rider/groups/${key}/start`, { method: 'POST' }),
   deliver: (id: string, code: string) => api<RiderOrder[]>(`/rider/orders/${id}/deliver`, { method: 'POST', body: { code } }),
-  riderEarnings: () => api<{ total: number; drops: number; today: number; week: number; last7Days: { date: string; amount: number }[]; recent: { id: string; code: string; area: string; riderPayout: number; distanceKm: number | null; batchId: string | null; cash: number; updatedAt: string }[]; wallet: RiderWallet; ledger: { id: string; kind: 'CASH_DEPOSIT' | 'PAYOUT'; amount: number; reference: string | null; createdAt: string }[] }>('/rider/earnings'),
+  riderEarnings: () => api<{ total: number; drops: number; today: number; week: number; last7Days: { date: string; amount: number }[]; recent: { id: string; code: string; area: string; riderPayout: number; tip: number; distanceKm: number | null; batchId: string | null; cash: number; updatedAt: string }[]; wallet: RiderWallet; ledger: { id: string; kind: 'CASH_DEPOSIT' | 'PAYOUT'; amount: number; reference: string | null; createdAt: string }[] }>('/rider/earnings'),
   riderLocation: (lat: number, lng: number) => api('/rider/location', { method: 'POST', body: { lat, lng } }),
 
   partnerTerms: (role: 'COOK' | 'RIDER') => api<PartnerTerms>('/partner/terms', { query: { role } }),

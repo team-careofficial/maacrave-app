@@ -52,6 +52,7 @@ export class BusinessService implements OnApplicationBootstrap {
   }
 
   async terms(user: AuthUser, role: 'COOK' | 'RIDER') {
+    if (!hasRole(user, role)) throw new ForbiddenException('Partner terms are for approved partners only.');
     const { settings, agreement } = await this.accepted(user.id, role);
     const last = agreement || await this.prisma.partnerAgreement.findFirst({ where: { userId: user.id, role }, orderBy: { version: 'desc' } });
     return { rates: rateCard(settings), accepted: !!agreement, acceptedAt: agreement?.acceptedAt ?? null, lastAcceptedVersion: last?.version ?? null, support: supportContact() };

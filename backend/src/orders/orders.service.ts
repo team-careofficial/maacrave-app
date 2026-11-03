@@ -19,6 +19,7 @@ export interface CheckoutInput {
   allowGroup?: boolean;
   couponCode?: string;
   addressId?: string;
+  tip?: number;
 }
 export interface PlaceOrderInput extends CheckoutInput {
   addressId: string;
@@ -124,7 +125,7 @@ export class OrdersService {
       const check = input.couponCode ? (coupon ? couponDiscount(coupon, subtotal, r.isBatch) : { amount: 0, error: 'This code isn’t valid.' }) : { amount: 0 };
       const address = input.addressId ? await tx.address.findFirst({ where: { id: input.addressId, userId: user.id } }) : null;
       const km = await this.distance(tx, r.cookId, address);
-      return { items: r.items, fees: computeFees(subtotal, r.isBatch, s, coupon, km), couponError: check.error ?? null };
+      return { items: r.items, fees: computeFees(subtotal, r.isBatch, s, coupon, km, input.tip), couponError: check.error ?? null };
     });
   }
 
@@ -144,7 +145,7 @@ export class OrdersService {
       const s = await tx.platformSetting.findUniqueOrThrow({ where: { id: 1 } });
       const subtotal = r.items.reduce((a, i) => a + i.unitPrice * i.quantity, 0);
       const coupon = input.couponCode ? await tx.coupon.findUnique({ where: { code: input.couponCode.toUpperCase().trim() } }) : null;
-      const fees = computeFees(subtotal, r.isBatch, s, coupon, await this.distance(tx, r.cookId, address));
+      const fees = computeFees(subtotal, r.isBatch, s, coupon, await this.distance(tx, r.cookId, address), input.tip);
       if (fees.couponCode) await tx.coupon.update({ where: { code: fees.couponCode }, data: { usedCount: { increment: 1 } } });
 
       let batchId = r.batchId;
@@ -165,7 +166,7 @@ export class OrdersService {
         data: {
           code: orderCode(), customerId: user.id, cookId: r.cookId, batchId, requestId: r.request?.id ?? null,
           status: firstStatus, subtotal: fees.subtotal, serviceFee: fees.serviceFee, deliveryFee: fees.deliveryFee, discount: fees.discount, total: fees.total,
-          commission: fees.commission, cookEarning: fees.cookEarning, riderPayout: fees.riderPayout, couponCode: fees.couponCode, distanceKm: fees.distanceKm,
+          commission: fees.commission, cookEarning: fees.cookEarning, riderPayout: fees.riderPayout, couponCode: fees.couponCode, distanceKm: fees.distanceKm, tip: fees.tip,
           addressText, area: address.area, lat: address.lat, lng: address.lng, deliveryOtp: digits(4), notes: input.notes?.slice(0, 300), scheduledFor: input.scheduledFor ? new Date(input.scheduledFor) : null,
           idempotencyKey: input.idempotencyKey,
           items: { create: r.items },
@@ -327,5 +328,6 @@ export class OrdersService {
         if (!open) await tx.batch.update({ where: { id: o.batchId }, data: { status: 'DONE' } });
       }
     });
+    if (o.tip && o.riderId) await this.notify.notify(o.riderId, 'RIDER', `You got a ৳${o.tip} tip 🎉`, `From the customer on ${o.code}. Tips are 100% yours.`);
   }
 }

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Banknote, CreditCard, MapPin, Plus, Smartphone, Tag } from 'lucide-react-native';
+import { Banknote, CreditCard, Heart, MapPin, Plus, Smartphone, Tag } from 'lucide-react-native';
 import { useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { API, type CheckoutBody } from '@/api';
@@ -11,7 +11,7 @@ import { useAddresses, useMeta } from '@/hooks';
 import { CLIENT, openPayment } from '@/pay';
 import { C, S } from '@/theme';
 import type { PaymentMethod } from '@/types';
-import { Button, Card, Choice, Divider, ErrorState, Header, Input, KV, Loading, Note, Row, Screen, Section, T, useToast } from '@/ui';
+import { Button, Card, Chip, Choice, Divider, ErrorState, Header, Input, KV, Loading, Note, Row, Screen, Section, T, useToast } from '@/ui';
 import { Grid } from '@/ui/grid';
 import { DeliveryRoute } from '@/ui/route';
 
@@ -29,6 +29,7 @@ export default function Checkout() {
   const [couponInput, setCouponInput] = useState('');
   const [coupon, setCoupon] = useState<string | undefined>();
   const [notes, setNotes] = useState('');
+  const [tip, setTip] = useState(0);
   const idem = useRef(newKey());
 
   const body = useMemo<CheckoutBody | null>(() => {
@@ -46,11 +47,11 @@ export default function Checkout() {
 
   const addr = addresses.data?.find((a) => a.id === addressId) || addresses.data?.find((a) => a.isDefault) || addresses.data?.[0];
   // Delivery is priced by distance, so the quote follows the chosen address.
-  const quote = useQuery({ queryKey: ['quote', body, addr?.id], queryFn: () => API.quote({ ...body!, addressId: addr?.id }), enabled: !!body });
+  const quote = useQuery({ queryKey: ['quote', body, addr?.id, tip], queryFn: () => API.quote({ ...body!, addressId: addr?.id, tip }), enabled: !!body });
   const pay = meta.data?.payments;
 
   const place = useMutation({
-    mutationFn: () => API.placeOrder({ ...body!, addressId: addr!.id, paymentMethod: method, notes: notes.trim() || undefined, idempotencyKey: idem.current, client: CLIENT }),
+    mutationFn: () => API.placeOrder({ ...body!, tip, addressId: addr!.id, paymentMethod: method, notes: notes.trim() || undefined, idempotencyKey: idem.current, client: CLIENT }),
     onSuccess: async (r) => {
       if (p.kind === 'cart') cart.clear();
       qc.invalidateQueries({ queryKey: ['orders'] });
@@ -94,6 +95,13 @@ export default function Checkout() {
             </View>
           </Section>
 
+          {/* rider tip: optional, goes 100% to the rider */}
+          <Section title="Tip your rider" sub={t('Optional · 100% goes to the rider who brings your food', 'ঐচ্ছিক · পুরোটাই আপনার খাবার পৌঁছে দেওয়া রাইডার পাবেন')}>
+            <Row gap={S.sm} wrap>
+              {[0, 10, 20, 30, 50].map((v) => <Chip key={v} label={v ? tk(v) : t('No tip', 'টিপ নেই')} on={tip === v} onPress={() => setTip(v)} icon={v ? <Heart size={13} color={tip === v ? '#fff' : C.brand} /> : undefined} />)}
+            </Row>
+          </Section>
+
           <Section title="Note for the cook">
             <Input value={notes} onChangeText={setNotes} placeholder="Allergies, less spice, gate code…" maxLength={300} multiline style={{ minHeight: 80, alignItems: 'flex-start', paddingVertical: 12 }} />
           </Section>
@@ -113,6 +121,7 @@ export default function Checkout() {
                 <KV k="Subtotal" v={tk(f.subtotal)} />
                 <KV k={`${p.kind === 'batch' ? t('Delivery (group rate)', 'ডেলিভারি (গ্রুপ রেট)') : t('Delivery', 'ডেলিভারি')}${f.distanceKm ? ` · ${num(f.distanceKm.toFixed(1))} ${t('km', 'কিমি')}` : ''}`} v={tk(f.deliveryFee)} />
                 <KV k="Service fee" v={tk(f.serviceFee)} />
+                {f.tip ? <KV k={t('Rider tip', 'রাইডার টিপ')} v={tk(f.tip)} /> : null}
                 {f.discount ? <KV k={`Discount (${f.couponCode})`} v={`−${tk(f.discount)}`} color={C.ok} /> : null}
                 <Divider />
                 <KV k="Total" v={tk(f.total)} strong />
