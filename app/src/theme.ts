@@ -1,22 +1,21 @@
 import { Platform } from 'react-native';
 
 export const C = {
-  // Surfaces: warm cream canvas (#FFF4DF), crisp white cards, hairline borders
-  bg: '#FFF4DF', surface: '#FFFFFF', surface2: '#FBEEDA', sunken: '#F5E6CC', card: '#FFFAF2',
-  // Ink: deep warm charcoal, never pure black
-  text: '#24170F', text2: '#5A463A', muted: '#8E7A6B', line: '#F2E4CB', line2: '#E8D6B8',
+  // Surfaces: clean white canvas, white cards with hairline borders, warm grey fills
+  bg: '#FFFFFF', surface: '#FFFFFF', surface2: '#F7F3EF', sunken: '#EFE9E2', card: '#FFFFFF',
+  text: '#21160F', text2: '#584538', muted: '#8C7A6C', line: '#EEE7DF', line2: '#E2D8CC',
   // Mango: the accent — ratings, highlights, small badges. Text on it is dark.
   turmeric: '#F5B942', turmericDeep: '#D99A1E', turmericSoft: '#FDEFD0', onTurmeric: '#4A2E0A',
-  // Paprika: the MaaCrave primary — buttons, links, active states.
-  brand: '#D94F32', brand2: '#E2603F', brandHi: '#EE7A57', brandDark: '#B53E25', brandDeep: '#7F2A18', brandSoft: '#FCE4D9', brandText: '#B83F26',
+  // Deep orange (paprika): the MaaCrave primary — buttons, links, active states.
+  brand: '#C2441F', brand2: '#D0532C', brandHi: '#EE7A57', brandDark: '#A3361A', brandDeep: '#7F2A18', brandSoft: '#FBE6DC', brandText: '#A83A1C',
   ink: '#24170F', onInk: '#FFFFFF',
   ok: '#1E7F4F', okSoft: '#E8F5EE', warn: '#9A6200', warnSoft: '#FDF4E1', err: '#C62828', errSoft: '#FDECEC', info: '#2552C9', infoSoft: '#EDF2FE',
   star: '#F5B942', gold: '#F5B942',
 };
 /** Paprika — primary surfaces: buttons, the logo tile, hero banners. Text on it is white. */
-export const GLOSS = ['#E6633F', '#D94F32', '#C2432A'] as const;
+export const GLOSS = ['#D4542C', '#C2441F', '#A9381A'] as const;
 /** Deep paprika, for avatars and small solid accents that carry white text. */
-export const MAROON = ['#E06844', '#C9472C', '#A83A22'] as const;
+export const MAROON = ['#CF5129', '#B23C1C', '#922F15'] as const;
 /** Text and icons placed on paprika. */
 export const ON_GLOSS = '#FFFFFF';
 export const ON_GLOSS_SOFT = 'rgba(255,255,255,0.84)';

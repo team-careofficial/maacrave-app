@@ -8,7 +8,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "splash": { "image": "./assets/splash-mark.png", "resizeMode": "contain", "backgroundColor": "#D94F32" },
+    "splash": { "image": "./assets/splash-mark.png", "resizeMode": "contain", "backgroundColor": "#C2441F" },
     "ios": {
       "bundleIdentifier": "app.maacrave.mobile",
       "supportsTablet": true,
@@ -16,7 +16,7 @@
     },
     "android": {
       "package": "app.maacrave.mobile",
-      "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#D94F32" },
+      "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#C2441F" },
       "permissions": ["POST_NOTIFICATIONS", "ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION", "CAMERA", "REQUEST_INSTALL_PACKAGES"]
     },
     "web": { "bundler": "metro", "output": "single", "favicon": "./assets/favicon.png", "name": "MaaCrave", "themeColor": "#FFFFFF" },
@@ -26,7 +26,7 @@
       "expo-secure-store",
       "expo-font",
       ["expo-notifications", { "color": "#7A1F24" }],
-      ["expo-splash-screen", { "image": "./assets/splash-mark.png", "imageWidth": 120, "backgroundColor": "#D94F32" }],
+      ["expo-splash-screen", { "image": "./assets/splash-mark.png", "imageWidth": 120, "backgroundColor": "#C2441F" }],
       ["expo-image-picker", { "photosPermission": "MaaCrave needs your photos to upload your NID and kitchen pictures for verification.", "cameraPermission": "MaaCrave uses the camera to photograph your NID and kitchen for verification." }]
     ],
     "experiments": { "typedRoutes": false },

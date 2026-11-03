@@ -4,7 +4,7 @@ import { Animated, Easing, Platform, StyleSheet, Text, View } from 'react-native
 import { C, F, GLOSS, ON_GLOSS } from '../theme';
 import { Logo } from './logo';
 
-/** Paprika launch screen (matches the native splash colour #D94F32). */
+/** Paprika launch screen (matches the native splash colour #C2441F). */
 const INTRO = GLOSS;
 /** Never keep people on the intro longer than this, even if the server is slow to wake up. */
 const MAX_MS = 4500;
