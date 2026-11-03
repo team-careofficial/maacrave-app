@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { ArrowRight, Bell, MessageSquarePlus, Search, ShoppingBag, SlidersHorizontal, Truck, UtensilsCrossed } from 'lucide-react-native';
+import { Bell, MessageSquarePlus, Search, ShoppingBag, SlidersHorizontal, Truck, UtensilsCrossed } from 'lucide-react-native';
 import { ScrollView, View } from 'react-native';
 import { API } from '@/api';
 import { useAuth } from '@/auth';
@@ -9,9 +9,10 @@ import { useCart } from '@/cart';
 import { ACTIVE_STATUSES, firstName, STATUS_LABEL } from '@/format';
 import { useAddresses, useAddToCart, useFavorites } from '@/hooks';
 import { C, F, GLOSS, R, S, shadow } from '@/theme';
-import { BatchCard, Card, CookCard, DishCard, FadeIn, Glossy, IconButton, Loading, Row, Screen, Section, T, Tap } from '@/ui';
+import { BatchCard, Card, CookCard, DishCard, FadeIn, IconButton, Loading, Row, Screen, Section, T, Tap } from '@/ui';
 import { BrandBar } from '@/ui/brand';
 import { SpotlightGrid } from '@/ui/spotlight';
+import { KitchenTicker } from '@/ui/kitchenTicker';
 import { Grid, useCols } from '@/ui/grid';
 import { tr, useLang } from '@/i18n';
 
@@ -73,19 +74,8 @@ export default function Home() {
         </Tap>
       </Row>
 
-      {/* slim banner: line of the day + Explore */}
-      <Glossy style={{ marginTop: S.lg }} radius={22} glow={false}>
-        <View style={{ paddingVertical: S.lg, paddingHorizontal: S.xl, flexDirection: 'row', alignItems: 'center', gap: S.md }}>
-          <View pointerEvents="none" style={{ position: 'absolute', right: -50, top: -60, width: 160, height: 160, borderRadius: 80, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' }} />
-          <View style={{ flex: 1, gap: 4 }}>
-            <T v="card" bn color="#fff" style={{ fontFamily: F.bnBold, fontSize: 18, lineHeight: 26 }}>{quote.bn}</T>
-            <T v="meta" color="rgba(255,255,255,0.8)">{quote.en}</T>
-          </View>
-          <Tap onPress={() => router.push('/browse')} scale={0.92} style={{ backgroundColor: '#fff', borderRadius: R.pill, height: 40, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <T v="label" color={C.brand}>Explore</T><ArrowRight size={15} color={C.brand} />
-          </Tap>
-        </View>
-      </Glossy>
+      {/* maroon banner: mothers' kitchens slide in one after another */}
+      <KitchenTicker cooks={cooks.data || []} fallback={quote} />
 
       {/* the two ways to eat, side by side */}
       <Row gap={S.md} style={{ marginTop: S.md, alignItems: 'stretch' }}>
