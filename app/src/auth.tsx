@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setSessionEndHandler(() => { setMe(null); setStatus('signedOut'); qc.clear(); });
-    restoreSession().then((ok) => (ok ? reload() : setStatus('signedOut')));
+    restoreSession().then((ok) => { if (ok) reload(); else setStatus('signedOut'); });
   }, [reload, qc]);
 
   const value = useMemo<AuthCtx>(() => ({

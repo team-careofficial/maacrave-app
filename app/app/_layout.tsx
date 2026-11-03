@@ -25,9 +25,10 @@ function Gate() {
     if (status === 'loading') return;
     SplashScreen.hideAsync().catch(() => undefined);
     const inAuth = segments[0] === '(auth)';
-    if (segments[0] === 'payment-result' || ['terms', 'privacy', 'refund', 'cook-terms', 'rider-terms'].includes(segments[1] as string)) return;
+    const page = (segments as string[])[1];
+    if (segments[0] === 'payment-result' || ['terms', 'privacy', 'refund', 'cook-terms', 'rider-terms'].includes(page)) return;
     if (status === 'signedOut' && !inAuth) router.replace('/sign-in');
-    else if (status === 'needsProfile' && segments[1] !== 'profile-setup') router.replace('/profile-setup');
+    else if (status === 'needsProfile' && page !== 'profile-setup') router.replace('/profile-setup');
     else if (status === 'ready' && inAuth) {
       // Someone who chose “cook” or “rider” at sign-up goes straight to that application.
       const next = onboarding.next; onboarding.next = null;

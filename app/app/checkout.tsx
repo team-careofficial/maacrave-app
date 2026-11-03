@@ -6,6 +6,7 @@ import { View } from 'react-native';
 import { API, type CheckoutBody } from '@/api';
 import { useCart } from '@/cart';
 import { tk } from '@/format';
+import { num, t } from '@/i18n';
 import { useAddresses, useMeta } from '@/hooks';
 import { CLIENT, openPayment } from '@/pay';
 import { C, S } from '@/theme';
