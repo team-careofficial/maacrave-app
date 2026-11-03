@@ -118,8 +118,8 @@ export default function Checkout() {
             {quote.isLoading ? <Loading /> : quote.error ? <ErrorState error={quote.error} onRetry={quote.refetch} /> : f ? (
               <Card style={{ gap: S.sm }}>
                 {quote.data!.scheduledFor ? (
-                  <View style={{ backgroundColor: C.turmericSoft, borderRadius: 12, padding: 10 }}>
-                    <T v="label" color={C.onTurmeric}>{t(`🎉 Festival pre-order: arrives ${festDay(quote.data!.scheduledFor, 'en')}`, `🎉 উৎসবের প্রি-অর্ডার: পৌঁছাবে ${festDay(quote.data!.scheduledFor, 'bn')}`)}</T>
+                  <View style={{ backgroundColor: C.brandSoft, borderRadius: 12, padding: 10 }}>
+                    <T v="label" color={C.brandText}>{t(`🎉 Festival pre-order: arrives ${festDay(quote.data!.scheduledFor, 'en')}`, `🎉 উৎসবের প্রি-অর্ডার: পৌঁছাবে ${festDay(quote.data!.scheduledFor, 'bn')}`)}</T>
                   </View>
                 ) : null}
                 {quote.data!.items.map((i, k) => <KV key={k} k={`${i.quantity} × ${i.name}`} v={tk(i.unitPrice * i.quantity)} />)}

@@ -2,9 +2,7 @@ name: Android APK
 # Builds an installable Android app (APK) and publishes it as the "android-latest" GitHub release,
 # so anyone can download it from https://github.com/<owner>/<repo>/releases/latest
 on:
-  push:
-    branches: [main]
-    paths: ['app/**', '.github/workflows/android.yml']
+  # Built on request only for now (Actions → Android APK → Run workflow). Restore the push trigger to build on every app change.
   workflow_dispatch:
 permissions:
   contents: write

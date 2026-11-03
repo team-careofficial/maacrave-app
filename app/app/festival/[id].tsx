@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { CalendarHeart, PartyPopper, Truck } from 'lucide-react-native';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { API } from '@/api';
 import { useAddToCart, useFavorites } from '@/hooks';
 import { num, t, useLang } from '@/i18n';
@@ -27,20 +27,21 @@ export default function FestivalScreen() {
     <Screen header={<Header back title={f ? (lang === 'bn' ? f.titleBn : f.title) : t('Festival', 'উৎসব')} />} onRefresh={q.refetch}>
       {q.isLoading ? <Loading /> : q.error || !f ? <ErrorState error={q.error} onRetry={q.refetch} /> : (
         <View style={{ gap: S.lg, marginTop: S.sm, marginBottom: S.lg }}>
-          <View style={{ borderRadius: R.xl, overflow: 'hidden' }}>
-            <LinearGradient colors={['#FFF3CF', '#F8D776', '#F0B92A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-            <View style={{ margin: 6, padding: S.xl, gap: S.md, borderRadius: R.xl - 4, borderWidth: 1.5, borderStyle: 'dashed', borderColor: 'rgba(122,31,36,0.25)', alignItems: 'center' }}>
-              <PartyPopper size={28} color={C.brand} />
-              <Text style={{ fontFamily: lang === 'bn' ? F.bnBold : F.displayX, fontSize: 30, lineHeight: 38, color: C.brandDark, textAlign: 'center' }}>{lang === 'bn' ? f.titleBn : f.title}</Text>
-              {(lang === 'bn' ? f.blurbBn : f.blurb) ? <T v="body" color={C.onTurmeric} center>{lang === 'bn' ? f.blurbBn : f.blurb}</T> : null}
-              <Stitch color={C.brand} style={{ alignSelf: 'stretch' }} />
-              <T v="meta" color={C.onTurmeric}>{f.open ? t('Pre-orders close in', 'প্রি-অর্ডার বন্ধ হবে') : notYet ? t('Pre-orders open in', 'প্রি-অর্ডার শুরু হবে') : t('Pre-orders are closed', 'প্রি-অর্ডার বন্ধ হয়েছে')}</T>
+          <View style={{ borderRadius: R.xl, overflow: 'hidden', backgroundColor: C.surface, borderWidth: 1, borderColor: C.line }}>
+            <LinearGradient colors={['#F5B942', '#D94F32']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ height: 3 }} />
+            <View pointerEvents="none" style={{ position: 'absolute', right: -70, top: -70, width: 210, height: 210, borderRadius: 105, backgroundColor: C.turmericSoft }} />
+            <View style={{ padding: S.xl, gap: S.md, alignItems: 'center' }}>
+              <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: C.brandSoft, alignItems: 'center', justifyContent: 'center' }}><PartyPopper size={24} color={C.brand} /></View>
+              <Text style={{ fontFamily: lang === 'bn' ? F.bnBold : F.displayX, fontSize: 30, lineHeight: 38, color: C.text, textAlign: 'center' }}>{lang === 'bn' ? f.titleBn : f.title}</Text>
+              {(lang === 'bn' ? f.blurbBn : f.blurb) ? <T v="body" color={C.text2} center>{lang === 'bn' ? f.blurbBn : f.blurb}</T> : null}
+              <Stitch style={{ alignSelf: 'stretch' }} />
+              <T v="meta">{f.open ? t('Pre-orders close in', 'প্রি-অর্ডার বন্ধ হবে') : notYet ? t('Pre-orders open in', 'প্রি-অর্ডার শুরু হবে') : t('Pre-orders are closed', 'প্রি-অর্ডার বন্ধ হয়েছে')}</T>
               {f.open || notYet ? <Countdown to={f.open ? f.closesAt : f.opensAt} light /> : null}
             </View>
           </View>
 
           <Row gap={S.md} style={{ backgroundColor: C.surface, borderRadius: R.lg, padding: S.md }}>
-            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.turmericSoft, alignItems: 'center', justifyContent: 'center' }}><Truck size={18} color={C.brand} /></View>
+            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.brandSoft, alignItems: 'center', justifyContent: 'center' }}><Truck size={18} color={C.brand} /></View>
             <View style={{ flex: 1 }}>
               <T v="label">{t(`Delivered on ${festDay(f.deliverOn, lang)}`, `${festDay(f.deliverOn, lang)} পৌঁছে যাবে`)}</T>
               <T v="meta">{t('Mothers cook fresh for the day. Order now, eat on the festival.', 'মায়েরা সেদিনের জন্য টাটকা রান্না করবেন। এখন অর্ডার দিন, উৎসবের দিন খান।')}</T>
