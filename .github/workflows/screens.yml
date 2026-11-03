@@ -3,7 +3,7 @@ name: Screenshots
 on:
   workflow_dispatch:
   push:
-    branches: [turmeric-theme]
+    branches: ['design/**']
 permissions:
   contents: write
 jobs:
