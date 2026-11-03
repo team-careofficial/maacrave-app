@@ -6,11 +6,12 @@ import { Logo } from './logo';
 
 export { Logo };
 
-export function Brand({ light }: { light?: boolean }) {
+/** Logo + name. `light` = on a dark background; `onTurmeric` = on the turmeric theme colour (white logo tile, dark text). */
+export function Brand({ light, onTurmeric }: { light?: boolean; onTurmeric?: boolean }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-      <Logo inverse={light} />
-      <T v="section" color={light ? '#fff' : C.text} style={{ fontSize: 23 }}>Maa<T v="section" color={light ? '#FFD9D9' : C.brand} style={{ fontSize: 23 }}>Crave</T></T>
+      <Logo inverse={light || onTurmeric} />
+      <T v="section" color={light ? '#fff' : C.text} style={{ fontSize: 23 }}>Maa<T v="section" color={light ? '#FFE3A3' : C.brand} style={{ fontSize: 23 }}>Crave</T></T>
     </View>
   );
 }

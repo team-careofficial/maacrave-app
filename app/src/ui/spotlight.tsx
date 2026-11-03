@@ -20,7 +20,7 @@ const ICONS: Record<string, LucideIcon> = {
   users: Users, gift: Gift, heart: Heart, utensils: UtensilsCrossed, request: MessageSquarePlus, percent: Percent, coffee: Coffee,
 };
 const THEMES: Record<string, readonly [string, string, string]> = {
-  crimson: ['#941219', '#7A0D12', '#5A090D'],
+  crimson: ['#8E2A2F', '#7A1F24', '#5A1418'],
   saffron: ['#F4A12E', '#E07B12', '#B85A07'],
   forest: ['#3BA06A', '#1E7F4F', '#145C38'],
   night: ['#3A2A4F', '#261B36', '#16101F'],
@@ -78,7 +78,7 @@ function Scene({ kind, Icon, color, size }: { kind: string; Icon: LucideIcon; co
   );
 }
 
-const FRAME = '#C7272D';
+const FRAME = '#7A1F24';
 
 /** Gentle zoom-and-drift on the picture (the "Ken Burns" effect). */
 function Drift({ children }: { children: React.ReactNode }) {

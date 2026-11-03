@@ -23,11 +23,11 @@ export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, backgroundColor: '#FFFFFF', gap: 12 }}>
       <Text style={{ fontSize: 22, fontWeight: '800', color: '#1D1617', textAlign: 'center' }}>Something went wrong</Text>
       <Text style={{ fontSize: 15, color: '#5C5253', textAlign: 'center' }}>কিছু একটা সমস্যা হয়েছে। আবার চেষ্টা করুন।</Text>
-      <Pressable onPress={() => retry()} style={{ marginTop: 8, backgroundColor: '#7A0D12', borderRadius: 999, paddingHorizontal: 28, paddingVertical: 14 }}>
+      <Pressable onPress={() => retry()} style={{ marginTop: 8, backgroundColor: '#7A1F24', borderRadius: 999, paddingHorizontal: 28, paddingVertical: 14 }}>
         <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>Try again · আবার চেষ্টা</Text>
       </Pressable>
       <Pressable onPress={() => { router.replace('/'); retry(); }} style={{ padding: 10 }}>
-        <Text style={{ color: '#7A0D12', fontWeight: '600' }}>Go home · হোমে যান</Text>
+        <Text style={{ color: '#7A1F24', fontWeight: '600' }}>Go home · হোমে যান</Text>
       </Pressable>
     </View>
   );
@@ -74,7 +74,7 @@ function Launch() {
   const [show, setShow] = useState(true);
   useEffect(() => { SplashScreen.hideAsync().catch(() => undefined); }, []);
   if (!show) return null;
-  return <><StatusBar style="light" /><Intro ready={status !== 'loading'} onDone={() => setShow(false)} /></>;
+  return <><StatusBar style="dark" /><Intro ready={status !== 'loading'} onDone={() => setShow(false)} /></>;
 }
 
 export default function RootLayout() {

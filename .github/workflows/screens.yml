@@ -1,0 +1,42 @@
+name: Screenshots
+# Builds the website and photographs the public screens, so design changes can be checked before going live.
+on:
+  workflow_dispatch:
+  push:
+    branches: [turmeric-theme]
+permissions:
+  contents: write
+jobs:
+  shots:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: app } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: npx expo export -p web
+        env: { EXPO_PUBLIC_API_URL: https://maacrave-api.onrender.com/v1 }
+      - run: npx -y playwright@1.48.2 install --with-deps chromium
+      - name: Photograph screens
+        run: |
+          npx -y serve@14 -s dist -l 4173 > /dev/null 2>&1 &
+          sleep 4
+          cat > shot.mjs <<'JS'
+          import { chromium } from 'playwright';
+          const b = await chromium.launch();
+          for (const [name, w, h, path, wait] of [['signin-phone', 390, 844, '/sign-in', 6500], ['intro-phone', 390, 844, '/sign-in', 900], ['signin-laptop', 1366, 800, '/sign-in', 6500], ['terms-phone', 390, 844, '/terms', 6500]]) {
+            const p = await b.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 2 });
+            await p.goto('http://localhost:4173' + path); await p.waitForTimeout(wait);
+            await p.screenshot({ path: `../shots/${name}.png` });
+            await p.close();
+          }
+          await b.close();
+          JS
+          mkdir -p ../shots && npm i --no-save playwright@1.48.2 >/dev/null 2>&1 && node shot.mjs && ls -la ../shots
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: design-preview
+          name: Design preview screenshots
+          prerelease: true
+          files: shots/*.png

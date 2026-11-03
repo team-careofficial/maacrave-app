@@ -6,7 +6,7 @@ import { API } from '@/api';
 import { num, t } from '@/i18n';
 import { firstName, tk } from '@/format';
 import { useAuth } from '@/auth';
-import { C, S } from '@/theme';
+import { C, ON_GLOSS, ON_GLOSS_SOFT, S } from '@/theme';
 import { Button, Card, ErrorState, Glossy, IconButton, IconTile, Loading, Note, Rings, Row, Screen, Section, T, Toggle, useToast } from '@/ui';
 import { Bars } from '@/ui/bars';
 import { BrandBar } from '@/ui/brand';
@@ -47,13 +47,13 @@ export default function KitchenToday() {
             <View style={{ padding: S.xl, gap: S.lg }}>
               <Rings size={240} right={-80} top={-90} />
               <View>
-                <T v="eyebrow" color="rgba(255,255,255,0.8)">Earned today</T>
-                <T v="big" color="#fff" style={{ fontSize: 40, lineHeight: 44 }}>{tk(k.today)}</T>
-                <T v="meta" color="rgba(255,255,255,0.8)">after commission · {tk(k.available)} ready to withdraw</T>
+                <T v="eyebrow" color={ON_GLOSS_SOFT}>Earned today</T>
+                <T v="big" color={ON_GLOSS} style={{ fontSize: 40, lineHeight: 44 }}>{tk(k.today)}</T>
+                <T v="meta" color={ON_GLOSS_SOFT}>after commission · {tk(k.available)} ready to withdraw</T>
               </View>
               <Row gap={S.sm} wrap>
                 {[`${k.activeOrders} active order${k.activeOrders === 1 ? '' : 's'}`, `${k.activeBatches} group batch${k.activeBatches === 1 ? '' : 'es'}`, `${k.delivered} delivered`].map((x) => (
-                  <View key={x} style={{ backgroundColor: 'rgba(255,255,255,0.16)', borderRadius: 999, paddingHorizontal: 12, height: 30, justifyContent: 'center' }}><T v="meta" color="#fff">{x}</T></View>
+                  <View key={x} style={{ backgroundColor: 'rgba(255,255,255,0.35)', borderRadius: 999, paddingHorizontal: 12, height: 30, justifyContent: 'center' }}><T v="meta" color={ON_GLOSS}>{x}</T></View>
                 ))}
               </Row>
             </View>

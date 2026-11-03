@@ -1,22 +1,28 @@
 import { Platform } from 'react-native';
 
 export const C = {
-  // Surfaces: white canvas, warm matte cards
-  bg: '#FFFFFF', surface: '#FFFFFF', surface2: '#F6F3F1', sunken: '#EEEAE7', card: '#F7F4F2',
-  // Ink (warm, never pure black)
-  text: '#1D1617', text2: '#5C5253', muted: '#8B8182', line: '#EEE9E7', line2: '#E2DCDA',
-  // Crimson brand
-  brand: '#A9151B', brand2: '#C21D23', brandHi: '#E2373C', brandDark: '#7C0E13', brandDeep: '#4A080B', brandSoft: '#FBEEEE', brandText: '#A0141A',
-  ink: '#231A1B', onInk: '#FFFFFF',
+  // Surfaces: warm rice-cream canvas, white cards
+  bg: '#FFF8EC', surface: '#FFFFFF', surface2: '#F8EFDD', sunken: '#F2E7D2', card: '#FBF3E4',
+  // Ink: earthy dark brown, never pure black
+  text: '#2E1D14', text2: '#5E4B3E', muted: '#8E7B6B', line: '#F0E5D0', line2: '#E6D8BE',
+  // Brand: turmeric (বাটা হলুদ) is the theme colour; maroon is the secondary, used for text, icons and the "red border" accents.
+  turmeric: '#E9A100', turmericDeep: '#C98500', turmericSoft: '#FCEFCB', onTurmeric: '#3A2318',
+  brand: '#7A1F24', brand2: '#8E2A2F', brandHi: '#B03A3F', brandDark: '#5A1418', brandDeep: '#3E0C10', brandSoft: '#FCEFCB', brandText: '#7A1F24',
+  ink: '#2E1D14', onInk: '#FFFFFF',
   ok: '#1E7F4F', okSoft: '#E8F5EE', warn: '#9A6200', warnSoft: '#FDF4E1', err: '#C62828', errSoft: '#FDECEC', info: '#2552C9', infoSoft: '#EDF2FE',
   star: '#E9A23B', gold: '#E9A23B',
 };
-/** The one deep-red shade used everywhere (intro, banners, buttons, logo) — same as the launch screen. */
-export const GLOSS = ['#941219', '#7A0D12', '#5A090D'] as const;
+/** Turmeric — the MaaCrave theme colour for banners, primary buttons, the logo tile and the launch screen. Text on it is dark brown. */
+export const GLOSS = ['#F4BC2B', '#E9A100', '#D48C00'] as const;
+/** Maroon — the secondary colour, for avatars and small solid accents that carry white text. */
+export const MAROON = ['#8E2A2F', '#7A1F24', '#5A1418'] as const;
+/** Text and icons placed on turmeric. */
+export const ON_GLOSS = '#3A2318';
+export const ON_GLOSS_SOFT = 'rgba(58,35,24,0.72)';
 /** Matte deep maroon (secondary hero, dark surfaces). */
 export const MATTE = ['#3B1013', '#2A0B0D'] as const;
 /** Top highlight laid over glossy surfaces. */
-export const SHEEN = ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0)'] as const;
+export const SHEEN = ['rgba(255,255,255,0.22)', 'rgba(255,255,255,0)'] as const;
 
 /** 8-point spacing scale */
 export const S = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, x3: 32, x4: 40, x5: 48 };
@@ -45,9 +51,9 @@ export const TYPE = {
 export type TypeKey = keyof typeof TYPE;
 
 export const shadow = Platform.select({
-  ios: { shadowColor: '#2A0B0D', shadowOpacity: 0.08, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } },
+  ios: { shadowColor: '#3A2318', shadowOpacity: 0.08, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } },
   android: { elevation: 4 },
-  default: { boxShadow: '0 10px 30px -14px rgba(42,11,13,.22)' } as object,
+  default: { boxShadow: '0 10px 30px -14px rgba(58,35,24,.22)' } as object,
 });
 export const redShadow = Platform.select({
   ios: { shadowColor: '#2A0B0D', shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 6 } },

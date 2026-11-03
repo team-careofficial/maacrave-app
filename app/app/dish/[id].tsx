@@ -7,7 +7,7 @@ import { API } from '@/api';
 import { useCart } from '@/cart';
 import { tk } from '@/format';
 import { useAddToCart, useFavorites } from '@/hooks';
-import { C, CATEGORY_META, R, S } from '@/theme';
+import { C, CATEGORY_META, ON_GLOSS, ON_GLOSS_SOFT, R, S } from '@/theme';
 import { Avatar, Button, Card, CategoryTile, Glossy, Rings, Divider, ErrorState, Header, IconButton, Loading, Note, Rating, Row, Screen, Section, Stepper, T } from '@/ui';
 import { ReviewList } from '@/ui/reviews';
 
@@ -39,13 +39,13 @@ export default function DishScreen() {
           <Glossy style={{ marginTop: S.sm }} radius={30}>
             <View style={{ height: 210, alignItems: 'center', justifyContent: 'center' }}>
               <Rings size={340} right={-60} top={-70} />
-              <View style={{ width: 132, height: 132, borderRadius: 66, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' }}>
+              <View style={{ width: 132, height: 132, borderRadius: 66, backgroundColor: 'rgba(255,255,255,0.35)', alignItems: 'center', justifyContent: 'center' }}>
                 <View style={{ width: 100, height: 100, borderRadius: 50, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
                   <CategoryTile category={d.category} size={76} solid />
                 </View>
               </View>
-              <View style={{ position: 'absolute', left: S.lg, top: S.lg, backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: R.pill, paddingHorizontal: 12, height: 28, justifyContent: 'center' }}>
-                <T v="eyebrow" color="#fff">{CATEGORY_META[d.category]?.label || d.category}</T>
+              <View style={{ position: 'absolute', left: S.lg, top: S.lg, backgroundColor: 'rgba(255,255,255,0.35)', borderRadius: R.pill, paddingHorizontal: 12, height: 28, justifyContent: 'center' }}>
+                <T v="eyebrow" color={ON_GLOSS}>{CATEGORY_META[d.category]?.label || d.category}</T>
               </View>
             </View>
           </Glossy>

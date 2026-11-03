@@ -1,10 +1,10 @@
 :root {
-  --bg: #F7F4F2; --surface: #FFFFFF; --card: #FBF9F8; --sunken: #EEEAE7;
-  --text: #1D1617; --text2: #5C5253; --muted: #8B8182; --line: #ECE6E4; --line2: #E0D9D7;
-  --brand: #A9151B; --brand2: #C21D23; --brand-dark: #7C0E13; --brand-soft: #FBEEEE;
+  --bg: #FFF8EC; --surface: #FFFFFF; --card: #FBF3E4; --sunken: #F2E7D2;
+  --text: #2E1D14; --text2: #5E4B3E; --muted: #8E7B6B; --line: #F0E5D0; --line2: #E6D8BE;
+  --brand: #7A1F24; --brand2: #8E2A2F; --brand-dark: #5A1418; --brand-soft: #FCEFCB; --turmeric: #E9A100; --on-turmeric: #3A2318;
   --ok: #1E7F4F; --ok-soft: #E8F5EE; --warn: #9A6200; --warn-soft: #FDF4E1; --err: #C62828; --err-soft: #FDECEC; --info: #2552C9; --info-soft: #EDF2FE;
-  --ink: #231A1B;
-  --gloss: linear-gradient(135deg, #941219, #7A0D12 50%, #5A090D);
+  --ink: #2E1D14;
+  --gloss: linear-gradient(135deg, #F4BC2B, #E9A100 50%, #D48C00);
   --shadow: 0 10px 30px -16px rgba(42, 11, 13, .25);
   --r: 16px;
   --display: 'Bricolage Grotesque', system-ui, sans-serif;
@@ -21,14 +21,15 @@ a { color: var(--brand); }
 
 /* login */
 .login { min-height: 100vh; display: grid; grid-template-columns: 1.1fr 1fr; }
-.login-hero { background: var(--gloss); color: #fff; padding: 56px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
-.login-hero::after { content: ''; position: absolute; width: 520px; height: 520px; right: -180px; top: -160px; border-radius: 50%; border: 2px solid rgba(255,255,255,.12); box-shadow: 0 0 0 70px rgba(255,255,255,.04), 0 0 0 140px rgba(255,255,255,.03); }
+.login-hero { background: var(--gloss); color: var(--on-turmeric); padding: 56px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
+.login-hero::after { content: ''; position: absolute; width: 520px; height: 520px; right: -180px; top: -160px; border-radius: 50%; border: 2px solid rgba(122,31,36,.12); box-shadow: 0 0 0 70px rgba(255,255,255,.12), 0 0 0 140px rgba(255,255,255,.08); }
+.login-hero { border-bottom: 8px solid var(--brand); }
 .login-hero h1 { font-size: 44px; line-height: 1.05; max-width: 440px; }
 .login-panel { display: grid; place-items: center; padding: 32px; }
 .login-box { width: 100%; max-width: 380px; display: grid; gap: 16px; }
 .brand { display: flex; align-items: center; gap: 10px; font: 800 22px var(--display); }
 .brand .logo { width: 38px; height: 38px; border-radius: 11px; background: #fff; display: grid; place-items: center; }
-.brand .accent { color: #FFD9D9; }
+.brand .accent { color: var(--brand); }
 .brand.dark .logo { background: var(--gloss); }
 .brand.dark .accent { color: var(--brand); }
 
@@ -48,7 +49,7 @@ main { padding: 28px 32px 60px; max-width: 1240px; width: 100%; }
 .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
 .stat { background: var(--surface); border-radius: var(--r); padding: 18px; box-shadow: var(--shadow); }
 .stat b { display: block; font: 800 28px var(--display); letter-spacing: -.03em; margin-top: 4px; }
-.stat.hero { background: var(--gloss); color: #fff; }
+.stat.hero { background: var(--gloss); color: var(--on-turmeric); }
 .card { background: var(--surface); border-radius: var(--r); padding: 18px; box-shadow: var(--shadow); }
 .list { display: grid; gap: 12px; }
 .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -57,7 +58,7 @@ main { padding: 28px 32px 60px; max-width: 1240px; width: 100%; }
 .tab { border: 0; background: none; padding: 7px 16px; border-radius: 999px; font-weight: 600; color: var(--text2); }
 .tab.on { background: var(--ink); color: #fff; }
 .btn { border: 0; border-radius: 999px; padding: 10px 18px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; }
-.btn.primary { background: var(--gloss); color: #fff; box-shadow: 0 10px 20px -10px rgba(169,21,27,.6); }
+.btn.primary { background: var(--gloss); color: var(--on-turmeric); box-shadow: 0 10px 20px -10px rgba(201,133,0,.6); }
 .btn.ok { background: var(--ok); color: #fff; }
 .btn.danger { background: var(--err-soft); color: var(--err); }
 .btn.ghost { background: var(--card); color: var(--text); border: 1px solid var(--line2); }
@@ -96,8 +97,8 @@ tr:last-child td { border-bottom: 0; }
 }
 .mt { margin-top: 16px; } .my { margin: 14px 0; }
 .brand .logo { color: var(--brand); }
-.brand.dark .logo { color: #fff; }
-.login-hero .muted { color: rgba(255,255,255,.75); }
+.brand.dark .logo { color: var(--brand); }
+.login-hero .muted { color: rgba(58,35,24,.72); }
 .shell > * { min-width: 0; }
 .tabs { max-width: 100%; overflow-x: auto; }
 .tab { white-space: nowrap; }

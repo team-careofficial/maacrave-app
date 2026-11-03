@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { API } from '@/api';
 import { ago, clock, day, tk } from '@/format';
-import { C, F, R, S } from '@/theme';
+import { C, F, ON_GLOSS, ON_GLOSS_SOFT, R, S } from '@/theme';
 import type { FoodRequest, Proposal } from '@/types';
 import { Badge, Button, Card, Glossy, Rings, CategoryTile, confirm, Divider, Empty, ErrorState, Header, Loading, Rating, Row, Screen, Section, Segmented, T, useToast, Chip } from '@/ui';
 import { Grid } from '@/ui/grid';
@@ -90,15 +90,15 @@ export default function Requests() {
         <View style={{ padding: S.xl, gap: S.lg }}>
           <Rings size={260} right={-90} top={-80} />
           <View style={{ gap: 6, maxWidth: 520 }}>
-            <T v="eyebrow" color="rgba(255,255,255,0.8)">Made to order</T>
-            <T v="title" color="#fff" style={{ fontSize: 28, lineHeight: 32 }}>What are you craving?</T>
-            <T v="sub" color="rgba(255,255,255,0.88)">Describe the dish, portions and budget. Verified mothers nearby reply with a price — you choose who cooks.</T>
+            <T v="eyebrow" color={ON_GLOSS_SOFT}>Made to order</T>
+            <T v="title" color={ON_GLOSS} style={{ fontSize: 28, lineHeight: 32 }}>What are you craving?</T>
+            <T v="sub" color={ON_GLOSS_SOFT}>Describe the dish, portions and budget. Verified mothers nearby reply with a price — you choose who cooks.</T>
           </View>
           <Row gap={S.sm} wrap>
             {['Describe it', 'Get prices', 'Pick a cook'].map((st, i) => (
-              <Row key={st} gap={8} style={{ backgroundColor: 'rgba(255,255,255,0.14)', borderRadius: R.pill, paddingLeft: 4, paddingRight: 12, height: 32 }}>
+              <Row key={st} gap={8} style={{ backgroundColor: 'rgba(255,255,255,0.35)', borderRadius: R.pill, paddingLeft: 4, paddingRight: 12, height: 32 }}>
                 <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}><T v="meta" color={C.brand} style={{ fontFamily: F.bold }}>{i + 1}</T></View>
-                <T v="meta" color="#fff" style={{ fontFamily: F.semibold }}>{st}</T>
+                <T v="meta" color={ON_GLOSS} style={{ fontFamily: F.semibold }}>{st}</T>
               </Row>
             ))}
           </Row>

@@ -8,7 +8,7 @@ import { API } from '@/api';
 import { useAuth } from '@/auth';
 import { setLang, useLang } from '@/i18n';
 import { BD_PHONE, normalizePhone } from '@/format';
-import { C, F, GLOSS, R, S, SHEEN } from '@/theme';
+import { C, F, GLOSS, ON_GLOSS, ON_GLOSS_SOFT, R, S, SHEEN } from '@/theme';
 import { Button, FadeIn, Input, Rings, Row, T, Tap } from '@/ui';
 import { Brand } from '@/ui/brand';
 import { GoogleButton, googleReady } from '@/ui/google';
@@ -59,19 +59,19 @@ export default function SignIn() {
             <Rings size={320} right={-110} top={-60} />
             <View style={{ width: '100%', maxWidth: 440, alignSelf: 'center', gap: S.xxl }}>
               <Row style={{ justifyContent: 'space-between' }}>
-                <Brand light />
-                <Tap onPress={() => setLang(lang === 'bn' ? 'en' : 'bn')} scale={0.92} style={{ backgroundColor: 'rgba(255,255,255,0.16)', borderRadius: R.pill, paddingHorizontal: 14, height: 34, justifyContent: 'center' }}>
-                  <Text style={{ fontFamily: lang === 'bn' ? F.bold : F.bnBold, fontSize: 13.5, color: '#fff' }}>{lang === 'bn' ? 'English' : 'বাংলা'}</Text>
+                <Brand onTurmeric />
+                <Tap onPress={() => setLang(lang === 'bn' ? 'en' : 'bn')} scale={0.92} style={{ backgroundColor: 'rgba(255,255,255,0.4)', borderRadius: R.pill, paddingHorizontal: 14, height: 34, justifyContent: 'center' }}>
+                  <Text style={{ fontFamily: lang === 'bn' ? F.bold : F.bnBold, fontSize: 13.5, color: ON_GLOSS }}>{lang === 'bn' ? 'English' : 'বাংলা'}</Text>
                 </Tap>
               </Row>
               <FadeIn style={{ gap: S.sm }}>
-                <T v="hero" bn color="#fff" style={{ fontFamily: F.bnBold, fontSize: wide ? 50 : 34, lineHeight: wide ? 64 : 44 }}>ঘরের খাবার,{'\n'}মায়ের হাতের।</T>
-                <T v="body" color="rgba(255,255,255,0.86)">Fresh homemade meals from verified mothers in your neighbourhood.</T>
+                <T v="hero" bn color={ON_GLOSS} style={{ fontFamily: F.bnBold, fontSize: wide ? 50 : 34, lineHeight: wide ? 64 : 44 }}>ঘরের খাবার,{'\n'}মায়ের হাতের।</T>
+                <T v="body" color={ON_GLOSS_SOFT}>Fresh homemade meals from verified mothers in your neighbourhood.</T>
               </FadeIn>
               <Row gap={S.sm} wrap>
                 {PERKS.map(({ Icon, t }) => (
-                  <Row key={t} gap={6} style={{ backgroundColor: 'rgba(255,255,255,0.14)', borderRadius: R.pill, paddingHorizontal: 12, height: 30 }}>
-                    <Icon size={13} color="#fff" /><T v="meta" color="#fff">{t}</T>
+                  <Row key={t} gap={6} style={{ backgroundColor: 'rgba(255,255,255,0.4)', borderRadius: R.pill, paddingHorizontal: 12, height: 30 }}>
+                    <Icon size={13} color={ON_GLOSS} /><T v="meta" color={ON_GLOSS}>{t}</T>
                   </Row>
                 ))}
               </Row>
@@ -127,7 +127,7 @@ export default function SignIn() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: C.brandDark }}>
+    <View style={{ flex: 1, backgroundColor: C.turmeric }}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" bounces={false}>
           <View style={{ paddingTop: insets.top + S.xl, paddingHorizontal: S.xl, paddingBottom: 60, overflow: 'hidden' }}>

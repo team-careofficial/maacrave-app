@@ -8,7 +8,7 @@ import { useAuth } from '@/auth';
 import { useCart } from '@/cart';
 import { ACTIVE_STATUSES, firstName, STATUS_LABEL } from '@/format';
 import { useAddresses, useAddToCart, useFavorites } from '@/hooks';
-import { C, F, GLOSS, R, S, shadow } from '@/theme';
+import { C, F, MAROON, R, S, shadow } from '@/theme';
 import { BatchCard, Card, CookCard, DishCard, FadeIn, IconButton, Loading, Row, Screen, Section, T, Tap } from '@/ui';
 import { BrandBar } from '@/ui/brand';
 import { SpotlightGrid } from '@/ui/spotlight';
@@ -79,21 +79,21 @@ export default function Home() {
 
       {/* the two ways to eat, side by side */}
       <Row gap={S.md} style={{ marginTop: S.md, alignItems: 'stretch' }}>
-        {/* Order now: white card with a crimson gradient outline */}
+        {/* Order now: white card with a turmeric-to-maroon outline */}
         <Tap onPress={() => router.push('/browse')} scale={0.97} style={{ flex: 1, borderRadius: R.xl, ...(shadow as object) }}>
-          <LinearGradient colors={['#E6A4A7', '#F6D9DA', '#C7272D']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, borderRadius: R.xl, padding: 1 }}>
+          <LinearGradient colors={['#F4BC2B', '#FCEFCB', '#7A1F24']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, borderRadius: R.xl, padding: 1 }}>
             <View style={{ flex: 1, borderRadius: R.xl - 1, backgroundColor: '#fff', padding: S.md, gap: S.sm }}>
               <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.brandSoft, alignItems: 'center', justifyContent: 'center' }}><UtensilsCrossed size={19} color={C.brand} /></View>
               <View><T v="card" style={{ fontSize: 15 }}>Order now</T><T v="meta" numberOfLines={2}>Ready dishes cooking today</T></View>
             </View>
           </LinearGradient>
         </Tap>
-        {/* Request a dish: soft rose gradient */}
+        {/* Request a dish: soft turmeric gradient */}
         <Tap onPress={() => router.push('/request/new')} scale={0.97} style={{ flex: 1, borderRadius: R.xl, overflow: 'hidden' }}>
-          <LinearGradient colors={['#FFF4F3', '#FBDDDD', '#F5C7C9']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, padding: S.md, gap: S.sm, borderRadius: R.xl, borderWidth: 1, borderColor: '#F3C9CB' }}>
+          <LinearGradient colors={['#FFF6DE', '#FCE9B8', '#F7DA8E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, padding: S.md, gap: S.sm, borderRadius: R.xl, borderWidth: 1, borderColor: '#F0D48A' }}>
             <View style={{ position: 'absolute', right: -26, top: -26, width: 90, height: 90, borderRadius: 45, backgroundColor: 'rgba(255,255,255,0.45)' }} />
             <View style={{ width: 40, height: 40, borderRadius: 20, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
-              <LinearGradient colors={GLOSS} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} />
+              <LinearGradient colors={MAROON} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} />
               <View style={{ position: 'relative' }}><MessageSquarePlus size={19} color="#fff" /></View>
             </View>
             <View><T v="card" color={C.brandDark} style={{ fontSize: 15 }}>Request a dish</T><T v="meta" color={C.brandText} numberOfLines={2}>Mothers reply with a price</T></View>

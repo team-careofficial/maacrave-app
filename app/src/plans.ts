@@ -4,7 +4,7 @@ import type { MealSlot, PlanPeriod, SubscriptionStatus } from './types';
 
 export const MEALS: { key: MealSlot; label: string; Icon: LucideIcon; bg: string; fg: string }[] = [
   { key: 'BREAKFAST', label: 'Breakfast', Icon: Coffee, bg: '#FFF4E3', fg: '#9A5A00' },
-  { key: 'LUNCH', label: 'Lunch', Icon: Sun, bg: '#FBE6E6', fg: '#A9151B' },
+  { key: 'LUNCH', label: 'Lunch', Icon: Sun, bg: '#FCEFCB', fg: '#7A1F24' },
   { key: 'DINNER', label: 'Dinner', Icon: Moon, bg: '#ECEBFA', fg: '#3D3591' },
 ];
 export const mealOf = (m: MealSlot) => MEALS.find((x) => x.key === m) || MEALS[1];

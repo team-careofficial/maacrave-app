@@ -12,7 +12,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { countdown, statusTone, STATUS_LABEL, tk } from '../format';
 import { tr, useLang } from '../i18n';
 import { Logo } from './logo';
-import { C, CATEGORY_META, F, GLOSS, MATTE, R, redShadow, S, shadow, SHEEN, TYPE, TypeKey } from '../theme';
+import { C, CATEGORY_META, F, GLOSS, MAROON, MATTE, ON_GLOSS, R, S, SHEEN, TYPE, TypeKey, redShadow, shadow } from '../theme';
 import type { Batch, CookPublic, Dish, Order, OrderStatus } from '../types';
 import { onAppError } from '../errors';
 
@@ -76,7 +76,7 @@ export function Skeleton({ h = 16, w = '100%', r = 8, style }: { h?: number; w?:
 }
 
 /* ---------- surfaces ---------- */
-/** Glossy crimson surface: gradient, a soft top sheen and a red glow. */
+/** Glossy turmeric surface: gradient and a soft top sheen. Put dark text (ON_GLOSS) on it. */
 export function Glossy({ children, style, colors = GLOSS, radius = R.xl, glow = true, onPress }: { children: React.ReactNode; style?: StyleProp<ViewStyle>; colors?: readonly [string, string, ...string[]]; radius?: number; glow?: boolean; onPress?: () => void }) {
   const body = (
     <View style={{ borderRadius: radius, overflow: 'hidden', flexGrow: 1 }}>
@@ -153,7 +153,7 @@ export function Wordmark({ size = 34, onDark }: { size?: number; onDark?: boolea
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: size * 0.26 }}>
       <Logo size={size} />
       <Text style={{ fontFamily: F.displayX, fontSize: fs, letterSpacing: -0.6, color: onDark ? '#fff' : C.text }}>
-        Maa<Text style={{ color: onDark ? '#FFD9D9' : C.brand }}>Crave</Text>
+        Maa<Text style={{ color: onDark ? '#FFE3A3' : C.brand }}>Crave</Text>
       </Text>
     </View>
   );
@@ -236,7 +236,7 @@ type BtnVariant = 'primary' | 'dark' | 'secondary' | 'outline' | 'ghost' | 'dang
 export function Button({ title, sub, onPress, v = 'primary', size = 'md', loading, disabled, icon, style, full }: { title: string; sub?: string; onPress?: () => void; v?: BtnVariant; size?: 'sm' | 'md' | 'lg'; loading?: boolean; disabled?: boolean; icon?: React.ReactNode; style?: StyleProp<ViewStyle>; full?: boolean }) {
   const tx = useTxt()(title, F.bold);
   const h = size === 'lg' ? 56 : size === 'sm' ? 38 : 48;
-  const fg = v === 'primary' || v === 'dark' || v === 'ok' ? '#FFFFFF' : v === 'secondary' || v === 'light' ? C.brandText : v === 'danger' ? C.err : C.text;
+  const fg = v === 'primary' ? ON_GLOSS : v === 'dark' || v === 'ok' ? '#FFFFFF' : v === 'secondary' || v === 'light' ? C.brandText : v === 'danger' ? C.err : C.text;
   const bg = v === 'dark' ? C.ink : v === 'secondary' ? C.brandSoft : v === 'ok' ? C.ok : v === 'outline' || v === 'light' ? C.surface : 'transparent';
   const border = v === 'outline' ? C.line2 : v === 'danger' ? C.err + '40' : 'transparent';
   const content = (
@@ -281,7 +281,7 @@ export function AddButton({ onPress, disabled, label = 'Add to cart' }: { onPres
       <View style={{ flex: 1, borderRadius: 19, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
         <LinearGradient colors={GLOSS} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
         <LinearGradient colors={SHEEN} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '50%' }} pointerEvents="none" />
-        <Plus size={19} color="#fff" strokeWidth={2.6} />
+        <Plus size={19} color={ON_GLOSS} strokeWidth={2.6} />
       </View>
     </Tap>
   );
@@ -410,7 +410,7 @@ export function Avatar({ name, size = 44, color }: { name: string; size?: number
   const ini = name.replace(/[’']s\b.*/, '').split(' ').filter(Boolean).map((x) => x[0]).slice(0, 2).join('').toUpperCase() || '•';
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: color }}>
-      {color ? null : <LinearGradient colors={GLOSS} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />}
+      {color ? null : <LinearGradient colors={MAROON} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />}
       <Text style={{ color: '#fff', fontFamily: F.display, fontSize: size * 0.38 }}>{ini}</Text>
     </View>
   );

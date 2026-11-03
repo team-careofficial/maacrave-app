@@ -5,7 +5,7 @@ import { Linking, Pressable, Text, View } from 'react-native';
 import { API } from '@/api';
 import { setLang, useLang } from '@/i18n';
 import { homeFor, useAuth } from '@/auth';
-import { C, R, S } from '@/theme';
+import { C, ON_GLOSS, ON_GLOSS_SOFT, R, S } from '@/theme';
 import { Badge, Card, confirm, Divider, Glossy, Header, IconTile, Rings, Screen, Section, T, useToast } from '@/ui';
 
 function Item({ Icon, label, sub, onPress, right, danger }: { Icon: LucideIcon; label: string; sub?: string; onPress: () => void; right?: React.ReactNode; danger?: boolean }) {
@@ -74,12 +74,12 @@ export default function Account() {
             <T v="section" color={C.brand}>{(me.name || 'You').split(' ').map((x) => x[0]).slice(0, 2).join('').toUpperCase()}</T>
           </View>
           <View style={{ flex: 1 }}>
-            <T v="section" color="#fff">{me.name}</T>
-            <T v="sub" color="rgba(255,255,255,0.82)">{me.phone || me.email}{me.area ? ` · ${me.area}` : ''}</T>
+            <T v="section" color={ON_GLOSS}>{me.name}</T>
+            <T v="sub" color={ON_GLOSS_SOFT}>{me.phone || me.email}{me.area ? ` · ${me.area}` : ''}</T>
           </View>
-          <View style={{ alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.16)', borderRadius: R.md, paddingHorizontal: 12, paddingVertical: 8 }}>
-            <T v="price" color="#fff">{me.loyaltyPoints}</T>
-            <T v="meta" color="rgba(255,255,255,0.82)">points</T>
+          <View style={{ alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.35)', borderRadius: R.md, paddingHorizontal: 12, paddingVertical: 8 }}>
+            <T v="price" color={ON_GLOSS}>{me.loyaltyPoints}</T>
+            <T v="meta" color={ON_GLOSS_SOFT}>points</T>
           </View>
         </View>
       </Glossy>

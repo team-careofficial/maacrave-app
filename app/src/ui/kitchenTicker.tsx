@@ -3,7 +3,7 @@ import { ArrowRight, ChefHat, Star } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Platform, View } from 'react-native';
 import { num, t, useLang } from '../i18n';
-import { C, F, R, S } from '../theme';
+import { C, F, ON_GLOSS, ON_GLOSS_SOFT, R, S } from '../theme';
 import type { CookPublic } from '../types';
 import { Glossy, T, Tap } from './index';
 
@@ -43,22 +43,24 @@ export function KitchenTicker({ cooks, fallback }: { cooks: CookPublic[]; fallba
   return (
     <Glossy style={{ marginTop: S.lg }} radius={22} glow={false} onPress={c ? () => router.push(`/cook/${c.id}`) : undefined}>
       <View style={{ paddingVertical: S.lg, paddingHorizontal: S.xl, flexDirection: 'row', alignItems: 'center', gap: S.md, minHeight: 88 }}>
-        <View pointerEvents="none" style={{ position: 'absolute', right: -50, top: -60, width: 160, height: 160, borderRadius: 80, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' }} />
+        {/* maroon "border" along the bottom, like the red border of a turmeric-yellow sari */}
+        <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 5, backgroundColor: C.brand }} />
+        <View pointerEvents="none" style={{ position: 'absolute', right: -50, top: -60, width: 160, height: 160, borderRadius: 80, borderWidth: 1, borderColor: 'rgba(58,35,24,0.12)' }} />
         {c ? (
           <>
-            <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' }}>
-              <ChefHat size={22} color="#fff" />
+            <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(255,255,255,0.35)', alignItems: 'center', justifyContent: 'center' }}>
+              <ChefHat size={22} color={ON_GLOSS} />
             </View>
             <View style={{ flex: 1, overflow: 'hidden' }}>
-              <T v="meta" color="rgba(255,255,255,0.75)">{c.accepting ? t('Cooking today', 'আজ রান্না করছেন') : t('Mothers on MaaCrave', 'MaaCrave-এর মায়েরা')}</T>
+              <T v="meta" color={ON_GLOSS_SOFT}>{c.accepting ? t('Cooking today', 'আজ রান্না করছেন') : t('Mothers on MaaCrave', 'MaaCrave-এর মায়েরা')}</T>
               <Animated.View style={move}>
-                <T v="card" color="#fff" numberOfLines={1} style={{ fontFamily: lang === 'bn' ? F.bnBold : F.bold, fontSize: 18, lineHeight: 26 }}>{c.displayName}</T>
+                <T v="card" color={ON_GLOSS} numberOfLines={1} style={{ fontFamily: lang === 'bn' ? F.bnBold : F.bold, fontSize: 18, lineHeight: 26 }}>{c.displayName}</T>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <T v="meta" color="rgba(255,255,255,0.85)" numberOfLines={1}>{c.area}</T>
+                  <T v="meta" color={ON_GLOSS_SOFT} numberOfLines={1}>{c.area}</T>
                   {c.ratingCount ? (
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                      <Star size={11} color="#FFD27A" fill="#FFD27A" />
-                      <T v="meta" color="rgba(255,255,255,0.85)">{num(c.rating.toFixed(1))}</T>
+                      <Star size={11} color={C.brand} fill={C.brand} />
+                      <T v="meta" color={ON_GLOSS_SOFT}>{num(c.rating.toFixed(1))}</T>
                     </View>
                   ) : null}
                 </View>
@@ -67,18 +69,18 @@ export function KitchenTicker({ cooks, fallback }: { cooks: CookPublic[]; fallba
             {/* small dots showing which kitchen is on screen */}
             {list.length > 1 ? (
               <View style={{ position: 'absolute', left: S.xl, bottom: 8, flexDirection: 'row', gap: 4 }}>
-                {list.map((x, k) => <View key={x.id} style={{ width: k === i % list.length ? 12 : 4, height: 4, borderRadius: 2, backgroundColor: k === i % list.length ? '#fff' : 'rgba(255,255,255,0.35)' }} />)}
+                {list.map((x, k) => <View key={x.id} style={{ width: k === i % list.length ? 12 : 4, height: 4, borderRadius: 2, backgroundColor: k === i % list.length ? C.brand : 'rgba(122,31,36,0.25)' }} />)}
               </View>
             ) : null}
           </>
         ) : (
           <View style={{ flex: 1, gap: 4 }}>
-            <T v="card" bn color="#fff" style={{ fontFamily: F.bnBold, fontSize: 18, lineHeight: 26 }}>{fallback.bn}</T>
-            <T v="meta" color="rgba(255,255,255,0.8)">{fallback.en}</T>
+            <T v="card" bn color={ON_GLOSS} style={{ fontFamily: F.bnBold, fontSize: 18, lineHeight: 26 }}>{fallback.bn}</T>
+            <T v="meta" color={ON_GLOSS_SOFT}>{fallback.en}</T>
           </View>
         )}
-        <Tap onPress={() => router.push(c ? `/cook/${c.id}` : '/browse')} scale={0.92} style={{ backgroundColor: '#fff', borderRadius: R.pill, height: 40, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <T v="label" color={C.brand}>{c ? t('View', 'দেখুন') : 'Explore'}</T><ArrowRight size={15} color={C.brand} />
+        <Tap onPress={() => router.push(c ? `/cook/${c.id}` : '/browse')} scale={0.92} style={{ backgroundColor: C.brand, borderRadius: R.pill, height: 40, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <T v="label" color="#fff">{c ? t('View', 'দেখুন') : 'Explore'}</T><ArrowRight size={15} color="#fff" />
         </Tap>
       </View>
     </Glossy>
