@@ -201,6 +201,15 @@ model CookProfile {
   region          String?
   portraitId      String?     // MediaImage: her photo
   kitchenPhotoId  String?     // MediaImage: her kitchen
+  /// Last in-person kitchen inspection by the MaaCrave team.
+  inspectedAt     DateTime?
+  /// Paused by the team (complaints, failed inspection). Can't take orders until then.
+  pausedUntil     DateTime?
+  pauseReason     String?
+  /// The cook's own leave ("on holiday until"). She can't take orders until then.
+  awayUntil       DateTime?
+  /// BFSA food business registration / licence number, if she has one.
+  foodLicence     String?
   lat             Float?      // kitchen location for the delivery map
   lng             Float?
   rating          Float       @default(0)
@@ -350,6 +359,10 @@ model Order {
   cookEarning    Int
   riderPayout    Int
   tip            Int          @default(0) // added by the customer at checkout; 100% goes to the rider
+  /// The customer's allergies at the time of ordering, shown to the cook in red.
+  allergyNote    String?
+  /// When nearby riders were re-alerted because nobody took the pickup.
+  riderNudgedAt  DateTime?
   couponCode     String?
   addressText    String
   lat            Float?      // delivery point copied from the address at checkout
@@ -436,6 +449,10 @@ model Review {
   cookId    String
   dishId    String?
   stars     Int
+  /// Optional detail ratings, 1–5.
+  portion   Int?
+  packaging Int?
+  hygiene   Int?
   text      String?
   createdAt DateTime     @default(now())
   order     Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -534,6 +551,17 @@ model PlatformSetting {
   upgrades         Int   @default(0)
   /// "Mother of the week" shown on Home, chosen in the admin panel.
   featuredCookId   String?
+}
+
+/// Messages about one order between the customer, the cook and the rider. Phone numbers stay private.
+model OrderMessage {
+  id        String   @id @default(cuid())
+  orderId   String
+  senderId  String
+  role      String   // CUSTOMER | COOK | RIDER
+  body      String
+  createdAt DateTime @default(now())
+  @@index([orderId, createdAt])
 }
 
 /// Photos uploaded by cooks (dishes, portrait, kitchen). Served from /v1/media/:id. The team can remove any.
@@ -716,6 +744,8 @@ model Subscription {
   lat         Float?
   lng         Float?
   notes       String?
+  /// Days the customer skipped (YYYY-MM-DD, Dhaka). No meal is made on these days.
+  skipDates   String[]           @default([])
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
   plan        MealPlan           @relation(fields: [planId], references: [id], onDelete: Cascade)

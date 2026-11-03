@@ -67,7 +67,7 @@ export class OrdersService {
    * Tells the online riders nearest to the kitchen first. For the first 90 seconds only they see the task;
    * after that every online rider does (see RiderService.tasks).
    */
-  async offerToRiders(cookId: string, drops: number) {
+  async offerToRiders(cookId: string, drops: number, everyone = false) {
     const cook = await this.prisma.cookProfile.findUnique({ where: { id: cookId }, select: { lat: true, lng: true, area: true, displayName: true } });
     if (!cook) return;
     const k = pointOf(cook);
@@ -75,9 +75,27 @@ export class OrdersService {
     const fresh = (r: { locatedAt: Date | null }) => r.locatedAt && Date.now() - r.locatedAt.getTime() < 15 * 60_000;
     const ranked = riders.map((r) => ({ ...r, km: r.lat != null && r.lng != null && fresh(r) ? roadKm({ lat: r.lat, lng: r.lng }, k) : 99 })).sort((a, b) => a.km - b.km);
     const first = ranked.filter((r) => r.km < 99).slice(0, 3);
-    const notifyList = first.length ? first : ranked.slice(0, 10);
+    const notifyList = everyone ? ranked.slice(0, 30) : first.length ? first : ranked.slice(0, 10);
     await Promise.all(notifyList.map((r) => this.notify.notify(r.userId, 'RIDER', 'New pickup near you',
       `${drops} drop${drops > 1 ? 's' : ''} at ${cook.displayName}, ${cook.area}${r.km < 99 ? ` · ${r.km.toFixed(1)} km away` : ''}. Open Pickups to accept.`)));
+  }
+
+  /**
+   * A kitchen can take this order only if the team hasn't paused it, the cook isn't on leave,
+   * and her total portions for that day (all orders, any dish) stay within her daily limit.
+   */
+  private async assertKitchenOpen(tx: Tx, cook: { id: string; displayName: string; dailyCapacity: number; pausedUntil: Date | null; awayUntil: Date | null }, portions: number, day: Date) {
+    const now = new Date();
+    if (cook.pausedUntil && cook.pausedUntil > now) throw new BadRequestException(`${cook.displayName}'s kitchen is paused for a quality check. Please choose another kitchen.`);
+    if (cook.awayUntil && cook.awayUntil > now && day < cook.awayUntil) throw new BadRequestException(`${cook.displayName} is on leave until ${cook.awayUntil.toLocaleDateString('en-GB', { timeZone: 'Asia/Dhaka', day: 'numeric', month: 'short' })}.`);
+    const start = new Date(new Date(day.getTime() + 6 * 3600_000).toISOString().slice(0, 10) + 'T00:00:00+06:00');
+    const end = new Date(start.getTime() + 86400_000);
+    const sold = await tx.orderItem.aggregate({
+      where: { order: { cookId: cook.id, batchId: null, status: { not: 'CANCELLED' }, OR: [{ scheduledFor: { gte: start, lt: end } }, { scheduledFor: null, createdAt: { gte: start, lt: end } }] } },
+      _sum: { quantity: true },
+    });
+    const left = cook.dailyCapacity - (sold._sum.quantity || 0);
+    if (portions > left) throw new BadRequestException(left > 0 ? `${cook.displayName} can cook only ${left} more portion${left > 1 ? 's' : ''} that day.` : `${cook.displayName}'s kitchen is fully booked that day.`);
   }
 
   /** Works out what is being bought, at what price, from whom. Prices always come from the database. */
@@ -108,6 +126,7 @@ export class OrdersService {
         const left = d.dailyCapacity - (sold._sum.quantity || 0);
         if (it.quantity > left) throw new BadRequestException(left > 0 ? `Only ${left} portion${left > 1 ? 's' : ''} of ${d.name} left${fest ? '' : ' today'}.` : `${d.name} is sold out${fest ? '' : ' for today'}.`);
       }
+      await this.assertKitchenOpen(tx, cook, items.reduce((a, i) => a + i.quantity, 0), fest?.deliverOn ?? new Date());
       return { cookId: cook.id, cookUserId: cook.userId, items, isBatch: false as boolean, batchId: null as string | null, request: null, proposal: null, scheduledFor: fest?.deliverOn ?? null };
     }
     if (input.kind === 'batch') {
@@ -124,6 +143,7 @@ export class OrdersService {
     if (!request || !['OPEN', 'PROPOSALS'].includes(request.status)) throw new BadRequestException('This request is no longer open.');
     const proposal = await tx.proposal.findFirst({ where: { id: input.proposalId, requestId: request.id, status: 'PENDING' }, include: { cook: true } });
     if (!proposal) throw new BadRequestException('This price proposal is no longer available.');
+    await this.assertKitchenOpen(tx, proposal.cook, request.portions, request.neededAt);
     return {
       cookId: proposal.cookId, cookUserId: proposal.cook.userId,
       items: [{ dishId: null as string | null, name: request.dishName, unitPrice: proposal.pricePerPortion, quantity: request.portions }],
@@ -157,6 +177,8 @@ export class OrdersService {
       const at = new Date(input.scheduledFor).getTime();
       if (!Number.isFinite(at) || at < Date.now() + 30 * 60_000 || at > Date.now() + 30 * 86400_000) throw new BadRequestException('Choose a delivery time between 30 minutes and 30 days from now.');
     }
+    const prefs = await this.prisma.user.findUnique({ where: { id: user.id }, select: { allergies: true } });
+    const allergyNote = prefs?.allergies.length ? prefs.allergies.join(', ') : null;
     if (input.paymentMethod === 'BKASH' && !this.bkash.configured()) throw new BadRequestException('bKash isn’t available yet. Choose cash on delivery.');
     if (input.paymentMethod === 'SSLCOMMERZ' && !this.ssl.configured()) throw new BadRequestException('Card and wallet payments aren’t available yet. Choose cash on delivery.');
 
@@ -189,7 +211,7 @@ export class OrdersService {
           commission: fees.commission, cookEarning: fees.cookEarning, riderPayout: fees.riderPayout, couponCode: fees.couponCode, distanceKm: fees.distanceKm, tip: fees.tip,
           addressText, area: address.area, lat: address.lat, lng: address.lng, deliveryOtp: digits(4), notes: input.notes?.slice(0, 300),
           scheduledFor: ('scheduledFor' in r && r.scheduledFor) ? r.scheduledFor : input.scheduledFor ? new Date(input.scheduledFor) : null,
-          idempotencyKey: input.idempotencyKey,
+          idempotencyKey: input.idempotencyKey, allergyNote,
           items: { create: r.items },
           events: { create: { status: firstStatus, actorId: user.id } },
           payment: { create: { method: input.paymentMethod, amount: fees.total, returnTo: input.client === 'web' ? 'web' : 'app' } },
@@ -245,7 +267,8 @@ export class OrdersService {
     const o = await this.prisma.order.findUniqueOrThrow({ where: { id: orderId }, include: { items: true, cook: true } });
     const what = o.items.map((i) => `${i.quantity}× ${i.name}`).join(', ');
     const when = o.scheduledFor ? ` · deliver ${o.scheduledFor.toLocaleString('en-GB', { timeZone: 'Asia/Dhaka', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}` : '';
-    await this.notify.notify(o.cook.userId, 'COOK', o.batchId ? 'New group order portion' : o.scheduledFor ? 'New pre-order' : 'New order', `${what} · ${o.code}${when}`);
+    const allergy = o.allergyNote ? ` · ⚠ Allergy: ${o.allergyNote}` : '';
+    await this.notify.notify(o.cook.userId, 'COOK', o.batchId ? 'New group order portion' : o.scheduledFor ? 'New pre-order' : 'New order', `${what} · ${o.code}${when}${allergy}`);
   }
 
   /** The only place order status changes. Records an event and tells the customer. */
@@ -310,17 +333,70 @@ export class OrdersService {
       if (r) tracking = { lat: r.lat, lng: r.lng, locatedAt: r.locatedAt, vehicle: r.vehicle, phone: r.user.phone };
     }
     // Internal split (commission, cook and rider shares) isn't the customer's business.
-    return { ...o, commission: undefined, cookEarning: undefined, riderPayout: undefined, tracking };
+    return { ...o, commission: undefined, cookEarning: undefined, riderPayout: undefined, tracking, etaAt: await this.eta(o) };
   }
 
-  async review(user: AuthUser, id: string, stars: number, text?: string) {
+  /**
+   * Realistic arrival estimate: cooking time from when the mother accepted, then Dhaka traffic
+   * at about 4 minutes per km plus 10 minutes for pickup and handover.
+   */
+  private async eta(o: { status: OrderStatus; createdAt: Date; scheduledFor: Date | null; distanceKm: number | null; items: { dishId: string | null }[]; events: { status: OrderStatus; createdAt: Date }[]; batch: { readyBy: Date } | null }) {
+    if (['DELIVERED', 'CANCELLED', 'AWAITING_PAYMENT'].includes(o.status)) return null;
+    const ride = Math.round((o.distanceKm || 3) * 4 + 10) * 60_000;
+    if (o.scheduledFor) return o.scheduledFor;
+    const at = (s: OrderStatus) => o.events.find((e) => e.status === s)?.createdAt;
+    const picked = at('PICKED_UP') || at('ON_THE_WAY');
+    if (picked) return new Date(Math.max(Date.now(), picked.getTime() + ride - 10 * 60_000));
+    const ready = at('READY');
+    if (ready) return new Date(Math.max(Date.now() + ride, ready.getTime() + ride));
+    if (o.batch) return new Date(Math.max(Date.now(), o.batch.readyBy.getTime()) + ride);
+    const ids = o.items.map((i) => i.dishId).filter(Boolean) as string[];
+    const prep = ids.length ? Math.max(...(await this.prisma.dish.findMany({ where: { id: { in: ids } }, select: { prepMinutes: true } })).map((d) => d.prepMinutes)) : 60;
+    const start = at('COOK_ACCEPTED') || at('CONFIRMED') || at('PREPARING') || o.createdAt;
+    return new Date(Math.max(Date.now() + ride, start.getTime() + prep * 60_000 + ride));
+  }
+
+  /* ---------- order chat: customer, cook and rider, phone numbers stay private ---------- */
+  private async chatRole(user: AuthUser, orderId: string) {
+    const o = await this.prisma.order.findUnique({ where: { id: orderId }, include: { cook: { select: { userId: true, displayName: true } } } });
+    if (!o) throw new NotFoundException();
+    const role = o.customerId === user.id ? 'CUSTOMER' : o.cook.userId === user.id ? 'COOK' : o.riderId === user.id ? 'RIDER' : null;
+    if (!role) throw new ForbiddenException();
+    return { o, role };
+  }
+  async messages(user: AuthUser, orderId: string) {
+    const { o, role } = await this.chatRole(user, orderId);
+    const list = await this.prisma.orderMessage.findMany({ where: { orderId }, orderBy: { createdAt: 'asc' }, take: 200 });
+    const visible = list;
+    const open = !['DELIVERED', 'CANCELLED'].includes(o.status) || Date.now() - o.updatedAt.getTime() < 24 * 3600_000;
+    return { open, me: role, messages: visible.map((m) => ({ id: m.id, role: m.role, mine: m.senderId === user.id, body: m.body, createdAt: m.createdAt })) };
+  }
+  async sendMessage(user: AuthUser, orderId: string, body: string) {
+    const { o, role } = await this.chatRole(user, orderId);
+    if (['DELIVERED', 'CANCELLED'].includes(o.status) && Date.now() - o.updatedAt.getTime() > 24 * 3600_000) throw new BadRequestException('This chat is closed. Use Help & support for anything else.');
+    const recent = await this.prisma.orderMessage.count({ where: { orderId, senderId: user.id, createdAt: { gt: new Date(Date.now() - 60_000) } } });
+    if (recent >= 8) throw new BadRequestException('Slow down a little, please.');
+    // Keep phone numbers and links out so everyone stays protected by MaaCrave.
+    const clean = body.trim().replace(/(\+?88)?0?1[3-9]\d{2}[\s-]?\d{3}[\s-]?\d{3}/g, '[number hidden]');
+    await this.prisma.orderMessage.create({ data: { orderId, senderId: user.id, role, body: clean.slice(0, 600) } });
+    const who = role === 'CUSTOMER' ? 'Customer' : role === 'COOK' ? o.cook.displayName : 'Your rider';
+    const to = [
+      role !== 'CUSTOMER' ? { id: o.customerId, as: 'CUSTOMER' as const } : null,
+      role !== 'COOK' ? { id: o.cook.userId, as: 'COOK' as const } : null,
+      role !== 'RIDER' && o.riderId ? { id: o.riderId, as: 'RIDER' as const } : null,
+    ].filter(Boolean) as { id: string; as: 'CUSTOMER' | 'COOK' | 'RIDER' }[];
+    await Promise.all(to.map((t) => this.notify.notify(t.id, t.as, `${who} · ${o.code}`, clean.slice(0, 120))));
+    return this.messages(user, orderId);
+  }
+
+  async review(user: AuthUser, id: string, stars: number, text?: string, extra: { portion?: number; packaging?: number; hygiene?: number } = {}) {
     const o = await this.prisma.order.findFirst({ where: { id, customerId: user.id }, include: { review: true, items: true } });
     if (!o) throw new NotFoundException();
     if (o.status !== 'DELIVERED') throw new BadRequestException('You can rate an order after it’s delivered.');
     if (o.review) throw new BadRequestException('You have already rated this order.');
     const dishId = o.items[0]?.dishId ?? null;
     await this.prisma.$transaction(async (tx) => {
-      await tx.review.create({ data: { orderId: id, userId: user.id, cookId: o.cookId, dishId, stars, text } });
+      await tx.review.create({ data: { orderId: id, userId: user.id, cookId: o.cookId, dishId, stars, text, ...extra } });
       const agg = await tx.review.aggregate({ where: { cookId: o.cookId }, _avg: { stars: true }, _count: true });
       await tx.cookProfile.update({ where: { id: o.cookId }, data: { rating: Math.round((agg._avg.stars || 0) * 10) / 10, ratingCount: agg._count } });
       if (dishId) {
@@ -336,7 +412,17 @@ export class OrdersService {
   async complaint(user: AuthUser, id: string, type: string, text: string, refundRequested: boolean, refundAmount: number) {
     const o = await this.prisma.order.findFirst({ where: { id, customerId: user.id } });
     if (!o) throw new NotFoundException();
-    return this.prisma.complaint.create({ data: { orderId: id, userId: user.id, type, text, refundRequested, refundAmount: Math.min(refundAmount, o.total) } });
+    if (await this.prisma.complaint.count({ where: { orderId: id, userId: user.id, status: { not: 'RESOLVED' } } })) throw new BadRequestException('You already reported this order. We’ll get back to you soon.');
+    const c = await this.prisma.complaint.create({ data: { orderId: id, userId: user.id, type, text, refundRequested, refundAmount: Math.min(refundAmount, o.total) } });
+    // Safety problems: if a kitchen collects 3 in 30 days, pause it until the team checks it.
+    if (['Food quality', 'Hygiene concern', 'Wrong allergen info'].includes(type)) {
+      const n = await this.prisma.complaint.count({ where: { type: { in: ['Food quality', 'Hygiene concern', 'Wrong allergen info'] }, createdAt: { gt: new Date(Date.now() - 30 * 86400_000) }, order: { cookId: o.cookId } } });
+      if (n >= 3) {
+        const cook = await this.prisma.cookProfile.update({ where: { id: o.cookId }, data: { accepting: false, pausedUntil: new Date(Date.now() + 365 * 86400_000), pauseReason: `${n} food-safety reports in 30 days — under review` } });
+        await this.notify.notify(cook.userId, 'COOK', 'Your kitchen is paused for a check', 'We received several food-safety reports. The MaaCrave team will contact you to check the kitchen before it reopens.');
+      }
+    }
+    return c;
   }
 
   complaints(user: AuthUser) { return this.prisma.complaint.findMany({ where: { userId: user.id }, orderBy: { createdAt: 'desc' }, include: { order: { select: { code: true } } } }); }
@@ -354,7 +440,7 @@ export class OrdersService {
   }
 
   /** Take an order back from a rider who hasn't picked it up, and offer it to nearby riders again. */
-  async releaseRider(orderId: string) {
+  async releaseRider(orderId: string, byRider = false) {
     const o = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!o) throw new NotFoundException();
     if (o.status !== 'RIDER_ASSIGNED' || !o.riderId) throw new BadRequestException('Only orders a rider hasn’t picked up yet can be reassigned.');
@@ -362,8 +448,9 @@ export class OrdersService {
     const group = await this.prisma.order.findMany({ where: { riderId, status: 'RIDER_ASSIGNED', OR: [{ id: o.id }, ...(o.batchId ? [{ batchId: o.batchId }] : [])] }, select: { id: true } });
     await this.prisma.order.updateMany({ where: { id: { in: group.map((g) => g.id) } }, data: { riderId: null } });
     for (const g of group) await this.transition(g.id, 'READY', null);
-    await this.notify.notify(riderId, 'RIDER', 'Trip reassigned', `MaaCrave gave ${o.code} to another rider.`);
-    await this.offerToRiders(o.cookId, group.length);
+    if (!byRider) await this.notify.notify(riderId, 'RIDER', 'Trip reassigned', `MaaCrave gave ${o.code} to another rider.`);
+    await this.notify.notify(o.customerId, 'CUSTOMER', `Finding a new rider · ${o.code}`, 'Your rider couldn’t make it. We’re assigning another one now.');
+    await this.offerToRiders(o.cookId, group.length, true);
   }
 
   /** Delivered: credit loyalty points, cook stats, close batch when all drops are done. */

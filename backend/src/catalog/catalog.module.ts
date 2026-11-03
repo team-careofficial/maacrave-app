@@ -5,7 +5,7 @@ import { Public } from '../common/auth';
 import { PrismaService } from '../common/prisma.service';
 import { ALLERGENS, CATEGORIES, DHAKA_AREAS, HEALTH_TAGS, REGIONS } from '../common/util';
 
-const cookPublic = { id: true, displayName: true, area: true, intro: true, specialties: true, rating: true, ratingCount: true, completedOrders: true, hours: true, accepting: true, lat: true, lng: true, story: true, region: true, portraitId: true, kitchenPhotoId: true, createdAt: true } as const;
+const cookPublic = { id: true, displayName: true, area: true, intro: true, specialties: true, rating: true, ratingCount: true, completedOrders: true, hours: true, accepting: true, lat: true, lng: true, story: true, region: true, portraitId: true, kitchenPhotoId: true, createdAt: true, inspectedAt: true, awayUntil: true, hygieneChecks: true } as const;
 const firstName = (n?: string | null) => (n ? n.split(' ')[0] + ((n.split(' ')[1] || '')[0] ? ' ' + n.split(' ')[1][0] + '.' : '') : 'Neighbour');
 
 export function batchFilled(orders: { status: string; items: { quantity: number }[] }[]) {
@@ -71,8 +71,11 @@ export class CatalogService {
     const c = await this.prisma.cookProfile.findFirst({ where: { id, user: { suspended: false, deletedAt: null, roles: { some: { role: 'COOK', status: 'APPROVED' } } } }, select: { ...cookPublic, dishes: { where: { deletedAt: null, festivalId: null }, orderBy: { orderCount: 'desc' } } } });
     if (!c) throw new NotFoundException('Cook not found');
     const reviews = await this.prisma.review.findMany({ where: { cookId: id }, orderBy: { createdAt: 'desc' }, take: 10, include: { user: { select: { name: true } }, dish: { select: { name: true } } } });
+    const sub = await this.prisma.review.aggregate({ where: { cookId: id }, _avg: { portion: true, packaging: true, hygiene: true } });
+    const r1 = (x: number | null) => (x ? Math.round(x * 10) / 10 : null);
+    const subRatings = { portion: r1(sub._avg.portion), packaging: r1(sub._avg.packaging), hygiene: r1(sub._avg.hygiene) };
     const batches = await this.prisma.batch.findMany({ where: { cookId: id, status: 'OPEN', cutoffAt: { gt: new Date() } }, include: { orders: { include: { items: true } }, cook: { select: cookPublic }, dish: true } });
-    return { ...c, reviews: reviews.map((r) => ({ ...r, user: { name: firstName(r.user.name) } })), openBatches: batches.map((b) => this.shapeBatch(b)) };
+    return { ...c, subRatings, reviews: reviews.map((r) => ({ ...r, user: { name: firstName(r.user.name) } })), openBatches: batches.map((b) => this.shapeBatch(b)) };
   }
 
   /** Home page stories: mother of the week, the open festival, and which districts have cooks. */

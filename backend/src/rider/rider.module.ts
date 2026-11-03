@@ -25,13 +25,27 @@ export class RiderService {
   async setStatus(user: AuthUser, online: boolean) {
     if (!user.rider) throw new BadRequestException('No rider profile.');
     if (online) await this.business.requireAccepted(user.id, 'RIDER');
-    return this.prisma.riderProfile.update({ where: { id: user.rider.id }, data: { online } });
+    // Going offline stops location sharing (unless a delivery is still in hand).
+    const busy = !online && (await this.prisma.order.count({ where: { riderId: user.id, status: { in: ['RIDER_ASSIGNED', 'PICKED_UP', 'ON_THE_WAY'] } } }));
+    return this.prisma.riderProfile.update({ where: { id: user.rider.id }, data: { online, ...(!online && !busy ? { lat: null, lng: null, locatedAt: null } : {}) } });
   }
 
   /** The rider app sends this every ~20 s while online. Used for nearest-first offers and the customer's live map. */
   async location(user: AuthUser, lat: number, lng: number) {
     if (!user.rider) throw new BadRequestException('No rider profile.');
+    // Location is kept only while online or carrying an order.
+    const p = await this.prisma.riderProfile.findUnique({ where: { id: user.rider.id }, select: { online: true } });
+    const busy = p?.online || (await this.prisma.order.count({ where: { riderId: user.id, status: { in: ['RIDER_ASSIGNED', 'PICKED_UP', 'ON_THE_WAY'] } } }));
+    if (!busy) return { ok: true, ignored: true };
     await this.prisma.riderProfile.update({ where: { id: user.rider.id }, data: { lat, lng, locatedAt: new Date() } });
+    return { ok: true };
+  }
+
+  /** The rider can't make it after accepting (bike trouble, emergency): give the pickup back before collecting it. */
+  async release(user: AuthUser, orderId: string) {
+    const o = await this.prisma.order.findFirst({ where: { id: orderId, riderId: user.id } });
+    if (!o) throw new NotFoundException();
+    await this.orders.releaseRider(orderId, true);
     return { ok: true };
   }
 
@@ -150,6 +164,7 @@ export class RiderController {
   @Post('groups/:key/pickup') @HttpCode(200) pickup(@CurrentUser() u: AuthUser, @Param('key') key: string) { return this.r.pickup(u, key); }
   @Post('groups/:key/start') @HttpCode(200) start(@CurrentUser() u: AuthUser, @Param('key') key: string) { return this.r.start(u, key); }
   @Throttle({ default: { limit: 5, ttl: 10 * 60_000 } }) @Post('orders/:id/deliver') @HttpCode(200) deliver(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() dto: DeliverDto) { return this.r.deliver(u, id, dto.code); }
+  @Post('orders/:id/release') @HttpCode(200) release(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.r.release(u, id); }
   @Get('earnings') earnings(@CurrentUser() u: AuthUser) { return this.r.earnings(u); }
   @Throttle({ default: { limit: 12, ttl: 60_000 } }) @Post('location') @HttpCode(200) location(@CurrentUser() u: AuthUser, @Body() dto: LocationDto) { return this.r.location(u, dto.lat, dto.lng); }
 }

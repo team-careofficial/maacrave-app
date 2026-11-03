@@ -47,6 +47,7 @@ class EditPlanDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(200) capacity?: number;
   @IsOptional() @IsBoolean() active?: boolean;
 }
+class SkipDto { @IsString() @Matches(/^\d{4}-\d{2}-\d{2}$/) date: string; @IsOptional() @IsBoolean() skip?: boolean; }
 class SubscribeDto {
   @IsString() addressId: string;
   @Matches(/^\d{4}-\d{2}-\d{2}$/) startDate: string;
@@ -116,6 +117,21 @@ export class PlansService implements OnApplicationBootstrap {
     return this.mine(user);
   }
 
+  /** Skip one delivery day (or undo it). Only days from tomorrow onward can change. */
+  async skip(user: AuthUser, id: string, date: string, skip: boolean) {
+    const s = await this.prisma.subscription.findFirst({ where: { id, customerId: user.id }, include: { plan: { include: { cook: true } } } });
+    if (!s) throw new NotFoundException();
+    if (!['ACTIVE', 'PAUSED'].includes(s.status)) throw new BadRequestException('This plan has ended.');
+    if (date <= dhakaDay().iso) throw new BadRequestException('You can skip days from tomorrow onward.');
+    const at = new Date(`${date}T00:00:00+06:00`);
+    if (at > s.endDate) throw new BadRequestException('That day is after your plan ends.');
+    const set = new Set(s.skipDates);
+    if (skip) set.add(date); else set.delete(date);
+    await this.prisma.subscription.update({ where: { id }, data: { skipDates: [...set].sort().slice(-60) } });
+    if (skip) await this.notify.notify(s.plan.cook.userId, 'COOK', 'A meal plan day was skipped', `${user.name || 'A customer'} skips ${s.plan.title} on ${date}.`);
+    return this.mine(user);
+  }
+
   /* ---------- cook ---------- */
   private cookId(user: AuthUser) { if (!user.cook) throw new BadRequestException('No kitchen profile.'); return user.cook.id; }
   kitchenPlans(user: AuthUser) {
@@ -147,7 +163,7 @@ export class PlansService implements OnApplicationBootstrap {
     await this.prisma.subscription.updateMany({ where: { status: { in: ['ACTIVE', 'PAUSED'] }, endDate: { lt: new Date() } }, data: { status: 'ENDED' } });
     const dayStart = new Date(`${today.iso}T00:00:00+06:00`);
     const subs = await this.prisma.subscription.findMany({
-      where: { status: 'ACTIVE', startDate: { lte: dayStart }, endDate: { gte: dayStart }, plan: { active: true, days: { has: today.weekday } } },
+      where: { status: 'ACTIVE', startDate: { lte: dayStart }, endDate: { gte: dayStart }, NOT: { skipDates: { has: today.iso } }, plan: { active: true, days: { has: today.weekday } } },
       include: { plan: { include: { cook: true } } },
     });
     if (!subs.length) return 0;
@@ -199,6 +215,7 @@ export class PlansController {
   @Public() @Get('plans/:id') get(@Param('id') id: string) { return this.plans.get(id); }
   @Post('plans/:id/subscribe') subscribe(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() dto: SubscribeDto) { return this.plans.subscribe(u, id, dto); }
   @Get('me/subscriptions') async mine(@CurrentUser() u: AuthUser) { await this.plans.generate(); return this.plans.mine(u); }
+  @Post('subscriptions/:id/skip') @HttpCode(200) skipDay(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() dto: SkipDto) { return this.plans.skip(u, id, dto.date, dto.skip !== false); }
   @Post('subscriptions/:id/:action') @HttpCode(200) change(@CurrentUser() u: AuthUser, @Param('id') id: string, @Param('action') action: string) {
     if (!['pause', 'resume', 'cancel'].includes(action)) throw new BadRequestException('Unknown action');
     return this.plans.change(u, id, action as 'pause' | 'resume' | 'cancel');

@@ -32,9 +32,15 @@ class PlaceDto extends CheckoutDto {
   @IsOptional() @IsIn(['app', 'web']) client?: 'app' | 'web';
 }
 class PayDto { @IsOptional() @IsIn(['app', 'web']) client?: 'app' | 'web'; }
-class ReviewDto { @Type(() => Number) @IsInt() @Min(1) @Max(5) stars: number; @IsOptional() @IsString() @MaxLength(400) text?: string; }
+class ReviewDto {
+  @Type(() => Number) @IsInt() @Min(1) @Max(5) stars: number; @IsOptional() @IsString() @MaxLength(400) text?: string;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(5) portion?: number;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(5) packaging?: number;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(5) hygiene?: number;
+}
+class MessageDto { @IsString() @MinLength(1) @MaxLength(600) body: string; }
 class ComplaintDto {
-  @IsIn(['Missing item', 'Food quality', 'Late delivery', 'Hygiene concern', 'Wrong order', 'Rider behaviour', 'Other']) type: string;
+  @IsIn(['Missing item', 'Food quality', 'Late delivery', 'Hygiene concern', 'Wrong allergen info', 'Photo didn’t match', 'Wrong order', 'Rider behaviour', 'Other']) type: string;
   @IsString() @MinLength(5) @MaxLength(800) text: string;
   @IsBoolean() refundRequested: boolean;
   @Type(() => Number) @IsInt() @Min(0) refundAmount: number;
@@ -50,7 +56,9 @@ export class OrdersController {
   @Get(':id') get(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.orders.get(u, id); }
   @Post(':id/pay') @HttpCode(200) async pay(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() dto: PayDto) { return { paymentUrl: await this.orders.startPayment(u, id, dto.client) }; }
   @Post(':id/cancel') @HttpCode(200) cancel(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.orders.cancelByCustomer(u, id); }
-  @Post(':id/review') review(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() dto: ReviewDto) { return this.orders.review(u, id, dto.stars, dto.text); }
+  @Post(':id/review') review(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() dto: ReviewDto) { return this.orders.review(u, id, dto.stars, dto.text, { portion: dto.portion, packaging: dto.packaging, hygiene: dto.hygiene }); }
+  @Get(':id/messages') messages(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.orders.messages(u, id); }
+  @Post(':id/messages') @HttpCode(200) send(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() dto: MessageDto) { return this.orders.sendMessage(u, id, dto.body); }
   @Post(':id/complaint') complaint(@CurrentUser() u: AuthUser, @Param('id') id: string, @Body() dto: ComplaintDto) { return this.orders.complaint(u, id, dto.type, dto.text, dto.refundRequested, dto.refundAmount); }
 }
 
