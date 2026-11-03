@@ -23,6 +23,7 @@ export default function Apply() {
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [experience, setExperience] = useState('');
   const [kitchenInfo, setKitchenInfo] = useState('');
+  const [licence, setLicence] = useState('');
   const [hours, setHours] = useState(HOURS[2]);
   const [capacity, setCapacity] = useState(20);
   const [vehicle, setVehicle] = useState('Motorbike');
@@ -44,7 +45,7 @@ export default function Apply() {
 
   const m = useMutation({
     mutationFn: () => (isCook
-      ? API.applyCook({ displayName: displayName.trim(), area, specialties: specialties.map((s) => CATEGORY_META[s]?.label || s), experience: experience.trim() || undefined, kitchenInfo: kitchenInfo.trim() || undefined, hours, dailyCapacity: capacity, nidLast4: nid, documents: docs() })
+      ? API.applyCook({ displayName: displayName.trim(), area, specialties: specialties.map((s) => CATEGORY_META[s]?.label || s), experience: experience.trim() || undefined, kitchenInfo: kitchenInfo.trim() || undefined, hours, dailyCapacity: capacity, nidLast4: nid, foodLicence: licence.trim() || undefined, documents: docs() })
       : API.applyRider({ vehicle, nidLast4: nid, documents: docs() })),
     onSuccess: async () => { await reload(); toast('Application sent — we’ll notify you after review'); router.replace('/'); },
   });
@@ -86,6 +87,7 @@ export default function Apply() {
             <Field label="Portions you can cook a day"><Row style={{ justifyContent: 'space-between' }}><T v="sub">{capacity} portions</T><Stepper value={capacity} onChange={setCapacity} min={5} max={200} large /></Row></Field>
             <Input label="Cooking experience" value={experience} onChangeText={setExperience} placeholder="e.g. 15 years cooking for family events" maxLength={200} />
             <Input label="About your kitchen" value={kitchenInfo} onChangeText={setKitchenInfo} placeholder="Gas stove, fridge, water filter…" maxLength={200} />
+            <Input label="Food registration / licence no. (if you have one)" value={licence} onChangeText={setLicence} placeholder="BFSA registration number" maxLength={40} hint="Not required to apply. We'll help you register with BFSA if needed." />
           </>
         ) : (
           <Field label="Vehicle"><Row gap={S.sm}>{['Motorbike', 'Bicycle', 'On foot'].map((v) => <Chip key={v} label={v} on={vehicle === v} onPress={() => setVehicle(v)} />)}</Row></Field>

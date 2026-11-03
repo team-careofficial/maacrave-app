@@ -50,6 +50,15 @@ function MySub({ s }: { s: Subscription }) {
     onError: (e: Error) => toast(e.message),
   });
   const live = s.status === 'ACTIVE' || s.status === 'PAUSED';
+  const skip = useMutation({
+    mutationFn: (v: { date: string; skip: boolean }) => API.skipPlanDay(s.id, v.date, v.skip),
+    onSuccess: (d) => { qc.setQueryData(['subscriptions'], d); toast(t('Updated', 'আপডেট হয়েছে')); },
+    onError: (e: Error) => toast(e.message),
+  });
+  // the next 7 delivery days, from tomorrow (Dhaka)
+  const upcoming = Array.from({ length: 14 }, (_, k) => new Date(Date.now() + 6 * 3600_000 + (k + 1) * 86400_000))
+    .filter((d) => s.plan.days.includes(d.getUTCDay()) && d.toISOString().slice(0, 10) <= s.endDate.slice(0, 10)).slice(0, 7);
+  const skipped = new Set(s.skipDates || []);
   return (
     <Card style={{ gap: S.md }}>
       <Row style={{ justifyContent: 'space-between' }}>
@@ -60,6 +69,24 @@ function MySub({ s }: { s: Subscription }) {
       <Row gap={6}><CalendarDays size={14} color={C.muted} /><T v="meta">{day(s.startDate)} – {day(s.endDate)} · {daysText(s.plan.days)}</T></Row>
       <Row gap={6}><MapPin size={14} color={C.muted} /><T v="meta" numberOfLines={1} style={{ flex: 1 }}>{s.addressText}</T></Row>
       <T v="meta">{t(`${tk(s.plan.pricePerMeal)} per meal, paid in cash when it arrives. Each day’s meal shows up in Orders.`, `প্রতি বেলা ${tk(s.plan.pricePerMeal)}, খাবার পৌঁছালে নগদে দিন। প্রতিদিনের খাবার অর্ডার পাতায় দেখা যাবে।`)}</T>
+      {live && upcoming.length ? (
+        <View style={{ gap: 6 }}>
+          <T v="meta">{t('Next deliveries — tap a day to skip it', 'পরের ডেলিভারি — কোনো দিন বাদ দিতে চাপুন')}</T>
+          <Row gap={6} wrap>
+            {upcoming.map((d) => {
+              const iso = d.toISOString().slice(0, 10);
+              const off = skipped.has(iso);
+              return (
+                <Tap key={iso} onPress={() => skip.mutate({ date: iso, skip: !off })} scale={0.94}
+                  style={{ minWidth: 54, alignItems: 'center', paddingVertical: 6, paddingHorizontal: 8, borderRadius: R.md, borderWidth: 1, borderColor: off ? C.line2 : C.brand, backgroundColor: off ? C.surface2 : C.brandSoft }}>
+                  <T v="meta" color={off ? C.muted : C.brandText}>{d.toLocaleDateString(t('en-GB', 'bn-BD'), { weekday: 'short', timeZone: 'UTC' })}</T>
+                  <T v="label" color={off ? C.muted : C.text} style={{ textDecorationLine: off ? 'line-through' : 'none' }}>{num(d.getUTCDate())}</T>
+                </Tap>
+              );
+            })}
+          </Row>
+        </View>
+      ) : null}
       {live ? (
         <Row gap={S.sm} wrap>
           {s.status === 'ACTIVE' ? <Button title="Pause" size="sm" v="outline" loading={act.isPending && act.variables === 'pause'} onPress={() => act.mutate('pause')} /> : <Button title="Resume" size="sm" v="secondary" loading={act.isPending && act.variables === 'resume'} onPress={() => act.mutate('resume')} />}

@@ -10,7 +10,7 @@ import { Button, Card, Chip, confirm, ErrorState, Field, Header, Input, Loading,
 import { ModeSwitch } from '@/ui/mode';
 import { PinPicker } from '@/ui/map';
 import { AREA_COORDS, DHAKA, type Point } from '@/geo';
-import { t, useLang } from '@/i18n';
+import { num, t, useLang } from '@/i18n';
 import { REGIONS } from '@/maa';
 import { MotherPhoto } from '@/ui/maa';
 import { MediaSlot } from '@/ui/photo';
@@ -33,6 +33,10 @@ export default function KitchenSettings() {
   const [story, setStory] = useState('');
   const [region, setRegion] = useState<string | null>(null);
   useEffect(() => { if (k) { setIntro(k.intro || ''); setHours(k.hours || ''); setCapacity(k.dailyCapacity); setWallet(k.payoutWallet || ''); setChecks(k.hygieneChecks); setStory(k.story || ''); setRegion(k.region || null); } }, [k]);
+  const leave = useMutation({
+    mutationFn: (until: string) => API.updateKitchen({ awayUntil: until }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['kitchen'] }); toast(t('Saved', 'সেভ হয়েছে')); }, onError: (e) => toast((e as Error).message),
+  });
   // Photos save the moment they're uploaded, so a picture is never lost.
   const savePhoto = useMutation({
     mutationFn: (b: { portraitId?: string; kitchenPhotoId?: string }) => API.updateKitchen(b),
@@ -80,6 +84,14 @@ export default function KitchenSettings() {
 
           <Section title="Kitchen location" sub="Customers see the route from here when they order. Drag the map to put the pin on your kitchen.">
             <PinPicker center={k.lat != null && k.lng != null ? { lat: k.lat, lng: k.lng } : AREA_COORDS[k.area] || DHAKA} onChange={setPin} />
+          </Section>
+
+          <Section title={t('Leave', 'ছুটি')} sub={t('Going away? Customers see when you’re back, and no orders come in until then.', 'কোথাও যাচ্ছেন? কাস্টমাররা দেখবেন কবে ফিরবেন, ততদিন অর্ডার আসবে না।')}>
+            <Row gap={S.sm} wrap>
+              {[1, 3, 7, 14].map((d) => <Chip key={d} label={t(`${d} day${d > 1 ? 's' : ''}`, `${num(d)} দিন`)} onPress={() => leave.mutate(new Date(Date.now() + d * 86400_000).toISOString())} />)}
+              {k.awayUntil && new Date(k.awayUntil) > new Date() ? <Chip on label={t('I’m back', 'ফিরে এসেছি')} onPress={() => leave.mutate('')} /> : null}
+            </Row>
+            {k.awayUntil && new Date(k.awayUntil) > new Date() ? <T v="meta" style={{ marginTop: 6 }}>{t(`On leave until ${new Date(k.awayUntil).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}`, `${new Date(k.awayUntil).toLocaleDateString('bn-BD', { day: 'numeric', month: 'long' })} পর্যন্ত ছুটিতে`)}</T> : null}
           </Section>
 
           <Section title="Hygiene checklist" sub={`${checks} of 5 — shown to customers as a trust badge`}>

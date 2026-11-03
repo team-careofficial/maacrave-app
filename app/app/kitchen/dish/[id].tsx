@@ -45,23 +45,24 @@ export default function DishEditor() {
   const [region, setRegion] = useState<string | null>(null);
   const [healthTags, setHealthTags] = useState<string[]>([]);
   const [festivalId, setFestivalId] = useState<string | null>(null);
+  const [allergenOk, setAllergenOk] = useState(false);
 
   useEffect(() => {
     if (!existing) return;
     setName(existing.name); setNameBn(existing.nameBn || ''); setCategory(existing.category); setPrice(String(existing.price)); setPortion(existing.portion);
     setPrep(existing.prepMinutes); setIngredients(existing.ingredients.join(', ')); setAllergens(existing.allergens); setDescription(existing.description || '');
     setSpice(existing.spice); setCapacity(existing.dailyCapacity); setAvailable(existing.available);
-    setPhotoId(existing.photoId || null); setRegion(existing.region || null); setHealthTags(existing.healthTags || []); setFestivalId(existing.festivalId || null);
+    setPhotoId(existing.photoId || null); setRegion(existing.region || null); setHealthTags(existing.healthTags || []); setFestivalId(existing.festivalId || null); setAllergenOk(true);
   }, [existing]);
 
   const done = () => { qc.invalidateQueries({ queryKey: ['kitchenDishes'] }); qc.invalidateQueries({ queryKey: ['dishes'] }); };
   const save = useMutation({
-    mutationFn: () => API.saveDish(isNew ? null : id, { name: name.trim(), nameBn: nameBn.trim() || undefined, category, price: Number(price), portion, prepMinutes: prep, ingredients: split(ingredients), allergens, description: description.trim(), spice, dailyCapacity: capacity, available, photoId: photoId || '', region: region || '', healthTags, festivalId: festivalId || '' }),
+    mutationFn: () => API.saveDish(isNew ? null : id, { name: name.trim(), nameBn: nameBn.trim() || undefined, category, price: Number(price), portion, prepMinutes: prep, ingredients: split(ingredients), allergens, description: description.trim(), spice, dailyCapacity: capacity, available, photoId: photoId || '', region: region || '', healthTags, festivalId: festivalId || '', allergensConfirmed: allergenOk }),
     onSuccess: () => { done(); toast(isNew ? 'Dish added to your menu' : 'Dish updated'); router.back(); },
   });
   const remove = useMutation({ mutationFn: () => API.removeDish(id), onSuccess: () => { done(); toast('Dish removed'); router.back(); } });
   const p = Number(price) || 0;
-  const ok = name.trim().length >= 2 && p >= 30 && portion.length > 0;
+  const ok = name.trim().length >= 2 && p >= 30 && portion.length > 0 && split(ingredients).length > 0 && allergenOk;
 
   if (!isNew && list.isLoading) return <Screen header={<Header back title="Edit dish" />}><Loading /></Screen>;
   return (
@@ -87,8 +88,11 @@ export default function DishEditor() {
         </Row>
         <Field label="Portion size"><Row gap={S.sm} wrap>{PORTIONS.map((x) => <Chip key={x} label={x} on={portion === x} onPress={() => setPortion(x)} />)}</Row></Field>
         <Input label="Description" value={description} onChangeText={setDescription} placeholder="How you cook it, what comes with it" maxLength={400} multiline style={{ minHeight: 90, alignItems: 'flex-start', paddingVertical: 12 }} />
-        <Input label="Main ingredients" value={ingredients} onChangeText={setIngredients} placeholder="Ilish, mustard, green chilli, mustard oil" hint="Separate with commas" />
-        <Field label="Contains allergens"><Row gap={S.sm} wrap>{ALLERGENS.map((a) => <Chip key={a} label={a} on={allergens.includes(a)} onPress={() => setAllergens(allergens.includes(a) ? allergens.filter((x) => x !== a) : [...allergens, a])} />)}</Row></Field>
+        <Input label="Main ingredients" value={ingredients} onChangeText={setIngredients} placeholder="Ilish, mustard, green chilli, mustard oil" hint={t('Required. Separate with commas', 'অবশ্যই দিন। কমা দিয়ে আলাদা করুন')} />
+        <Field label="Contains allergens"><Row gap={S.sm} wrap>{ALLERGENS.map((a) => <Chip key={a} label={a} on={allergens.includes(a)} onPress={() => { setAllergens(allergens.includes(a) ? allergens.filter((x) => x !== a) : [...allergens, a]); setAllergenOk(false); }} />)}</Row></Field>
+        <Toggle value={allergenOk} onChange={setAllergenOk}
+          label={allergens.length ? t(`I confirm it contains: ${allergens.join(', ')}`, `আমি নিশ্চিত, এতে আছে: ${allergens.join(', ')}`) : t('I confirm it has none of these allergens', 'আমি নিশ্চিত, এতে এসব অ্যালার্জেন নেই')}
+          sub={t('Customers with allergies rely on this. Wrong information can pause your kitchen.', 'অ্যালার্জি আছে এমন কাস্টমাররা এর উপর নির্ভর করেন। ভুল তথ্য দিলে রান্নাঘর বন্ধ হতে পারে।')} />
         <Field label="Spice level">
           <Row gap={S.sm}>{[0, 1, 2, 3].map((n) => <Chip key={n} label={n === 0 ? 'None' : ''} icon={n ? <Row gap={0}>{Array.from({ length: n }).map((_, i) => <Flame key={i} size={14} color={spice === n ? C.brandText : C.err} />)}</Row> : undefined} on={spice === n} onPress={() => setSpice(n)} />)}</Row>
         </Field>

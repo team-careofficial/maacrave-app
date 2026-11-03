@@ -4,6 +4,7 @@ import { AlertTriangle, BadgeCheck, Clock, Flame, Heart, ShoppingBag, Users } fr
 import { useState } from 'react';
 import { Image, View } from 'react-native';
 import { useAuth } from '@/auth';
+import { t } from '@/i18n';
 import { allergyHits, mediaUrl, regionOf } from '@/maa';
 import { AllergyNote, HealthPills, MotherPhoto, RegionPill } from '@/ui/maa';
 import { API } from '@/api';
@@ -112,7 +113,7 @@ export default function DishScreen() {
               <Row gap={S.sm} wrap>{d.ingredients.map((i) => <View key={i} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: R.pill, backgroundColor: C.surface2 }}><T v="meta" color={C.text2}>{i}</T></View>)}</Row>
             </Section>
           ) : null}
-          {d.allergens.length ? <Note tone="warn"><Row gap={8}><AlertTriangle size={16} color={C.warn} /><T v="sub" color={C.warn} style={{ flex: 1 }}>Contains {d.allergens.join(', ')}. Add allergy notes at checkout.</T></Row></Note> : null}
+          <Note tone="warn"><Row gap={8} style={{ alignItems: 'flex-start' }}><AlertTriangle size={16} color={C.warn} /><T v="sub" color={C.warn} style={{ flex: 1 }}>{(d.allergens.length ? t(`Contains ${d.allergens.join(', ')}. `, `এতে আছে: ${d.allergens.join(', ')}। `) : t('The mother says it has no common allergens. ', 'মা জানিয়েছেন এতে সাধারণ অ্যালার্জেন নেই। ')) + t('Home kitchens share pots and spices, so traces are possible. With a serious allergy, message the mother before ordering.', 'ঘরের রান্নাঘরে হাঁড়ি-মশলা একসাথে ব্যবহার হয়, তাই সামান্য মিশে যাওয়ার ঝুঁকি থাকে। গুরুতর অ্যালার্জি থাকলে অর্ডারের আগে মাকে জানান।')}</T></Row></Note>
           {!d.cook?.accepting ? <Note>This kitchen isn’t taking orders right now. Save the dish and check back later.</Note> : null}
 
           <Divider />

@@ -38,6 +38,9 @@ export default function KitchenToday() {
               <Row gap={S.md}><FileText size={20} color={C.brand} /><View style={{ flex: 1 }}><T v="label">{terms.data.lastAcceptedVersion ? t('Rates have changed — please review', 'রেট বদলেছে — দেখে নিন') : t('Review your rates and partner terms', 'আপনার রেট ও পার্টনার শর্তাবলি দেখুন')}</T><T v="meta">{t(`You keep ${100 - terms.data.rates.commissionPct}% of every sale · accept to open your kitchen`, `প্রতি বিক্রির ${num(100 - terms.data.rates.commissionPct)}% আপনার · রান্নাঘর খুলতে সম্মতি দিন`)}</T></View></Row>
             </Card>
           ) : null}
+          {k.kitchen.pausedUntil && new Date(k.kitchen.pausedUntil) > new Date() ? (
+            <Note tone="err">{t(`MaaCrave has paused your kitchen: ${k.kitchen.pauseReason || 'quality check'}. Our team will contact you; you can reopen after the check.`, `MaaCrave আপনার রান্নাঘর সাময়িক বন্ধ রেখেছে: ${k.kitchen.pauseReason || 'মান যাচাই'}। আমাদের টিম যোগাযোগ করবে; যাচাইয়ের পর আবার চালু করা যাবে।`)}</Note>
+          ) : null}
           <Card style={{ marginTop: S.sm, backgroundColor: k.kitchen.accepting ? C.okSoft : C.card }}>
             <Toggle value={k.kitchen.accepting} onChange={(v) => accepting.mutate(v)} label={k.kitchen.accepting ? 'Open for orders' : 'Kitchen paused'}
               sub={k.kitchen.accepting ? 'Customers can order and send you requests.' : 'Your dishes are hidden until you open again.'} />

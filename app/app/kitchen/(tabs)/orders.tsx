@@ -31,7 +31,9 @@ function KitchenOrder({ o }: { o: Order }) {
       </Row>
       {o.scheduledFor ? <View style={{ backgroundColor: C.brandSoft, borderRadius: 10, paddingHorizontal: S.md, paddingVertical: 8 }}><T v="label" color={C.brandText}>{t(`Pre-order · deliver ${whenAt(o.scheduledFor)}`, `প্রি-অর্ডার · ডেলিভারি ${whenAt(o.scheduledFor)}`)}</T></View> : null}
       <View style={{ gap: 4 }}>{o.items.map((i) => <T key={i.id} v="body">{i.quantity} × {i.name}</T>)}</View>
+      {o.allergyNote ? <View style={{ backgroundColor: C.errSoft, borderRadius: 10, padding: S.md, borderLeftWidth: 3, borderLeftColor: C.err }}><T v="label" color={C.err}>{t(`⚠ Customer allergy: ${o.allergyNote}. Keep these out, use clean pots and spoons.`, `⚠ কাস্টমারের অ্যালার্জি: ${o.allergyNote}। এগুলো দেবেন না, পরিষ্কার হাঁড়ি-চামচ ব্যবহার করুন।`)}</T></View> : null}
       {o.notes ? <View style={{ backgroundColor: C.warnSoft, borderRadius: 10, padding: S.md }}><T v="sub" color={C.warn}>Note: {o.notes}</T></View> : null}
+      {!['DELIVERED', 'CANCELLED'].includes(o.status) ? <Button title={t('Message customer', 'কাস্টমারকে বার্তা')} v="ghost" size="sm" style={{ alignSelf: 'flex-start' }} onPress={() => router.push({ pathname: '/chat/[orderId]', params: { orderId: o.id, code: o.code } })} /> : null}
       <Divider />
       {/* money for this order: price, MaaCrave commission, what the cook gets */}
       <View style={{ gap: 4 }}>
