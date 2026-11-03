@@ -3,7 +3,7 @@ name: Android APK
 # so anyone can download it from https://github.com/<owner>/<repo>/releases/latest
 on:
   push:
-    branches: [main, android-apk]
+    branches: [main]
     paths: ['app/**', '.github/workflows/android.yml']
   workflow_dispatch:
 permissions:
