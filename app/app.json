@@ -17,11 +17,12 @@
     "android": {
       "package": "app.maacrave.mobile",
       "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#A9151B" },
-      "permissions": ["POST_NOTIFICATIONS"]
+      "permissions": ["POST_NOTIFICATIONS", "ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION", "CAMERA"]
     },
     "web": { "bundler": "metro", "output": "single", "favicon": "./assets/favicon.png", "name": "MaaCrave", "themeColor": "#FFFFFF" },
     "plugins": [
       "expo-router",
+      ["expo-location", { "locationWhenInUsePermission": "MaaCrave uses your location to pin your delivery address and, for riders, to show customers where their food is." }],
       "expo-secure-store",
       "expo-font",
       ["expo-notifications", { "color": "#7A0D12" }],
