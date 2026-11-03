@@ -1,30 +1,30 @@
 import { Platform } from 'react-native';
 
 export const C = {
-  // Surfaces: clean white canvas, white cards with hairline borders, warm grey fills
-  bg: '#FFFFFF', surface: '#FFFFFF', surface2: '#F7F3EF', sunken: '#EFE9E2', card: '#FFFFFF',
-  text: '#21160F', text2: '#584538', muted: '#8C7A6C', line: '#EEE7DF', line2: '#E2D8CC',
-  // Mango: the accent — ratings, highlights, small badges. Text on it is dark.
-  turmeric: '#F5B942', turmericDeep: '#D99A1E', turmericSoft: '#FDEFD0', onTurmeric: '#4A2E0A',
-  // Deep orange (paprika): the MaaCrave primary — buttons, links, active states.
-  brand: '#C2441F', brand2: '#D0532C', brandHi: '#EE7A57', brandDark: '#A3361A', brandDeep: '#7F2A18', brandSoft: '#FBE6DC', brandText: '#A83A1C',
-  ink: '#24170F', onInk: '#FFFFFF',
+  // Surfaces: white canvas, warm matte fills, hairline borders
+  bg: '#FFFFFF', surface: '#FFFFFF', surface2: '#F6F3F1', sunken: '#EEEAE7', card: '#FFFFFF',
+  // Ink (warm, never pure black)
+  text: '#1D1617', text2: '#5C5253', muted: '#8B8182', line: '#EEE9E7', line2: '#E2DCDA',
+  // Gold accent: ratings, rings, small highlights. Dark text on it.
+  turmeric: '#E9A23B', turmericDeep: '#C9861F', turmericSoft: '#FCF1DE', onTurmeric: '#4A2E0A',
+  // Burgundy (crimson) brand
+  brand: '#A9151B', brand2: '#C21D23', brandHi: '#E2373C', brandDark: '#7C0E13', brandDeep: '#4A080B', brandSoft: '#FBEEEE', brandText: '#A0141A',
+  ink: '#231A1B', onInk: '#FFFFFF',
   ok: '#1E7F4F', okSoft: '#E8F5EE', warn: '#9A6200', warnSoft: '#FDF4E1', err: '#C62828', errSoft: '#FDECEC', info: '#2552C9', infoSoft: '#EDF2FE',
-  star: '#F5B942', gold: '#F5B942',
+  star: '#E9A23B', gold: '#E9A23B',
 };
-/** Paprika — primary surfaces: buttons, the logo tile, hero banners. Text on it is white. */
-export const GLOSS = ['#D4542C', '#C2441F', '#A9381A'] as const;
-/** Deep paprika, for avatars and small solid accents that carry white text. */
-export const MAROON = ['#CF5129', '#B23C1C', '#922F15'] as const;
-/** Text and icons placed on paprika. */
+/** The one deep burgundy used everywhere (intro, banners, buttons, logo) — same as the launch screen. White text on it. */
+export const GLOSS = ['#941219', '#7A0D12', '#5A090D'] as const;
+/** Burgundy for avatars and small solid accents that carry white text. */
+export const MAROON = ['#B8191F', '#A9151B', '#7C0E13'] as const;
 export const ON_GLOSS = '#FFFFFF';
 export const ON_GLOSS_SOFT = 'rgba(255,255,255,0.84)';
-/** Mango — the accent gradient. Dark text on it. */
-export const MANGO = ['#F8C65C', '#F5B942', '#E9A52B'] as const;
-/** Matte charcoal (dark surfaces). */
-export const MATTE = ['#33221A', '#22160F'] as const;
+/** Gold accent gradient (portrait rings). */
+export const MANGO = ['#F2B95A', '#E9A23B', '#D48C25'] as const;
+/** Matte deep maroon (dark surfaces). */
+export const MATTE = ['#3B1013', '#2A0B0D'] as const;
 /** Top highlight laid over glossy surfaces. */
-export const SHEEN = ['rgba(255,255,255,0.16)', 'rgba(255,255,255,0)'] as const;
+export const SHEEN = ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0)'] as const;
 
 /** 8-point spacing scale */
 export const S = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, x3: 32, x4: 40, x5: 48 };
@@ -53,9 +53,9 @@ export const TYPE = {
 export type TypeKey = keyof typeof TYPE;
 
 export const shadow = Platform.select({
-  ios: { shadowColor: '#5A2A14', shadowOpacity: 0.07, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } },
+  ios: { shadowColor: '#2A0B0D', shadowOpacity: 0.07, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } },
   android: { elevation: 4 },
-  default: { boxShadow: '0 10px 30px -14px rgba(90,42,20,.18)' } as object,
+  default: { boxShadow: '0 10px 30px -14px rgba(42,11,13,.2)' } as object,
 });
 export const redShadow = Platform.select({
   ios: { shadowColor: '#2A0B0D', shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 6 } },

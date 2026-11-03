@@ -23,11 +23,11 @@ export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, backgroundColor: '#FFFFFF', gap: 12 }}>
       <Text style={{ fontSize: 22, fontWeight: '800', color: '#1D1617', textAlign: 'center' }}>Something went wrong</Text>
       <Text style={{ fontSize: 15, color: '#5C5253', textAlign: 'center' }}>কিছু একটা সমস্যা হয়েছে। আবার চেষ্টা করুন।</Text>
-      <Pressable onPress={() => retry()} style={{ marginTop: 8, backgroundColor: '#C2441F', borderRadius: 999, paddingHorizontal: 28, paddingVertical: 14 }}>
+      <Pressable onPress={() => retry()} style={{ marginTop: 8, backgroundColor: '#A9151B', borderRadius: 999, paddingHorizontal: 28, paddingVertical: 14 }}>
         <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>Try again · আবার চেষ্টা</Text>
       </Pressable>
       <Pressable onPress={() => { router.replace('/'); retry(); }} style={{ padding: 10 }}>
-        <Text style={{ color: '#C2441F', fontWeight: '600' }}>Go home · হোমে যান</Text>
+        <Text style={{ color: '#A9151B', fontWeight: '600' }}>Go home · হোমে যান</Text>
       </Pressable>
     </View>
   );

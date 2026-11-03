@@ -35,7 +35,7 @@ export default function CookScreen() {
         <>
           {/* hero: clean white card, her portrait in a mango ring */}
           <View style={{ marginTop: S.sm, borderRadius: R.xl, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, overflow: 'hidden', ...(shadow as object) }}>
-            <LinearGradient colors={['#F5B942', '#C2441F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ height: 3 }} />
+            <LinearGradient colors={['#E9A23B', '#A9151B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ height: 3 }} />
             <View style={{ padding: S.lg, gap: S.md, alignItems: 'center' }}>
               <MotherPhoto c={c} size={92} />
               <View style={{ alignItems: 'center', gap: 4 }}>

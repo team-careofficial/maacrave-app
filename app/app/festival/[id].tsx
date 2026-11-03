@@ -28,7 +28,7 @@ export default function FestivalScreen() {
       {q.isLoading ? <Loading /> : q.error || !f ? <ErrorState error={q.error} onRetry={q.refetch} /> : (
         <View style={{ gap: S.lg, marginTop: S.sm, marginBottom: S.lg }}>
           <View style={{ borderRadius: R.xl, overflow: 'hidden', backgroundColor: C.surface, borderWidth: 1, borderColor: C.line }}>
-            <LinearGradient colors={['#F5B942', '#C2441F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ height: 3 }} />
+            <LinearGradient colors={['#E9A23B', '#A9151B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ height: 3 }} />
             <View pointerEvents="none" style={{ position: 'absolute', right: -70, top: -70, width: 210, height: 210, borderRadius: 105, backgroundColor: C.turmericSoft }} />
             <View style={{ padding: S.xl, gap: S.md, alignItems: 'center' }}>
               <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: C.brandSoft, alignItems: 'center', justifyContent: 'center' }}><PartyPopper size={24} color={C.brand} /></View>
