@@ -9,14 +9,14 @@ import { RouteMap } from './map';
 type Place = { name: string; area?: string | null; lat?: number | null; lng?: number | null };
 
 /** Pathao-style delivery card: map with the kitchen and the drop point, plus distance and time. */
-export function DeliveryRoute({ kitchen, drop, title = 'Delivery route' }: { kitchen: Place; drop: Place; title?: string }) {
+export function DeliveryRoute({ kitchen, drop, title = 'Delivery route', rider }: { kitchen: Place; drop: Place; title?: string; rider?: { lat: number; lng: number } | null }) {
   useLang();
   const k = pointOf(kitchen), d = pointOf(drop);
   const { km, mins } = trip(k.point, d.point);
   const approx = !k.exact || !d.exact;
   return (
     <Card white style={{ padding: S.sm, gap: S.sm }}>
-      <RouteMap from={k.point} to={d.point} fromLabel={kitchen.name} toLabel={drop.name} />
+      <RouteMap from={k.point} to={d.point} fromLabel={kitchen.name} toLabel={drop.name} rider={rider} height={rider ? 230 : 190} />
       <Row style={{ paddingHorizontal: S.sm, paddingBottom: 4, justifyContent: 'space-between' }}>
         <View style={{ flex: 1, gap: 6 }}>
           <T v="eyebrow">{title}</T>

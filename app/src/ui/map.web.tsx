@@ -9,9 +9,13 @@ const frame = (html: string, ref?: React.Ref<HTMLIFrameElement>, interactive = t
   createElement('iframe', { ref, srcDoc: html, title: 'Map', style: { border: 0, width: '100%', height: '100%', pointerEvents: interactive ? 'auto' : 'none' } });
 
 /** Kitchen → delivery route map (website). */
-export function RouteMap({ from, to, fromLabel, toLabel, height = 190 }: { from: Point; to: Point; fromLabel: string; toLabel: string; height?: number }) {
-  const html = useMemo(() => mapHtml({ id: `r${++seq}`, mode: 'route', from, to, fromLabel, toLabel }), [from.lat, from.lng, to.lat, to.lng, fromLabel, toLabel]); // eslint-disable-line react-hooks/exhaustive-deps
-  return <View style={{ height, borderRadius: R.lg, overflow: 'hidden', backgroundColor: C.sunken }}>{frame(html, undefined, false)}</View>;
+export function RouteMap({ from, to, fromLabel, toLabel, rider, height = 190 }: { from: Point; to: Point; fromLabel: string; toLabel: string; rider?: Point | null; height?: number }) {
+  const id = useMemo(() => `r${++seq}`, []);
+  const ref = useRef<HTMLIFrameElement>(null);
+  const html = useMemo(() => mapHtml({ id, mode: 'route', from, to, fromLabel, toLabel, rider }), [id, from.lat, from.lng, to.lat, to.lng, fromLabel, toLabel]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Move the rider marker without reloading the map.
+  useEffect(() => { if (rider) ref.current?.contentWindow?.postMessage(JSON.stringify({ id, rider }), '*'); }, [rider?.lat, rider?.lng, id]); // eslint-disable-line react-hooks/exhaustive-deps
+  return <View style={{ height, borderRadius: R.lg, overflow: 'hidden', backgroundColor: C.sunken }}>{frame(html, ref, false)}</View>;
 }
 
 /** Drag-the-map pin picker (website). */

@@ -1,6 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { OrderStatus, PaymentMethod, Prisma } from '@prisma/client';
 import { AuthUser } from '../common/auth';
+import { roadKm, pointOf } from '../common/geo';
 import { computeFees, couponDiscount } from '../common/pricing';
 import { PrismaService } from '../common/prisma.service';
 import { digits, orderCode } from '../common/util';
@@ -17,6 +18,7 @@ export interface CheckoutInput {
   proposalId?: string;
   allowGroup?: boolean;
   couponCode?: string;
+  addressId?: string;
 }
 export interface PlaceOrderInput extends CheckoutInput {
   addressId: string;
@@ -52,6 +54,30 @@ export const orderInclude = {
 export class OrdersService {
   private log = new Logger('Orders');
   constructor(private prisma: PrismaService, private notify: NotificationsService, private bkash: BkashGateway, private ssl: SslCommerzGateway) {}
+
+  /** Road km from the kitchen to the address (pins if set, otherwise area centres). */
+  private async distance(tx: Tx, cookId: string, address: { lat: number | null; lng: number | null; area: string } | null) {
+    if (!address) return 2;
+    const cook = await tx.cookProfile.findUniqueOrThrow({ where: { id: cookId }, select: { lat: true, lng: true, area: true } });
+    return roadKm(pointOf(cook), pointOf(address));
+  }
+
+  /**
+   * Tells the online riders nearest to the kitchen first. For the first 90 seconds only they see the task;
+   * after that every online rider does (see RiderService.tasks).
+   */
+  async offerToRiders(cookId: string, drops: number) {
+    const cook = await this.prisma.cookProfile.findUnique({ where: { id: cookId }, select: { lat: true, lng: true, area: true, displayName: true } });
+    if (!cook) return;
+    const k = pointOf(cook);
+    const riders = await this.prisma.riderProfile.findMany({ where: { online: true, user: { suspended: false, roles: { some: { role: 'RIDER', status: 'APPROVED' } } } }, select: { userId: true, lat: true, lng: true, locatedAt: true } });
+    const fresh = (r: { locatedAt: Date | null }) => r.locatedAt && Date.now() - r.locatedAt.getTime() < 15 * 60_000;
+    const ranked = riders.map((r) => ({ ...r, km: r.lat != null && r.lng != null && fresh(r) ? roadKm({ lat: r.lat, lng: r.lng }, k) : 99 })).sort((a, b) => a.km - b.km);
+    const first = ranked.filter((r) => r.km < 99).slice(0, 3);
+    const notifyList = first.length ? first : ranked.slice(0, 10);
+    await Promise.all(notifyList.map((r) => this.notify.notify(r.userId, 'RIDER', 'New pickup near you',
+      `${drops} drop${drops > 1 ? 's' : ''} at ${cook.displayName}, ${cook.area}${r.km < 99 ? ` · ${r.km.toFixed(1)} km away` : ''}. Open Pickups to accept.`)));
+  }
 
   /** Works out what is being bought, at what price, from whom. Prices always come from the database. */
   private async resolve(tx: Tx, user: AuthUser, input: CheckoutInput) {
@@ -96,7 +122,9 @@ export class OrdersService {
       const subtotal = r.items.reduce((a, i) => a + i.unitPrice * i.quantity, 0);
       const coupon = input.couponCode ? await tx.coupon.findUnique({ where: { code: input.couponCode.toUpperCase().trim() } }) : null;
       const check = input.couponCode ? (coupon ? couponDiscount(coupon, subtotal, r.isBatch) : { amount: 0, error: 'This code isn’t valid.' }) : { amount: 0 };
-      return { items: r.items, fees: computeFees(subtotal, r.isBatch, s, coupon), couponError: check.error ?? null };
+      const address = input.addressId ? await tx.address.findFirst({ where: { id: input.addressId, userId: user.id } }) : null;
+      const km = await this.distance(tx, r.cookId, address);
+      return { items: r.items, fees: computeFees(subtotal, r.isBatch, s, coupon, km), couponError: check.error ?? null };
     });
   }
 
@@ -116,7 +144,7 @@ export class OrdersService {
       const s = await tx.platformSetting.findUniqueOrThrow({ where: { id: 1 } });
       const subtotal = r.items.reduce((a, i) => a + i.unitPrice * i.quantity, 0);
       const coupon = input.couponCode ? await tx.coupon.findUnique({ where: { code: input.couponCode.toUpperCase().trim() } }) : null;
-      const fees = computeFees(subtotal, r.isBatch, s, coupon);
+      const fees = computeFees(subtotal, r.isBatch, s, coupon, await this.distance(tx, r.cookId, address));
       if (fees.couponCode) await tx.coupon.update({ where: { code: fees.couponCode }, data: { usedCount: { increment: 1 } } });
 
       let batchId = r.batchId;
@@ -137,7 +165,7 @@ export class OrdersService {
         data: {
           code: orderCode(), customerId: user.id, cookId: r.cookId, batchId, requestId: r.request?.id ?? null,
           status: firstStatus, subtotal: fees.subtotal, serviceFee: fees.serviceFee, deliveryFee: fees.deliveryFee, discount: fees.discount, total: fees.total,
-          commission: fees.commission, cookEarning: fees.cookEarning, riderPayout: fees.riderPayout, couponCode: fees.couponCode,
+          commission: fees.commission, cookEarning: fees.cookEarning, riderPayout: fees.riderPayout, couponCode: fees.couponCode, distanceKm: fees.distanceKm,
           addressText, area: address.area, lat: address.lat, lng: address.lng, deliveryOtp: digits(4), notes: input.notes?.slice(0, 300), scheduledFor: input.scheduledFor ? new Date(input.scheduledFor) : null,
           idempotencyKey: input.idempotencyKey,
           items: { create: r.items },
@@ -248,7 +276,14 @@ export class OrdersService {
     const isCook = user.cook?.id === o.cookId, isRider = o.riderId === user.id, isCustomer = o.customerId === user.id;
     if (!isCook && !isRider && !isCustomer) throw new ForbiddenException();
     // Only the customer sees the delivery code; riders and cooks must ask for it.
-    return isCustomer ? o : { ...o, deliveryOtp: undefined };
+    if (!isCustomer) return { ...o, deliveryOtp: undefined };
+    // Live tracking: while a rider has the order, the customer sees where they are and can call them.
+    let tracking: { lat: number | null; lng: number | null; locatedAt: Date | null; phone: string | null; vehicle: string } | null = null;
+    if (o.riderId && ['RIDER_ASSIGNED', 'PICKED_UP', 'ON_THE_WAY'].includes(o.status)) {
+      const r = await this.prisma.riderProfile.findUnique({ where: { userId: o.riderId }, select: { lat: true, lng: true, locatedAt: true, vehicle: true, user: { select: { phone: true } } } });
+      if (r) tracking = { lat: r.lat, lng: r.lng, locatedAt: r.locatedAt, vehicle: r.vehicle, phone: r.user.phone };
+    }
+    return { ...o, tracking };
   }
 
   async review(user: AuthUser, id: string, stars: number, text?: string) {

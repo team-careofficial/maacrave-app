@@ -5,7 +5,11 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { Throttle } from '@nestjs/throttler';
 import { ComplaintStatus, OrderStatus, RoleStatus } from '@prisma/client';
-import { IsBoolean, IsEmail, IsIn, IsOptional, IsString, Length, Matches, MaxLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsBoolean, IsEmail, IsIn, IsInt, IsNumber, IsOptional, IsString, Length, Matches, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { BusinessService } from '../business/business.module';
+import { rateCard } from '../common/pricing';
+import { RiderModule, RiderService } from '../rider/rider.module';
 import { Public } from '../common/auth';
 import { PrismaService } from '../common/prisma.service';
 import { digits, sha256 } from '../common/util';
@@ -58,8 +62,30 @@ class DecisionDto { @IsOptional() @IsString() @MaxLength(300) note?: string; }
 class ComplaintDto {
   @IsIn(['INVESTIGATING', 'RESOLVED']) status: ComplaintStatus;
   @IsOptional() @IsBoolean() refund?: boolean;
+  /** Partial refund in taka; leave out for the full amount. */
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100000) refundAmount?: number;
   @IsOptional() @IsString() @MaxLength(300) note?: string;
 }
+class RatesDto {
+  @Type(() => Number) @IsNumber() @Min(0) @Max(40) commissionPct: number;
+  @Type(() => Number) @IsInt() @Min(0) @Max(100) serviceFee: number;
+  @Type(() => Number) @IsInt() @Min(0) @Max(300) deliveryFee: number;
+  @Type(() => Number) @IsInt() @Min(0) @Max(300) batchDeliveryFee: number;
+  @Type(() => Number) @IsNumber() @Min(0) @Max(20) freeKm: number;
+  @Type(() => Number) @IsInt() @Min(0) @Max(100) deliveryPerKm: number;
+  @Type(() => Number) @IsInt() @Min(0) @Max(300) riderBase: number;
+  @Type(() => Number) @IsInt() @Min(0) @Max(100) riderPerKm: number;
+  @Type(() => Number) @IsInt() @Min(0) @Max(300) riderBatchDrop: number;
+  @Type(() => Number) @IsInt() @Min(500) @Max(50000) riderCashLimit: number;
+  /** One line telling partners what changed; sent with the notification. */
+  @IsString() @MinLength(5) @MaxLength(200) summary: string;
+}
+class LedgerDto {
+  @IsIn(['CASH_DEPOSIT', 'PAYOUT']) kind: 'CASH_DEPOSIT' | 'PAYOUT';
+  @Type(() => Number) @IsInt() @Min(1) @Max(500000) amount: number;
+  @IsOptional() @IsString() @MaxLength(60) reference?: string;
+}
+class TicketReplyDto { @IsString() @MinLength(1) @MaxLength(1500) body: string; @IsOptional() @IsBoolean() close?: boolean; }
 export const SPOT_ICONS = ['soup', 'fish', 'drumstick', 'beef', 'leaf', 'cake', 'cookie', 'sun', 'moon', 'flame', 'sparkles', 'users', 'gift', 'heart', 'utensils', 'request', 'percent', 'coffee'];
 export const SPOT_THEMES = ['crimson', 'saffron', 'forest', 'night', 'rose', 'ocean'];
 export const SPOT_ANIMS = ['float', 'steam', 'pulse', 'shine', 'wiggle', 'spin'];
@@ -83,7 +109,7 @@ class PayoutDto { @IsIn(['PROCESSING', 'PAID', 'FAILED']) status: 'PROCESSING' |
 @Injectable()
 export class AdminService {
   private log = new Logger('Admin');
-  constructor(private prisma: PrismaService, private jwt: JwtService, private email: EmailService, private notify: NotificationsService, private orders: OrdersService) {}
+  constructor(private prisma: PrismaService, private jwt: JwtService, private email: EmailService, private notify: NotificationsService, private orders: OrdersService, private business: BusinessService, private riders: RiderService) {}
 
   private audit(adminEmail: string, action: string, targetId?: string, detail?: string) {
     return this.prisma.adminLog.create({ data: { adminEmail, action, targetId, detail: detail?.slice(0, 500) } });
@@ -133,7 +159,8 @@ export class AdminService {
       this.prisma.order.aggregate({ where: { status: 'DELIVERED', updatedAt: { gte: today } }, _sum: { total: true, commission: true } }),
       this.prisma.payout.count({ where: { status: { in: ['REQUESTED', 'PROCESSING'] } } }),
     ]);
-    return { users, cooks, riders, pendingApps, openComplaints, ordersToday, activeOrders, salesToday: salesToday._sum.total || 0, commissionToday: salesToday._sum.commission || 0, pendingPayouts };
+    const openTickets = await this.prisma.supportTicket.count({ where: { status: 'OPEN' } });
+    return { users, cooks, riders, pendingApps, openComplaints, ordersToday, activeOrders, salesToday: salesToday._sum.total || 0, commissionToday: salesToday._sum.commission || 0, pendingPayouts, openTickets };
   }
 
   /* ---------- cook & rider applications ---------- */
@@ -185,10 +212,17 @@ export class AdminService {
   async handleComplaint(admin: string, id: string, dto: ComplaintDto) {
     const c = await this.prisma.complaint.findUnique({ where: { id }, include: { order: true } });
     if (!c) throw new NotFoundException();
-    await this.prisma.complaint.update({ where: { id }, data: { status: dto.status } });
-    if (dto.refund) await this.orders.refund(c.orderId, `Complaint: ${c.type}`);
+    const pay = await this.prisma.payment.findUnique({ where: { orderId: c.orderId } });
+    const amount = dto.refund ? Math.min(dto.refundAmount || c.order.total, c.order.total) : 0;
+    let how = '';
+    if (dto.refund) {
+      if (pay?.status === 'PAID' && pay.method !== 'COD' && amount >= c.order.total) { await this.orders.refund(c.orderId, `Complaint: ${c.type}`); how = `৳${amount} is being refunded to your original payment method.`; }
+      else how = `৳${amount} will be sent to your bKash number within 3 working days.`;
+    }
+    const resolution = [dto.note, how].filter(Boolean).join(' ') || null;
+    await this.prisma.complaint.update({ where: { id }, data: { status: dto.status, resolution, refundedAmount: amount || c.refundedAmount } });
     await this.notify.notify(c.userId, 'CUSTOMER', dto.status === 'RESOLVED' ? `Report on ${c.order.code} resolved` : `We're looking into ${c.order.code}`,
-      dto.note || (dto.refund ? 'A refund has been started to your original payment method.' : 'Thanks for telling us. Our team will follow up.'));
+      resolution || 'Thanks for telling us. Our team will follow up.');
     await this.audit(admin, `COMPLAINT_${dto.status}${dto.refund ? '_REFUND' : ''}`, id, dto.note);
     return { ok: true };
   }
@@ -246,6 +280,51 @@ export class AdminService {
 
   activity() { return this.prisma.adminLog.findMany({ orderBy: { createdAt: 'desc' }, take: 100 }); }
 
+  /* ---------- rates ---------- */
+  async rates() { return rateCard(await this.business.settings()); }
+  async setRates(admin: string, dto: RatesDto) {
+    const { summary, ...data } = dto;
+    const s = await this.prisma.platformSetting.update({ where: { id: 1 }, data: { ...data, ratesVersion: { increment: 1 }, ratesUpdatedAt: new Date() } });
+    const told = await this.business.announceNewRates(summary);
+    await this.audit(admin, 'RATES_UPDATE', String(s.ratesVersion), `${summary} · commission ${s.commissionPct}% · rider ${s.riderBase}+${s.riderPerKm}/km`);
+    return { ...rateCard(s), told };
+  }
+
+  /* ---------- rider cash & payouts ---------- */
+  async riderWallets() {
+    const riders = await this.prisma.riderProfile.findMany({ where: { user: { roles: { some: { role: 'RIDER', status: { in: ['APPROVED', 'SUSPENDED'] } } } } }, include: { user: { select: { id: true, name: true, phone: true } } }, take: 200 });
+    const rows = await Promise.all(riders.map(async (r) => ({ userId: r.userId, name: r.user.name, phone: r.user.phone, vehicle: r.vehicle, online: r.online, ...(await this.riders.wallet(r.userId)) })));
+    return rows.sort((a, b) => Math.abs(b.balance) - Math.abs(a.balance));
+  }
+  async riderLedger(admin: string, riderUserId: string, dto: LedgerDto) {
+    const r = await this.prisma.riderProfile.findUnique({ where: { userId: riderUserId } });
+    if (!r) throw new NotFoundException();
+    const w = await this.riders.wallet(riderUserId);
+    if (dto.kind === 'CASH_DEPOSIT' && dto.amount > w.cashInHand) throw new BadRequestException(`The rider is only holding ৳${w.cashInHand}.`);
+    if (dto.kind === 'PAYOUT' && dto.amount > w.unpaidEarnings) throw new BadRequestException(`Only ৳${w.unpaidEarnings} of earnings is unpaid.`);
+    await this.prisma.riderLedger.create({ data: { riderId: riderUserId, kind: dto.kind, amount: dto.amount, reference: dto.reference, adminEmail: admin } });
+    await this.notify.notify(riderUserId, 'RIDER', dto.kind === 'PAYOUT' ? 'Earnings paid' : 'Cash deposit received', `৳${dto.amount}${dto.reference ? ` · Ref ${dto.reference}` : ''}. See Earnings for your balance.`);
+    await this.audit(admin, `RIDER_${dto.kind}`, riderUserId, `৳${dto.amount} ${dto.reference || ''}`);
+    return this.riders.wallet(riderUserId);
+  }
+
+  /* ---------- support inbox ---------- */
+  tickets(status?: string) {
+    return this.prisma.supportTicket.findMany({
+      where: status === 'ALL' ? {} : status === 'CLOSED' ? { status: 'CLOSED' } : { status: { not: 'CLOSED' } },
+      orderBy: { updatedAt: 'desc' }, take: 100,
+      include: { user: { select: { name: true, phone: true, email: true } }, messages: { orderBy: { createdAt: 'asc' } } },
+    });
+  }
+  async replyTicket(admin: string, id: string, dto: TicketReplyDto) {
+    const t = await this.prisma.supportTicket.findUnique({ where: { id } });
+    if (!t) throw new NotFoundException();
+    await this.prisma.supportTicket.update({ where: { id }, data: { status: dto.close ? 'CLOSED' : 'ANSWERED', messages: { create: { body: dto.body.trim(), fromAdmin: true, adminEmail: admin } } } });
+    await this.notify.notify(t.userId, t.role, 'MaaCrave support replied', `${t.subject}: ${dto.body.slice(0, 90)}`);
+    await this.audit(admin, dto.close ? 'TICKET_CLOSE' : 'TICKET_REPLY', id);
+    return { ok: true };
+  }
+
   /* ---------- Home spotlight cards ---------- */
   async spotlights() {
     const rows = await this.prisma.spotlight.findMany({ orderBy: { slot: 'asc' } });
@@ -291,9 +370,15 @@ export class AdminController {
   @Get('payouts') payouts(@Query('status') status?: string) { return this.admin.payouts(status); }
   @Post('payouts/:id') @HttpCode(200) payout(@CurrentAdmin() a: string, @Param('id') id: string, @Body() dto: PayoutDto) { return this.admin.setPayout(a, id, dto); }
   @Get('activity') activity() { return this.admin.activity(); }
+  @Get('rates') rates() { return this.admin.rates(); }
+  @Post('rates') @HttpCode(200) setRates(@CurrentAdmin() a: string, @Body() dto: RatesDto) { return this.admin.setRates(a, dto); }
+  @Get('riders/wallets') riderWallets() { return this.admin.riderWallets(); }
+  @Post('riders/:id/ledger') @HttpCode(200) riderLedger(@CurrentAdmin() a: string, @Param('id') id: string, @Body() dto: LedgerDto) { return this.admin.riderLedger(a, id, dto); }
+  @Get('tickets') tickets(@Query('status') status?: string) { return this.admin.tickets(status); }
+  @Post('tickets/:id/reply') @HttpCode(200) replyTicket(@CurrentAdmin() a: string, @Param('id') id: string, @Body() dto: TicketReplyDto) { return this.admin.replyTicket(a, id, dto); }
   @Get('spotlights') spotlights() { return this.admin.spotlights(); }
   @Post('spotlights/:slot') @HttpCode(200) saveSpotlight(@CurrentAdmin() a: string, @Param('slot') slot: string, @Body() dto: SpotlightDto) { return this.admin.saveSpotlight(a, Number(slot), dto); }
 }
 
-@Module({ imports: [OrdersModule], providers: [AdminService, AdminGuard, EmailService], controllers: [AdminAuthController, AdminController] })
+@Module({ imports: [OrdersModule, RiderModule], providers: [AdminService, AdminGuard, EmailService], controllers: [AdminAuthController, AdminController] })
 export class AdminModule {}

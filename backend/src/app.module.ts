@@ -5,6 +5,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AdminModule } from './admin/admin.module';
+import { BusinessModule } from './business/business.module';
 import { PlansModule } from './plans/plans.module';
 import { AuthModule } from './auth/auth.module';
 import { BatchesModule } from './batches/batches.module';
@@ -25,7 +26,7 @@ import { UsersModule } from './users/users.module';
     JwtModule.register({ global: true, secret: process.env.JWT_SECRET }),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
     ScheduleModule.forRoot(),
-    PrismaModule, NotificationsModule, AuthModule, UsersModule, CatalogModule, BatchesModule, RequestsModule, OrdersModule, KitchenModule, RiderModule, JobsModule, AdminModule, PlansModule,
+    PrismaModule, NotificationsModule, BusinessModule, AuthModule, UsersModule, CatalogModule, BatchesModule, RequestsModule, OrdersModule, KitchenModule, RiderModule, JobsModule, AdminModule, PlansModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

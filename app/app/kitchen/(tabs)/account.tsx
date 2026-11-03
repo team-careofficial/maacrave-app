@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { Check, Wallet } from 'lucide-react-native';
+import { Check, FileText, LifeBuoy, Shield, Wallet } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { API } from '@/api';
@@ -73,6 +73,15 @@ export default function KitchenSettings() {
           </Section>
 
           <Button title="Save changes" size="lg" loading={save.isPending} onPress={() => save.mutate()} style={{ marginTop: S.xl }} />
+
+          <Section title="Help & policies">
+            <Row gap={S.sm} wrap>
+              <Button title="Rates & terms" v="outline" icon={<Wallet size={16} color={C.text} />} onPress={() => router.push('/partner/cook')} />
+              <Button title="Help & support" v="outline" icon={<LifeBuoy size={16} color={C.text} />} onPress={() => router.push('/support')} />
+              <Button title="Cook terms" v="ghost" icon={<FileText size={16} color={C.text} />} onPress={() => router.push('/cook-terms')} />
+              <Button title="Privacy" v="ghost" icon={<Shield size={16} color={C.text} />} onPress={() => router.push('/privacy')} />
+            </Row>
+          </Section>
 
           <Section title="Account">
             <Row gap={S.sm} wrap>

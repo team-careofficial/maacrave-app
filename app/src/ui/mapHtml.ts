@@ -1,10 +1,11 @@
 import type { Point } from '../geo';
 
 export type MapConfig =
-  | { id: string; mode: 'route'; from: Point; to: Point; fromLabel: string; toLabel: string }
+  | { id: string; mode: 'route'; from: Point; to: Point; fromLabel: string; toLabel: string; rider?: Point | null }
   | { id: string; mode: 'pick'; center: Point };
 
 const KITCHEN = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11h18v2a8 8 0 0 1-8 8h-2a8 8 0 0 1-8-8z"/><path d="M12 3c-1 1.2-1 2.3 0 3.5M8.5 4.5c-.8 1-.8 1.8 0 2.8M15.5 4.5c-.8 1-.8 1.8 0 2.8"/></svg>';
+const BIKE = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5V14l-3-3 4-3 2 3h2"/></svg>';
 const HOME = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>';
 
 /** Self-contained Leaflet page (CARTO Voyager basemap) used inside a WebView or iframe. */
@@ -16,7 +17,8 @@ html,body,#m{margin:0;height:100%;background:#F1ECEA;font-family:-apple-system,S
 .leaflet-container{background:#F1ECEA}
 .pin{width:38px;height:38px;border-radius:50% 50% 50% 4px;transform:rotate(-45deg);display:grid;place-items:center;box-shadow:0 8px 18px -6px rgba(42,11,13,.55);border:3px solid #fff}
 .pin>span{transform:rotate(45deg);display:grid;place-items:center}
-.k{background:linear-gradient(135deg,#941219,#5A090D)} .h{background:#231A1B}
+.k{background:linear-gradient(135deg,#941219,#5A090D)} .h{background:#231A1B} .r{background:#1E7F4F}
+.rider{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:#1E7F4F;border:3px solid #fff;box-shadow:0 0 0 6px rgba(30,127,79,.22),0 8px 18px -6px rgba(0,0,0,.45)}
 .tag{position:absolute;left:44px;top:4px;white-space:nowrap;background:#fff;color:#1D1617;font-weight:700;font-size:12px;padding:4px 9px;border-radius:999px;box-shadow:0 6px 14px -8px rgba(0,0,0,.5)}
 .center{position:absolute;left:50%;top:50%;z-index:500;transform:translate(-50%,-100%);pointer-events:none}
 .dot{position:absolute;left:50%;top:50%;width:10px;height:5px;border-radius:50%;background:rgba(0,0,0,.25);transform:translate(-50%,-50%);z-index:499}
@@ -39,7 +41,14 @@ if(cfg.mode==='route'){
   L.polyline(pts,{color:'#7A0D12',weight:5,opacity:1,lineCap:'round'}).addTo(map);
   L.marker(a,{icon:icon('k',${JSON.stringify(KITCHEN)},cfg.fromLabel)}).addTo(map);
   L.marker(b,{icon:icon('h',${JSON.stringify(HOME)},cfg.toLabel)}).addTo(map);
+  var rm=null;
+  function rider(p){if(!p)return;var ll=[p.lat,p.lng];if(rm){rm.setLatLng(ll);return;}
+    rm=L.marker(ll,{zIndexOffset:1000,icon:L.divIcon({className:'',iconSize:[40,40],iconAnchor:[20,20],html:'<div class="rider">'+${JSON.stringify(BIKE)}+'</div>'})}).addTo(map);
+    map.fitBounds(L.latLngBounds([a,b,ll]).pad(0.35),{maxZoom:15});}
   map.fitBounds(L.latLngBounds([a,b]).pad(0.45),{maxZoom:15});
+  rider(cfg.rider);
+  function onMsg(e){try{var m=JSON.parse(e.data);if(m.id===cfg.id&&m.rider)rider(m.rider);}catch(_){}}
+  window.addEventListener('message',onMsg);document.addEventListener('message',onMsg);
 }else{
   map.setView([cfg.center.lat,cfg.center.lng],16);
   var d=document.createElement('div');d.className='center';d.innerHTML='<div class="pin h"><span>${HOME.replace(/"/g, '\\"')}</span></div>';document.body.appendChild(d);

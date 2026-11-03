@@ -97,9 +97,10 @@ export default function Account() {
         <Group>
           <Item Icon={Globe} label="Language" sub={current === 'bn' ? 'বাংলা' : 'English'} onPress={() => lang.mutate(current === 'bn' ? 'en' : 'bn')}
             right={<LangSwitch value={current} onChange={(l) => lang.mutate(l)} />} /><Divider />
-          <Item Icon={HelpCircle} label="Help & support" sub="support@maacrave.app" onPress={() => Linking.openURL('mailto:support@maacrave.app')} /><Divider />
+          <Item Icon={HelpCircle} label="Help & support" sub="Chat with us, call or email" onPress={() => router.push('/support')} /><Divider />
           <Item Icon={Shield} label="Privacy policy" onPress={() => router.push('/privacy')} /><Divider />
           <Item Icon={FileText} label="Terms of service" onPress={() => router.push('/terms')} /><Divider />
+          <Item Icon={FileText} label="Refund & cancellation policy" onPress={() => router.push('/refund')} /><Divider />
           <Item Icon={Trash2} label="Delete account" sub="Removes your personal data permanently" danger onPress={deleteAccount} right={<View />} /><Divider />
           <Item Icon={LogOut} label="Sign out" danger onPress={async () => { if (await confirm('Sign out?', 'You can sign back in with your phone number or email.', 'Sign out', true)) signOut(); }} right={<View />} />
         </Group>

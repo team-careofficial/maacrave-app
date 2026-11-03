@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { API } from '@/api';
 import { clock, countdown, tk } from '@/format';
+import { num, t } from '@/i18n';
 import { C, S } from '@/theme';
 import type { KitchenBatch, Order } from '@/types';
 import { Badge, Button, Card, confirm, Divider, Empty, ErrorState, Header, Loading, Meter, Row, Screen, Segmented, StatusBadge, T, useToast } from '@/ui';
@@ -29,10 +30,15 @@ function KitchenOrder({ o }: { o: Order }) {
       <View style={{ gap: 4 }}>{o.items.map((i) => <T key={i.id} v="body">{i.quantity} × {i.name}</T>)}</View>
       {o.notes ? <View style={{ backgroundColor: C.warnSoft, borderRadius: 10, padding: S.md }}><T v="sub" color={C.warn}>Note: {o.notes}</T></View> : null}
       <Divider />
-      <Row style={{ justifyContent: 'space-between' }}>
-        <T v="sub">You earn <T v="label">{tk(o.cookEarning)}</T></T>
-        {o.batch ? <Badge tone="brand" label="Group batch" icon={<Users size={12} color={C.brandText} />} /> : null}
-      </Row>
+      {/* money for this order: price, MaaCrave commission, what the cook gets */}
+      <View style={{ gap: 4 }}>
+        <Row style={{ justifyContent: 'space-between' }}><T v="meta">{t('Order price', 'অর্ডারের দাম')}</T><T v="meta">{tk(o.subtotal)}</T></Row>
+        <Row style={{ justifyContent: 'space-between' }}><T v="meta">{t(`MaaCrave commission (${o.subtotal ? Math.round((o.commission / o.subtotal) * 100) : 0}%)`, `MaaCrave কমিশন (${num(o.subtotal ? Math.round((o.commission / o.subtotal) * 100) : 0)}%)`)}</T><T v="meta" color={C.err}>−{tk(o.commission)}</T></Row>
+        <Row style={{ justifyContent: 'space-between' }}>
+          <T v="label">{t('You earn', 'আপনার আয়')}</T>
+          <Row gap={S.sm}>{o.batch ? <Badge tone="brand" label="Group batch" icon={<Users size={12} color={C.brandText} />} /> : null}<T v="label" color={C.ok}>{tk(o.cookEarning)}</T></Row>
+        </Row>
+      </View>
       {next ? (
         <Row gap={S.sm}>
           <Button title={next.label} style={{ flex: 1 }} loading={act.isPending} onPress={() => act.mutate(next.action)} />

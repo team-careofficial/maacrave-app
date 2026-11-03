@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Check, KeyRound, LifeBuoy, MapPin, Star, Users } from 'lucide-react-native';
+import { Bike, Check, FileText, KeyRound, LifeBuoy, MapPin, MessageCircle, Phone, Star, Users } from 'lucide-react-native';
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Linking, Pressable, View } from 'react-native';
 import { API } from '@/api';
-import { ACTIVE_STATUSES, clock, day, STATUS_LABEL, TIMELINE, tk } from '@/format';
+import { ACTIVE_STATUSES, ago, clock, day, STATUS_LABEL, TIMELINE, tk } from '@/format';
+import { num, t } from '@/i18n';
 import { CLIENT, openPayment } from '@/pay';
 import { C, R, S } from '@/theme';
 import type { Order } from '@/types';
@@ -80,6 +81,7 @@ function ComplaintBox({ o, onDone }: { o: Order; onDone: () => void }) {
       <Row gap={S.sm} wrap>{COMPLAINTS.map((c) => <Chip key={c} label={c} on={type === c} onPress={() => setType(c)} />)}</Row>
       <Input value={text} onChangeText={setText} placeholder="What happened?" maxLength={800} multiline style={{ minHeight: 90, alignItems: 'flex-start', paddingVertical: 12 }} />
       <Toggle value={refund} onChange={setRefund} label={`Request a refund (up to ${tk(o.subtotal)})`} />
+      <Button title="How refunds work" v="ghost" size="sm" icon={<FileText size={14} color={C.text} />} onPress={() => router.push('/refund')} style={{ alignSelf: 'flex-start' }} />
       {m.error ? <Note tone="err">{(m.error as Error).message}</Note> : null}
       <Row gap={S.sm}>
         <Button title="Send report" onPress={() => m.mutate()} loading={m.isPending} disabled={text.trim().length < 5} />
@@ -94,7 +96,11 @@ export default function OrderScreen() {
   const qc = useQueryClient();
   const toast = useToast();
   const [reporting, setReporting] = useState(false);
-  const q = useQuery({ queryKey: ['order', id], queryFn: () => API.order(id), refetchInterval: (qq) => (qq.state.data && ACTIVE_STATUSES.includes(qq.state.data.status) ? 15_000 : false) });
+  // Faster refresh while a rider is on the way, so the live map keeps up.
+  const q = useQuery({ queryKey: ['order', id], queryFn: () => API.order(id), refetchInterval: (qq) => {
+    const st = qq.state.data?.status;
+    return st && ['RIDER_ASSIGNED', 'PICKED_UP', 'ON_THE_WAY'].includes(st) ? 10_000 : st && ACTIVE_STATUSES.includes(st) ? 15_000 : false;
+  } });
   const cancel = useMutation({ mutationFn: () => API.cancelOrder(id), onSuccess: (d) => { qc.setQueryData(['order', id], d); qc.invalidateQueries({ queryKey: ['orders'] }); toast('Order cancelled'); } });
   const pay = useMutation({ mutationFn: () => API.pay(id, CLIENT), onSuccess: (r) => openPayment(r.paymentUrl, id), onError: (e) => toast((e as Error).message) });
   const o = q.data;
@@ -123,11 +129,24 @@ export default function OrderScreen() {
             ) : null}
 
             {o.status !== 'CANCELLED' && o.status !== 'DELIVERED' ? (
-              <DeliveryRoute title={STATUS_LABEL[o.status]} kitchen={{ name: o.cook.displayName, area: o.cook.area, lat: o.cook.lat, lng: o.cook.lng }} drop={{ name: 'You', area: o.area, lat: o.lat, lng: o.lng }} />
+              <DeliveryRoute title={STATUS_LABEL[o.status]} kitchen={{ name: o.cook.displayName, area: o.cook.area, lat: o.cook.lat, lng: o.cook.lng }} drop={{ name: 'You', area: o.area, lat: o.lat, lng: o.lng }}
+                rider={o.tracking?.lat != null && o.tracking?.lng != null ? { lat: o.tracking.lat, lng: o.tracking.lng } : null} />
             ) : null}
             {o.status !== 'CANCELLED' ? <Card><Timeline o={o} /></Card> : <Note>This order was cancelled. Any online payment is refunded to the same account within 3–7 working days.</Note>}
 
-            {o.rider ? <Card><KV k="Rider" v={o.rider.name || 'Assigned'} /></Card> : null}
+            {o.rider ? (
+              <Card style={{ gap: S.md }}>
+                <Row gap={S.md}>
+                  <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: C.okSoft, alignItems: 'center', justifyContent: 'center' }}><Bike size={20} color={C.ok} /></View>
+                  <View style={{ flex: 1 }}>
+                    <T v="card" style={{ fontSize: 15 }}>{o.rider.name || t('Your rider', 'আপনার রাইডার')}</T>
+                    <T v="meta">{o.tracking ? [o.tracking.vehicle, o.tracking.locatedAt ? t(`location updated ${ago(o.tracking.locatedAt)}`, `লোকেশন আপডেট ${ago(o.tracking.locatedAt)}`) : t('live location not shared yet', 'লাইভ লোকেশন এখনো আসেনি')].filter(Boolean).join(' · ') : t('Rider', 'রাইডার')}</T>
+                  </View>
+                  {o.tracking?.phone ? <Button title="Call" size="sm" v="outline" icon={<Phone size={15} color={C.text} />} onPress={() => Linking.openURL(`tel:${o.tracking!.phone}`)} /> : null}
+                </Row>
+                {o.distanceKm ? <T v="meta">{t(`Trip ${o.distanceKm.toFixed(1)} km from the kitchen`, `রান্নাঘর থেকে ${num(o.distanceKm.toFixed(1))} কিমি`)}</T> : null}
+              </Card>
+            ) : null}
           </View>
 
           <View style={{ gap: S.lg }}>
@@ -136,7 +155,7 @@ export default function OrderScreen() {
                 {o.items.map((i) => <KV key={i.id} k={`${i.quantity} × ${i.name}`} v={tk(i.unitPrice * i.quantity)} />)}
                 <Divider />
                 <KV k="Subtotal" v={tk(o.subtotal)} />
-                <KV k="Delivery" v={tk(o.deliveryFee)} />
+                <KV k={o.distanceKm ? t(`Delivery · ${o.distanceKm.toFixed(1)} km`, `ডেলিভারি · ${num(o.distanceKm.toFixed(1))} কিমি`) : 'Delivery'} v={tk(o.deliveryFee)} />
                 <KV k="Service fee" v={tk(o.serviceFee)} />
                 {o.discount ? <KV k={`Discount${o.couponCode ? ` (${o.couponCode})` : ''}`} v={`−${tk(o.discount)}`} color={C.ok} /> : null}
                 <Divider />
@@ -160,7 +179,10 @@ export default function OrderScreen() {
                 {o.status === 'DELIVERED' ? <Button title="Order again" v="secondary" onPress={() => router.push(`/cook/${o.cook.id}`)} /> : null}
               </View>
             )}
-            <View style={{ borderRadius: R.md, backgroundColor: C.surface2, padding: S.md }}><T v="meta">Need help? Email support@maacrave.app with code {o.code}.</T></View>
+            <Card onPress={() => router.push({ pathname: '/support/new', params: { orderId: o.id, code: o.code } })} style={{ flexDirection: 'row', alignItems: 'center', gap: S.md, backgroundColor: C.surface2, borderRadius: R.md }}>
+              <MessageCircle size={18} color={C.brand} />
+              <View style={{ flex: 1 }}><T v="label">{t('Get help with this order', 'এই অর্ডারে সাহায্য নিন')}</T><T v="meta">{t(`Chat with MaaCrave support · ${o.code}`, `MaaCrave সাপোর্টে লিখুন · ${o.code}`)}</T></View>
+            </Card>
           </View>
         </Grid>
       )}

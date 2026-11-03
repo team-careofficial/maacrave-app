@@ -113,6 +113,9 @@ model User {
   refreshTokens RefreshToken[]
   documents     Document[]
   subscriptions Subscription[]
+  agreements    PartnerAgreement[]
+  riderLedger   RiderLedger[]
+  tickets       SupportTicket[]
   deletedAt     DateTime?
 }
 
@@ -209,6 +212,10 @@ model RiderProfile {
   vehicle   String
   online    Boolean  @default(false)
   nidLast4  String?
+  /// Last known position while online, for nearest-rider offers and live tracking.
+  lat       Float?
+  lng       Float?
+  locatedAt DateTime?
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -333,6 +340,7 @@ model Order {
   scheduledFor   DateTime?
   idempotencyKey String?      @unique
   subscriptionId String?      // set when the order was created from a meal plan
+  distanceKm     Float?       // estimated road distance kitchen → customer, used for delivery fee and rider pay
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   customer       User         @relation("CustomerOrders", fields: [customerId], references: [id])
@@ -439,6 +447,8 @@ model Complaint {
   refundRequested Boolean         @default(false)
   refundAmount    Int             @default(0)
   status          ComplaintStatus @default(OPEN)
+  resolution      String?         // what the team did, shown to the customer
+  refundedAmount  Int             @default(0)
   createdAt       DateTime        @default(now())
   order           Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
   user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -486,6 +496,77 @@ model PlatformSetting {
   riderPayout      Int   @default(35)
   defaultMinBatch  Int   @default(8)
   requestRadiusKm  Int   @default(8)
+  /// Delivery pricing by distance: customer pays deliveryFee for the first freeKm, then deliveryPerKm for each extra km.
+  freeKm           Float @default(3)
+  deliveryPerKm    Int   @default(10)
+  /// Rider pay: base + perKm × road km. A group-order drop uses riderBatchDrop as its base.
+  riderBase        Int   @default(25)
+  riderPerKm       Int   @default(6)
+  riderBatchDrop   Int   @default(20)
+  /// Riders can't take new cash orders while holding more than this much customer cash.
+  riderCashLimit   Int   @default(3000)
+  /// Goes up whenever partner rates change; cooks and riders accept the new version in the app.
+  ratesVersion     Int   @default(1)
+  ratesUpdatedAt   DateTime?
+  /// One-time data upgrades already applied to this row.
+  upgrades         Int   @default(0)
+}
+
+/// A cook or rider agreeing to the partner terms and the rates of a given version.
+model PartnerAgreement {
+  id            String   @id @default(cuid())
+  userId        String
+  role          Role
+  version       Int
+  commissionPct Float
+  rates         Json
+  acceptedAt    DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, role, version])
+}
+
+/// Money moving between a rider and MaaCrave: cash the rider handed in, or earnings paid to the rider.
+model RiderLedger {
+  id         String   @id @default(cuid())
+  riderId    String   // user id
+  kind       String   // CASH_DEPOSIT | PAYOUT
+  amount     Int
+  reference  String?
+  adminEmail String
+  createdAt  DateTime @default(now())
+  rider      User     @relation(fields: [riderId], references: [id], onDelete: Cascade)
+  @@index([riderId, createdAt])
+}
+
+enum TicketStatus {
+  OPEN
+  ANSWERED
+  CLOSED
+}
+
+/// Help requests from customers, cooks and riders, answered from the admin panel.
+model SupportTicket {
+  id        String           @id @default(cuid())
+  userId    String
+  role      Role
+  orderId   String?
+  subject   String
+  status    TicketStatus     @default(OPEN)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  SupportMessage[]
+  @@index([status, updatedAt])
+}
+
+model SupportMessage {
+  id         String        @id @default(cuid())
+  ticketId   String
+  fromAdmin  Boolean       @default(false)
+  adminEmail String?
+  body       String
+  createdAt  DateTime      @default(now())
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 }
 
 /// Verification documents uploaded with a cook or rider application (NID, kitchen photos, licence).

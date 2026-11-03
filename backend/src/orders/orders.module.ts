@@ -18,6 +18,8 @@ class CheckoutDto {
   @IsOptional() @IsString() proposalId?: string;
   @IsOptional() @IsBoolean() allowGroup?: boolean;
   @IsOptional() @IsString() @MaxLength(20) couponCode?: string;
+  /** Lets the quote price delivery by distance. */
+  @IsOptional() @IsString() addressId?: string;
 }
 class PlaceDto extends CheckoutDto {
   @IsString() addressId: string;

@@ -4,6 +4,7 @@ import { MealSlot, PlanPeriod } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength } from 'class-validator';
 import { AuthUser, CurrentUser, Public, Roles } from '../common/auth';
+import { pointOf, roadKm } from '../common/geo';
 import { computeFees } from '../common/pricing';
 import { PrismaService } from '../common/prisma.service';
 import { digits, orderCode } from '../common/util';
@@ -155,13 +156,13 @@ export class PlansService implements OnApplicationBootstrap {
     for (const sub of subs) {
       const key = `sub:${sub.id}:${today.iso}`;
       if (await this.prisma.order.findUnique({ where: { idempotencyKey: key }, select: { id: true } })) continue;
-      const fees = computeFees(sub.plan.pricePerMeal, true, s, null); // plans ride with the cheaper group delivery rate
+      const fees = computeFees(sub.plan.pricePerMeal, true, s, null, roadKm(pointOf(sub.plan.cook), pointOf(sub))); // plans ride with the cheaper group delivery rate
       try {
         const o = await this.prisma.order.create({
           data: {
             code: orderCode(), customerId: sub.customerId, cookId: sub.plan.cookId, status: 'CONFIRMED', subscriptionId: sub.id, idempotencyKey: key,
             subtotal: fees.subtotal, serviceFee: fees.serviceFee, deliveryFee: fees.deliveryFee, discount: 0, total: fees.total,
-            commission: fees.commission, cookEarning: fees.cookEarning, riderPayout: fees.riderPayout,
+            commission: fees.commission, cookEarning: fees.cookEarning, riderPayout: fees.riderPayout, distanceKm: fees.distanceKm,
             addressText: sub.addressText, area: sub.area, lat: sub.lat, lng: sub.lng, deliveryOtp: digits(4), notes: sub.notes,
             scheduledFor: dhakaInstant(today.iso, sub.plan.deliverAt),
             items: { create: [{ name: sub.plan.title, unitPrice: sub.plan.pricePerMeal, quantity: 1 }] },

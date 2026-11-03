@@ -6,11 +6,16 @@ import { C, R } from '../theme';
 import { mapHtml } from './mapHtml';
 
 /** Kitchen → delivery route map (phone apps). */
-export function RouteMap({ from, to, fromLabel, toLabel, height = 190 }: { from: Point; to: Point; fromLabel: string; toLabel: string; height?: number }) {
-  const html = useMemo(() => mapHtml({ id: 'r', mode: 'route', from, to, fromLabel, toLabel }), [from.lat, from.lng, to.lat, to.lng, fromLabel, toLabel]); // eslint-disable-line react-hooks/exhaustive-deps
+export function RouteMap({ from, to, fromLabel, toLabel, rider, height = 190 }: { from: Point; to: Point; fromLabel: string; toLabel: string; rider?: Point | null; height?: number }) {
+  const ref = useRef<WebView>(null);
+  const html = useMemo(() => mapHtml({ id: 'r', mode: 'route', from, to, fromLabel, toLabel, rider }), [from.lat, from.lng, to.lat, to.lng, fromLabel, toLabel]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Move the rider marker without reloading the map.
+  useEffect(() => {
+    if (rider) ref.current?.injectJavaScript(`window.dispatchEvent(new MessageEvent('message',{data:${JSON.stringify(JSON.stringify({ id: 'r', rider }))}}));true;`);
+  }, [rider?.lat, rider?.lng]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <View style={{ height, borderRadius: R.lg, overflow: 'hidden', backgroundColor: C.sunken }} pointerEvents="none">
-      <WebView originWhitelist={['*']} source={{ html }} scrollEnabled={false} style={{ backgroundColor: 'transparent' }} />
+      <WebView ref={ref} originWhitelist={['*']} source={{ html }} scrollEnabled={false} style={{ backgroundColor: 'transparent' }} />
     </View>
   );
 }

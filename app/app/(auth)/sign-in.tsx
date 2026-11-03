@@ -2,7 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { BadgeCheck, Bike, HeartHandshake, Mail, Smartphone } from 'lucide-react-native';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Linking, Platform, ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { API } from '@/api';
 import { useAuth } from '@/auth';
@@ -109,8 +109,8 @@ export default function SignIn() {
 
               <T v="meta" center style={{ marginTop: S.sm }}>
                 By continuing you agree to MaaCrave’s{' '}
-                <Text style={{ color: C.text, textDecorationLine: 'underline' }} onPress={() => Linking.openURL('https://maacrave.vercel.app/terms')}>Terms</Text> and{' '}
-                <Text style={{ color: C.text, textDecorationLine: 'underline' }} onPress={() => Linking.openURL('https://maacrave.vercel.app/privacy')}>Privacy Policy</Text>.
+                <Text style={{ color: C.text, textDecorationLine: 'underline' }} onPress={() => router.push('/terms')}>Terms</Text> and{' '}
+                <Text style={{ color: C.text, textDecorationLine: 'underline' }} onPress={() => router.push('/privacy')}>Privacy Policy</Text>.
               </T>
             </FadeIn>
   );

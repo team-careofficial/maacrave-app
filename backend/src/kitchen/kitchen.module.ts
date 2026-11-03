@@ -7,6 +7,7 @@ import { AuthUser, CurrentUser, Roles } from '../common/auth';
 import { PrismaService } from '../common/prisma.service';
 import { CATEGORIES, DHAKA_AREAS } from '../common/util';
 import { NotificationsService } from '../notifications/notifications.module';
+import { BusinessService } from '../business/business.module';
 import { OrdersModule } from '../orders/orders.module';
 import { orderInclude, OrdersService } from '../orders/orders.service';
 
@@ -64,7 +65,7 @@ const ACTIVE: OrderStatus[] = ['SUBMITTED', 'COOK_ACCEPTED', 'CONFIRMED', 'PREPA
 
 @Injectable()
 export class KitchenService {
-  constructor(private prisma: PrismaService, private orders: OrdersService, private notify: NotificationsService) {}
+  constructor(private prisma: PrismaService, private orders: OrdersService, private notify: NotificationsService, private business: BusinessService) {}
 
   private cookOf(user: AuthUser) { if (!user.cook) throw new ForbiddenException('No kitchen profile.'); return user.cook; }
 
@@ -85,6 +86,7 @@ export class KitchenService {
 
   async update(user: AuthUser, dto: KitchenDto) {
     const cook = this.cookOf(user);
+    if (dto.accepting) await this.business.requireAccepted(user.id, 'COOK');
     return this.prisma.cookProfile.update({ where: { id: cook.id }, data: dto });
   }
 
@@ -163,14 +165,12 @@ export class KitchenService {
     if (!step[0].includes(o.status)) throw new BadRequestException('This order has already moved on.');
     await this.orders.transition(o.id, step[1], user.id);
     if (action === 'decline') await this.orders.refund(o.id, 'Declined by cook');
-    if (action === 'ready') await this.alertRiders(1, this.cookOf(user).area);
+    if (action === 'ready') await this.alertRiders(user, 1);
     return { ok: true };
   }
 
-  private async alertRiders(drops: number, area: string) {
-    const riders = await this.prisma.riderProfile.findMany({ where: { online: true, user: { roles: { some: { role: 'RIDER', status: 'APPROVED' } } } }, select: { userId: true }, take: 30 });
-    await Promise.all(riders.map((r) => this.notify.notify(r.userId, 'RIDER', 'Pickup ready', `${drops} drop${drops > 1 ? 's' : ''} ready in ${area}.`)));
-  }
+  /** Nearest online riders hear first; see OrdersService.offerToRiders. */
+  private alertRiders(user: AuthUser, drops: number) { return this.orders.offerToRiders(this.cookOf(user).id, drops); }
 
   async batches(user: AuthUser) {
     const list = await this.prisma.batch.findMany({ where: { cookId: this.cookOf(user).id }, orderBy: { createdAt: 'desc' }, take: 40, include: { orders: { include: { items: true } }, dish: true } });
@@ -212,7 +212,7 @@ export class KitchenService {
         if (b.status !== 'COOKING') throw new BadRequestException('Start cooking first.');
         await this.prisma.batch.update({ where: { id }, data: { status: 'READY' } });
         await move(['PREPARING'], 'READY');
-        await this.alertRiders(live.length, b.area); break;
+        await this.alertRiders(user, live.length); break;
       case 'cancel':
         if (!['OPEN', 'FULL'].includes(b.status)) throw new BadRequestException('Cooking has started; contact support.');
         await this.prisma.batch.update({ where: { id }, data: { status: 'FAILED' } });

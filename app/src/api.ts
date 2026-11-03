@@ -1,5 +1,5 @@
 import { storage } from './storage';
-import type { KitchenSubscriber, MealPlan, PlanInput, Subscription, Address, Batch, CookDetail, CookPublic, Dish, DishDetail, Fees, FoodRequest, Kitchen, KitchenBatch, KitchenDashboard, Me, Meta, Notification, Order, PaymentMethod, Proposal, Role, RiderOrder, RiderTask } from './types';
+import type { KitchenSubscriber, MealPlan, PartnerTerms, PlanInput, RiderWallet, Subscription, SupportContact, SupportTicket, Address, Batch, CookDetail, CookPublic, Dish, DishDetail, Fees, FoodRequest, Kitchen, KitchenBatch, KitchenDashboard, Me, Meta, Notification, Order, PaymentMethod, Proposal, Role, RiderOrder, RiderTask } from './types';
 
 export const API_URL = (process.env.EXPO_PUBLIC_API_URL || '').replace(/\/$/, '');
 const RT_KEY = 'maacrave.rt';
@@ -108,7 +108,7 @@ export const API = {
   batches: (filter: string, area?: string) => api<Batch[]>('/batches', { query: { filter, area } }),
   batch: (id: string) => api<Batch>(`/batches/${id}`),
   // orders
-  quote: (b: CheckoutBody) => api<{ fees: Fees; couponError: string | null; items: { name: string; unitPrice: number; quantity: number }[] }>('/orders/quote', { method: 'POST', body: b }),
+  quote: (b: CheckoutBody & { addressId?: string }) => api<{ fees: Fees; couponError: string | null; items: { name: string; unitPrice: number; quantity: number }[] }>('/orders/quote', { method: 'POST', body: b }),
   placeOrder: (b: CheckoutBody & { addressId: string; paymentMethod: PaymentMethod; notes?: string; idempotencyKey: string; client: 'app' | 'web' }) => api<{ order: Order; paymentUrl: string | null; paymentError?: string | null }>('/orders', { method: 'POST', body: b }),
   orders: (scope: 'active' | 'past') => api<Order[]>('/orders', { query: { scope } }),
   order: (id: string) => api<Order>(`/orders/${id}`),
@@ -156,5 +156,16 @@ export const API = {
   pickup: (key: string) => api<RiderOrder[]>(`/rider/groups/${key}/pickup`, { method: 'POST' }),
   startTrip: (key: string) => api<RiderOrder[]>(`/rider/groups/${key}/start`, { method: 'POST' }),
   deliver: (id: string, code: string) => api<RiderOrder[]>(`/rider/orders/${id}/deliver`, { method: 'POST', body: { code } }),
-  riderEarnings: () => api<{ total: number; drops: number; today: number; week: number; last7Days: { date: string; amount: number }[]; recent: { id: string; code: string; area: string; riderPayout: number; updatedAt: string }[] }>('/rider/earnings'),
+  riderEarnings: () => api<{ total: number; drops: number; today: number; week: number; last7Days: { date: string; amount: number }[]; recent: { id: string; code: string; area: string; riderPayout: number; distanceKm: number | null; batchId: string | null; cash: number; updatedAt: string }[]; wallet: RiderWallet; ledger: { id: string; kind: 'CASH_DEPOSIT' | 'PAYOUT'; amount: number; reference: string | null; createdAt: string }[] }>('/rider/earnings'),
+  riderLocation: (lat: number, lng: number) => api('/rider/location', { method: 'POST', body: { lat, lng } }),
+
+  partnerTerms: (role: 'COOK' | 'RIDER') => api<PartnerTerms>('/partner/terms', { query: { role } }),
+  acceptTerms: (role: 'COOK' | 'RIDER') => api<PartnerTerms>('/partner/terms/accept', { method: 'POST', body: { role } }),
+
+  supportContact: () => api<SupportContact>('/support/contact'),
+  tickets: () => api<SupportTicket[]>('/support'),
+  ticket: (id: string) => api<SupportTicket>(`/support/${id}`),
+  openTicket: (b: { role: Role; subject: string; body: string; orderId?: string }) => api<SupportTicket>('/support', { method: 'POST', body: b }),
+  replyTicket: (id: string, body: string) => api<SupportTicket>(`/support/${id}/messages`, { method: 'POST', body: { body } }),
+  closeTicket: (id: string) => api<SupportTicket>(`/support/${id}/close`, { method: 'POST' }),
 };

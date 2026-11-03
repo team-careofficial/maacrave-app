@@ -4,7 +4,7 @@
   const API = (window.MAACRAVE_API || '').replace(/\/$/, '');
   const KEY = 'maacrave.admin';
   const $app = document.getElementById('app');
-  const state = { view: 'dashboard', email: '', step: 'email', filters: { apps: 'PENDING', role: '', reports: 'OPEN', payouts: 'OPEN', orders: '', users: '' }, counts: {} };
+  const state = { view: 'dashboard', email: '', step: 'email', filters: { apps: 'PENDING', role: '', reports: 'OPEN', payouts: 'OPEN', orders: '', users: '', support: 'OPEN' }, counts: {} };
 
   /* ---------- helpers ---------- */
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -38,7 +38,7 @@
   }
   const LOGO = '<svg width="26" height="26" viewBox="6 4 52 52"><path d="M32 16.2c-2.3-1.8-5.2-3.6-5.2-5.8 0-2.5 3.2-3.4 5.2-1.3 2-2.1 5.2-1.2 5.2 1.3 0 2.2-2.9 4-5.2 5.8z" fill="currentColor"/><path d="M13.5 32 32 21l18.5 11" fill="none" stroke="currentColor" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 35.5h32v5.2C48 47.5 42.5 53 35.7 53h-7.4C21.5 53 16 47.5 16 40.7z" fill="currentColor"/></svg>';
   const brand = (dark) => `<div class="brand ${dark ? 'dark' : ''}"><span class="logo">${LOGO}</span><span>Maa<span class="accent">Crave</span> <span class="muted small">Admin</span></span></div>`;
-  const statusBadge = (s) => `<span class="badge ${{ PENDING: 'warn', APPROVED: 'ok', REJECTED: 'err', SUSPENDED: 'err', OPEN: 'warn', INVESTIGATING: 'info', RESOLVED: 'ok', REQUESTED: 'warn', PROCESSING: 'info', PAID: 'ok', FAILED: 'err', DELIVERED: 'ok', CANCELLED: 'err' }[s] || 'brand'}">${esc(String(s).replace(/_/g, ' ').toLowerCase())}</span>`;
+  const statusBadge = (s) => `<span class="badge ${{ PENDING: 'warn', APPROVED: 'ok', REJECTED: 'err', SUSPENDED: 'err', OPEN: 'warn', INVESTIGATING: 'info', RESOLVED: 'ok', REQUESTED: 'warn', PROCESSING: 'info', PAID: 'ok', FAILED: 'err', DELIVERED: 'ok', CANCELLED: 'err', ANSWERED: 'ok', CLOSED: '' }[s] || 'brand'}">${esc(String(s).replace(/_/g, ' ').toLowerCase())}</span>`;
   const tabs = (key, items) => `<div class="tabs">${items.map(([v, l]) => `<button class="tab ${state.filters[key] === v ? 'on' : ''}" data-filter="${key}" data-value="${esc(v)}">${esc(l)}</button>`).join('')}</div>`;
   const empty = (msg) => `<div class="card empty">${esc(msg)}</div>`;
 
@@ -85,7 +85,7 @@
   const VIEWS = {
     async dashboard() {
       const s = await api('/admin/stats');
-      state.counts = { applications: s.pendingApps, reports: s.openComplaints, payouts: s.pendingPayouts };
+      state.counts = { applications: s.pendingApps, reports: s.openComplaints, payouts: s.pendingPayouts, support: s.openTickets };
       return `
         <div class="top"><div><h1>Today</h1><p class="muted">${new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</p></div></div>
         <div class="stats">
@@ -94,6 +94,7 @@
           <div class="stat">Waiting for review<b>${s.pendingApps}</b><span class="muted small">cook & rider applications</span></div>
           <div class="stat">Open reports<b>${s.openComplaints}</b><span class="muted small">need a reply</span></div>
           <div class="stat">Payout requests<b>${s.pendingPayouts}</b><span class="muted small">to send</span></div>
+          <div class="stat">Support<b>${s.openTickets || 0}</b><span class="muted small">waiting for a reply</span></div>
           <div class="stat">People<b>${s.users}</b><span class="muted small">${s.cooks} cooks · ${s.riders} riders</span></div>
         </div>
         <div class="card mt"><h3>Quick start</h3><p class="muted">Check <b>Applications</b> first — mothers can’t sell until you approve them. Open each NID and kitchen photo before approving.</p>
@@ -137,11 +138,13 @@
           <div class="row between"><div><h3>${esc(c.type)} · ${esc(c.order.code)}</h3><span class="muted small">${when(c.createdAt)} · by ${esc(c.user.name || 'Customer')} (${esc(c.user.phone || c.user.email || '')})</span></div>${statusBadge(c.status)}</div>
           <p>${esc(c.text)}</p>
           <dl class="kv"><dt>Kitchen</dt><dd>${esc(c.order.cook.displayName)}</dd><dt>Order total</dt><dd>${tk(c.order.total)} · ${esc(c.order.payment?.method || '—')} ${c.order.payment ? statusBadge(c.order.payment.status) : ''}</dd>
-          <dt>Refund asked</dt><dd>${c.refundRequested ? tk(c.refundAmount) : 'No'}</dd></dl>
+          <dt>Refund asked</dt><dd>${c.refundRequested ? tk(c.refundAmount) : 'No'}</dd>
+          ${c.refundedAmount ? `<dt>Refunded</dt><dd>${tk(c.refundedAmount)}</dd>` : ''}
+          ${c.resolution ? `<dt>Our reply</dt><dd>${esc(c.resolution)}</dd>` : ''}</dl>
           ${c.status !== 'RESOLVED' ? `<div class="row mt">
             ${c.status === 'OPEN' ? `<button class="btn ghost" data-report="INVESTIGATING" data-id="${esc(c.id)}">Mark investigating</button>` : ''}
             <button class="btn ok" data-report="RESOLVED" data-id="${esc(c.id)}">Resolve</button>
-            ${c.order.payment?.status === 'PAID' ? `<button class="btn primary" data-report="REFUND" data-id="${esc(c.id)}">Resolve + refund</button>` : ''}
+            <button class="btn primary" data-report="REFUND" data-id="${esc(c.id)}" data-total="${c.order.total}" data-method="${esc(c.order.payment?.method || '')}">Resolve + refund</button>
           </div>` : ''}</div>`).join('') : empty('No reports. 🎉')}</div>`;
     },
 
@@ -178,6 +181,60 @@
           <td><b>${esc(p.cook.displayName)}</b><br><span class="muted small">${esc(p.cook.user?.phone || '')}</span></td><td><b>${tk(p.amount)}</b></td><td>${esc(p.method)}</td><td>${when(p.createdAt)}</td><td>${statusBadge(p.status)}${p.providerRef ? `<br><span class="muted small">${esc(p.providerRef)}</span>` : ''}</td>
           <td>${['REQUESTED', 'PROCESSING'].includes(p.status) ? `<div class="row"><button class="btn sm ok" data-payout="PAID" data-id="${esc(p.id)}">Mark paid</button><button class="btn sm danger" data-payout="FAILED" data-id="${esc(p.id)}">Failed</button></div>` : ''}</td>
         </tr>`).join('')}</tbody></table>` : empty('No payout requests.')}`;
+    },
+
+    async support() {
+      const list = await api(`/admin/tickets?status=${state.filters.support || 'OPEN'}`);
+      const roleName = { CUSTOMER: 'Customer', COOK: 'Cook', RIDER: 'Rider' };
+      return `
+        <div class="top"><div><h1>Support</h1><p class="muted">Messages from customers, cooks and riders. They get a notification when you reply.</p></div>${tabs('support', [['OPEN', 'Open'], ['CLOSED', 'Closed'], ['ALL', 'All']])}</div>
+        <div class="list">${list.length ? list.map((t) => `<div class="card">
+          <div class="row between"><div><h3>${esc(t.subject)}</h3><span class="muted small">${roleName[t.role] || t.role} · ${esc(t.user?.name || '—')} · ${esc(t.user?.phone || t.user?.email || '')} · ${when(t.createdAt)}</span></div>${statusBadge(t.status)}</div>
+          <div class="thread">${t.messages.map((m) => `<div class="msg ${m.fromAdmin ? 'admin' : ''}"><p>${esc(m.body)}</p><span class="muted small">${m.fromAdmin ? 'MaaCrave · ' + esc(m.adminEmail || '') : esc(t.user?.name || 'User')} · ${when(m.createdAt)}</span></div>`).join('')}</div>
+          ${t.status !== 'CLOSED' ? `<form class="reply" data-ticket="${esc(t.id)}"><textarea class="input" name="body" rows="2" maxlength="1500" required placeholder="Write a reply…"></textarea>
+            <div class="row between"><label class="row small"><input type="checkbox" name="close"/> Close after sending</label><button class="btn primary" type="submit">Send reply</button></div></form>` : ''}
+        </div>`).join('') : empty('No support requests here.')}</div>`;
+    },
+
+    async riders() {
+      const list = await api('/admin/riders/wallets');
+      return `
+        <div class="top"><div><h1>Rider cash</h1><p class="muted">Cash riders collected on delivery and the earnings you owe them. Record every cash hand-in and every payout here — riders see it in their app.</p></div></div>
+        ${list.length ? `<table><thead><tr><th>Rider</th><th>Cash in hand</th><th>Unpaid earnings</th><th>Balance</th><th></th></tr></thead><tbody>${list.map((r) => `<tr>
+          <td><b>${esc(r.name || '—')}</b>${r.online ? ' <span class="badge ok">online</span>' : ''}<br><span class="muted small">${esc(r.phone || '')} · ${esc(r.vehicle)}</span></td>
+          <td><b>${tk(r.cashInHand)}</b>${r.overLimit ? ' <span class="badge err">over limit</span>' : ''}<br><span class="muted small">limit ${tk(r.cashLimit)}</span></td>
+          <td>${tk(r.unpaidEarnings)}<br><span class="muted small">earned ${tk(r.earnedTotal)}</span></td>
+          <td>${r.balance > 0 ? `<span class="badge warn">rider owes ${tk(r.balance)}</span>` : r.balance < 0 ? `<span class="badge ok">we owe ${tk(-r.balance)}</span>` : '<span class="badge">settled</span>'}</td>
+          <td><div class="row">${r.cashInHand > 0 ? `<button class="btn sm ghost" data-ledger="CASH_DEPOSIT" data-id="${esc(r.userId)}" data-max="${r.cashInHand}">Cash received</button>` : ''}${r.unpaidEarnings > 0 ? `<button class="btn sm ok" data-ledger="PAYOUT" data-id="${esc(r.userId)}" data-max="${r.unpaidEarnings}">Paid rider</button>` : ''}</div></td>
+        </tr>`).join('')}</tbody></table>` : empty('No approved riders yet.')}
+        <div class="card mt"><h3>How settlement works</h3><p class="muted">Each week: if a rider holds more cash than they earned, they hand in the difference. If they earned more, send the difference to their bKash and record it as “Paid rider”. Record both sides so the balance stays right.</p></div>`;
+    },
+
+    async rates() {
+      const r = await api('/admin/rates');
+      const n = (name, label, val, step = 1, hint = '') => `<label class="field">${label}<input class="input" type="number" min="0" step="${step}" name="${name}" value="${esc(val)}" required/>${hint ? `<span class="muted small">${hint}</span>` : ''}</label>`;
+      const ex = (km) => r.riderBase + Math.round(km * r.riderPerKm);
+      const fee = (km) => r.deliveryFee + Math.max(0, Math.ceil(km - r.freeKm)) * r.deliveryPerKm;
+      return `
+        <div class="top"><div><h1>Rates</h1><p class="muted">Version ${r.version}${r.updatedAt ? ' · changed ' + when(r.updatedAt) : ''}. Saving creates a new version: every cook and rider is notified and must accept before going online again.</p></div></div>
+        <div class="stats">
+          <div class="stat hero">Cook keeps<b>${100 - r.commissionPct}%</b><span class="small">commission ${r.commissionPct}%</span></div>
+          <div class="stat">৳200 order<b>${tk(200 - Math.round(200 * r.commissionPct / 100))}</b><span class="muted small">to the cook</span></div>
+          <div class="stat">4 km delivery<b>${tk(fee(4))}</b><span class="muted small">customer pays · rider gets ${tk(ex(4))}</span></div>
+          <div class="stat">8 km delivery<b>${tk(fee(8))}</b><span class="muted small">customer pays · rider gets ${tk(ex(8))}</span></div>
+        </div>
+        <form id="ratesForm" class="card mt" autocomplete="off">
+          <h3>Cooks</h3>
+          <div class="grid2">${n('commissionPct', 'Commission %', r.commissionPct, 0.5)}${n('serviceFee', 'Service fee (customer) ৳', r.serviceFee)}</div>
+          <h3 class="mt">Delivery (customer pays)</h3>
+          <div class="grid2">${n('deliveryFee', 'Delivery fee ৳', r.deliveryFee)}${n('batchDeliveryFee', 'Group-order delivery ৳', r.batchDeliveryFee)}
+            ${n('freeKm', 'Km included', r.freeKm, 0.5)}${n('deliveryPerKm', '৳ per extra km', r.deliveryPerKm)}</div>
+          <h3 class="mt">Riders</h3>
+          <div class="grid2">${n('riderBase', 'Base per drop ৳', r.riderBase)}${n('riderPerKm', '৳ per km', r.riderPerKm)}
+            ${n('riderBatchDrop', 'Base per group drop ৳', r.riderBatchDrop)}${n('riderCashLimit', 'Cash limit ৳', r.riderCashLimit, 100)}</div>
+          <label class="field mt">What changed (sent to all partners)<input class="input" name="summary" maxlength="200" required placeholder="e.g. Rider pay per km goes up from ৳6 to ৳7 from 10 Nov."/></label>
+          <button class="btn primary mt" type="submit">Save new rates</button>
+        </form>`;
     },
 
     async spotlights() {
@@ -231,7 +288,7 @@
         ${list.length ? `<table><thead><tr><th>When</th><th>Admin</th><th>Action</th><th>Detail</th></tr></thead><tbody>${list.map((l) => `<tr><td>${when(l.createdAt)}</td><td>${esc(l.adminEmail)}</td><td>${esc(l.action.replace(/_/g, ' ').toLowerCase())}</td><td class="muted small">${esc(l.detail || l.targetId || '')}</td></tr>`).join('')}</tbody></table>` : empty('Nothing yet.')}`;
     },
   };
-  const NAV = [['dashboard', 'Dashboard'], ['applications', 'Applications'], ['reports', 'Reports'], ['users', 'People'], ['orders', 'Orders'], ['payouts', 'Payouts'], ['spotlights', 'Home spotlight'], ['activity', 'Activity log']];
+  const NAV = [['dashboard', 'Dashboard'], ['applications', 'Applications'], ['reports', 'Reports'], ['support', 'Support'], ['users', 'People'], ['orders', 'Orders'], ['payouts', 'Cook payouts'], ['riders', 'Rider cash'], ['rates', 'Rates'], ['spotlights', 'Home spotlight'], ['activity', 'Activity log']];
 
   async function render() {
     const s = session.get();
@@ -296,6 +353,22 @@
   document.addEventListener('submit', (e) => {
     if (e.target.id === 'loginForm') { e.preventDefault(); submitLogin(e.target); }
     if (e.target.id === 'userSearch') { e.preventDefault(); state.filters.users = e.target.q.value.trim(); render(); }
+    if (e.target.id === 'ratesForm') {
+      e.preventDefault();
+      const f = e.target; const btn = f.querySelector('button[type=submit]');
+      const v = (n) => f.elements.namedItem(n).value;
+      const body = { summary: v('summary').trim() };
+      ['commissionPct', 'serviceFee', 'deliveryFee', 'batchDeliveryFee', 'freeKm', 'deliveryPerKm', 'riderBase', 'riderPerKm', 'riderBatchDrop', 'riderCashLimit'].forEach((k) => { body[k] = Number(v(k)); });
+      if (!confirm('Save these rates? Every cook and rider will be notified and asked to accept them.')) return;
+      btn.disabled = true;
+      api('/admin/rates', { method: 'POST', body }).then((r) => { toast(`Saved version ${r.version} · ${r.told} partners notified`); render(); }).catch((err) => { btn.disabled = false; toast(err.message); });
+    }
+    if (e.target.dataset.ticket) {
+      e.preventDefault();
+      const f = e.target; const btn = f.querySelector('button[type=submit]'); btn.disabled = true;
+      const body = { body: f.elements.namedItem('body').value.trim(), close: f.elements.namedItem('close').checked };
+      api('/admin/tickets/' + f.dataset.ticket + '/reply', { method: 'POST', body }).then(() => { toast('Reply sent'); render(); }).catch((err) => { btn.disabled = false; toast(err.message); });
+    }
     if (e.target.dataset.spot) {
       e.preventDefault();
       const f = e.target; const btn = f.querySelector('button[type=submit]'); btn.disabled = true;
@@ -326,10 +399,17 @@
         toast(d.decide === 'approve' ? 'Approved — they have been notified' : 'Saved — they have been notified'); return render();
       }
       if (d.report) {
+        let refundAmount;
+        if (d.report === 'REFUND') {
+          const amt = await ask('Refund amount (৳)', `Order total ${tk(Number(d.total))} · ${d.method === 'COD' ? 'cash order — send it to their bKash' : 'online — a full refund goes back automatically'}. Leave empty for the full amount.`, false);
+          if (amt === null) return;
+          refundAmount = amt ? Math.round(Number(amt.replace(/[^\d.]/g, ''))) : undefined;
+          if (amt && !(refundAmount > 0)) { toast('Enter a number'); return; }
+        }
         const note = await ask(d.report === 'INVESTIGATING' ? 'Message to the customer' : 'Resolution message to the customer', 'Optional', false);
         if (note === null) return;
         el.disabled = true;
-        await api(`/admin/complaints/${d.id}`, { method: 'POST', body: { status: d.report === 'INVESTIGATING' ? 'INVESTIGATING' : 'RESOLVED', refund: d.report === 'REFUND', note: note || undefined } });
+        await api(`/admin/complaints/${d.id}`, { method: 'POST', body: { status: d.report === 'INVESTIGATING' ? 'INVESTIGATING' : 'RESOLVED', refund: d.report === 'REFUND', refundAmount, note: note || undefined } });
         toast('Report updated'); return render();
       }
       if (d.user) {
@@ -338,6 +418,17 @@
         el.disabled = true;
         await api(`/admin/users/${d.id}/${d.user}`, { method: 'POST', body: d.user === 'suspend' ? { note } : {} });
         toast(d.user === 'suspend' ? 'Suspended and signed out' : 'Restored'); return render();
+      }
+      if (d.ledger) {
+        const amt = await ask(d.ledger === 'PAYOUT' ? 'Earnings paid to the rider (৳)' : 'Cash received from the rider (৳)', `Up to ${tk(Number(d.max))}`, true);
+        if (amt === null) return;
+        const amount = Math.round(Number(amt.replace(/[^\d.]/g, '')));
+        if (!(amount > 0)) { toast('Enter a number'); return; }
+        const ref = await ask('Reference', d.ledger === 'PAYOUT' ? 'bKash transaction ID' : 'Receipt number or note (optional)', d.ledger === 'PAYOUT');
+        if (ref === null) return;
+        el.disabled = true;
+        await api(`/admin/riders/${d.id}/ledger`, { method: 'POST', body: { kind: d.ledger, amount, reference: ref || undefined } });
+        toast('Recorded — the rider can see it in Earnings'); return render();
       }
       if (d.payout) {
         const ref = await ask(d.payout === 'PAID' ? 'Mark payout as paid' : 'Mark payout as failed', d.payout === 'PAID' ? 'bKash transaction ID' : 'Reason', d.payout === 'PAID');

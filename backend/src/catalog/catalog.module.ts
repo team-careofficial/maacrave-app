@@ -30,7 +30,7 @@ export class CatalogService {
   async meta() {
     const s = await this.prisma.settings();
     const coupons = await this.prisma.coupon.findMany({ where: { active: true }, select: { code: true, description: true } });
-    return { categories: CATEGORIES, areas: DHAKA_AREAS, fees: { serviceFee: s.serviceFee, deliveryFee: s.deliveryFee, batchDeliveryFee: s.batchDeliveryFee, commissionPct: s.commissionPct }, coupons,
+    return { categories: CATEGORIES, areas: DHAKA_AREAS, fees: { serviceFee: s.serviceFee, deliveryFee: s.deliveryFee, batchDeliveryFee: s.batchDeliveryFee, commissionPct: s.commissionPct, freeKm: s.freeKm, deliveryPerKm: s.deliveryPerKm }, coupons,
       payments: { bkash: !!(process.env.BKASH_APP_KEY && process.env.BKASH_APP_SECRET), card: !!(process.env.SSLCZ_STORE_ID && process.env.SSLCZ_STORE_PASSWORD), cod: true } };
   }
 

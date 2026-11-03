@@ -43,8 +43,9 @@ export default function Checkout() {
   const cookId = p.kind === 'cart' ? cart.cookId : p.kind === 'batch' ? batchQ.data?.cookId : reqQ.data?.find((r) => r.id === p.requestId)?.proposals.find((x) => x.id === p.proposalId)?.cook.id;
   const cookQ = useQuery({ queryKey: ['cook', cookId], queryFn: () => API.cook(cookId!), enabled: !!cookId });
 
-  const quote = useQuery({ queryKey: ['quote', body], queryFn: () => API.quote(body!), enabled: !!body });
   const addr = addresses.data?.find((a) => a.id === addressId) || addresses.data?.find((a) => a.isDefault) || addresses.data?.[0];
+  // Delivery is priced by distance, so the quote follows the chosen address.
+  const quote = useQuery({ queryKey: ['quote', body, addr?.id], queryFn: () => API.quote({ ...body!, addressId: addr?.id }), enabled: !!body });
   const pay = meta.data?.payments;
 
   const place = useMutation({
@@ -109,7 +110,7 @@ export default function Checkout() {
                 {quote.data!.items.map((i, k) => <KV key={k} k={`${i.quantity} × ${i.name}`} v={tk(i.unitPrice * i.quantity)} />)}
                 <Divider />
                 <KV k="Subtotal" v={tk(f.subtotal)} />
-                <KV k={p.kind === 'batch' ? 'Delivery (group rate)' : 'Delivery'} v={tk(f.deliveryFee)} />
+                <KV k={`${p.kind === 'batch' ? t('Delivery (group rate)', 'ডেলিভারি (গ্রুপ রেট)') : t('Delivery', 'ডেলিভারি')}${f.distanceKm ? ` · ${num(f.distanceKm.toFixed(1))} ${t('km', 'কিমি')}` : ''}`} v={tk(f.deliveryFee)} />
                 <KV k="Service fee" v={tk(f.serviceFee)} />
                 {f.discount ? <KV k={`Discount (${f.couponCode})`} v={`−${tk(f.discount)}`} color={C.ok} /> : null}
                 <Divider />

@@ -25,7 +25,7 @@ function Gate() {
     if (status === 'loading') return;
     SplashScreen.hideAsync().catch(() => undefined);
     const inAuth = segments[0] === '(auth)';
-    if (segments[0] === 'payment-result' || segments[1] === 'terms' || segments[1] === 'privacy') return;
+    if (segments[0] === 'payment-result' || ['terms', 'privacy', 'refund', 'cook-terms', 'rider-terms'].includes(segments[1] as string)) return;
     if (status === 'signedOut' && !inAuth) router.replace('/sign-in');
     else if (status === 'needsProfile' && segments[1] !== 'profile-setup') router.replace('/profile-setup');
     else if (status === 'ready' && inAuth) {
