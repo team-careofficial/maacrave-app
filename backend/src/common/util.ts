@@ -21,4 +21,4 @@ export const REGIONS = ['chattogram', 'sylhet', 'barishal', 'old-dhaka', 'rajsha
 /** Health and diet labels a cook can put on a dish. */
 export const HEALTH_TAGS = ['diabetic', 'low-oil', 'low-salt', 'kids', 'patient', 'veg'];
 /** Things customers can say they avoid; dishes listing these in allergens get a warning. */
-export const ALLERGENS = ['nuts', 'dairy', 'egg', 'shrimp', 'fish', 'beef', 'gluten', 'mushroom'];
+export const ALLERGENS = ['Milk', 'Egg', 'Fish', 'Shellfish', 'Nuts', 'Peanut', 'Wheat', 'Soy', 'Sesame', 'Mustard'];

@@ -116,6 +116,11 @@ export default function Checkout() {
           <Section title="Order summary" style={{ marginTop: S.lg }}>
             {quote.isLoading ? <Loading /> : quote.error ? <ErrorState error={quote.error} onRetry={quote.refetch} /> : f ? (
               <Card style={{ gap: S.sm }}>
+                {quote.data!.scheduledFor ? (
+                  <View style={{ backgroundColor: C.turmericSoft, borderRadius: 12, padding: 10 }}>
+                    <T v="label" color={C.onTurmeric}>{t(`🎉 Festival pre-order: arrives ${new Date(quote.data!.scheduledFor).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}`, `🎉 উৎসবের প্রি-অর্ডার: পৌঁছাবে ${new Date(quote.data!.scheduledFor).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}`)}</T>
+                  </View>
+                ) : null}
                 {quote.data!.items.map((i, k) => <KV key={k} k={`${i.quantity} × ${i.name}`} v={tk(i.unitPrice * i.quantity)} />)}
                 <Divider />
                 <KV k="Subtotal" v={tk(f.subtotal)} />

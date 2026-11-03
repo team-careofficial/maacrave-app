@@ -6,10 +6,14 @@ import { Pressable, View } from 'react-native';
 import { API } from '@/api';
 import { useAuth } from '@/auth';
 import { C, R, S } from '@/theme';
-import { Avatar, Button, Card, confirm, ErrorState, Field, Header, Input, Loading, Row, Screen, Section, Stepper, T, useToast } from '@/ui';
+import { Button, Card, Chip, confirm, ErrorState, Field, Header, Input, Loading, Row, Screen, Section, Stepper, T, useToast } from '@/ui';
 import { ModeSwitch } from '@/ui/mode';
 import { PinPicker } from '@/ui/map';
 import { AREA_COORDS, DHAKA, type Point } from '@/geo';
+import { t, useLang } from '@/i18n';
+import { REGIONS } from '@/maa';
+import { MotherPhoto } from '@/ui/maa';
+import { MediaSlot } from '@/ui/photo';
 
 const CHECKS = ['Clean cooking area and utensils', 'Safe drinking water for cooking', 'Fridge for raw meat and fish', 'Hair covered and hands washed while cooking', 'Food packed in sealed, food-grade boxes'];
 
@@ -25,9 +29,17 @@ export default function KitchenSettings() {
   const [wallet, setWallet] = useState('');
   const [checks, setChecks] = useState(0);
   const [pin, setPin] = useState<Point | null>(null);
-  useEffect(() => { if (k) { setIntro(k.intro || ''); setHours(k.hours || ''); setCapacity(k.dailyCapacity); setWallet(k.payoutWallet || ''); setChecks(k.hygieneChecks); } }, [k]);
+  const lang = useLang();
+  const [story, setStory] = useState('');
+  const [region, setRegion] = useState<string | null>(null);
+  useEffect(() => { if (k) { setIntro(k.intro || ''); setHours(k.hours || ''); setCapacity(k.dailyCapacity); setWallet(k.payoutWallet || ''); setChecks(k.hygieneChecks); setStory(k.story || ''); setRegion(k.region || null); } }, [k]);
+  // Photos save the moment they're uploaded, so a picture is never lost.
+  const savePhoto = useMutation({
+    mutationFn: (b: { portraitId?: string; kitchenPhotoId?: string }) => API.updateKitchen(b),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['kitchen'] }); qc.invalidateQueries({ queryKey: ['me'] }); toast(t('Photo saved', 'ছবি সেভ হয়েছে')); }, onError: (e) => toast((e as Error).message),
+  });
   const save = useMutation({
-    mutationFn: () => API.updateKitchen({ intro: intro.trim(), hours: hours.trim(), dailyCapacity: capacity, payoutWallet: wallet.trim() || undefined, hygieneChecks: checks, ...(pin ? { lat: pin.lat, lng: pin.lng } : {}) }),
+    mutationFn: () => API.updateKitchen({ intro: intro.trim(), story: story.trim(), region: region || '', hours: hours.trim(), dailyCapacity: capacity, payoutWallet: wallet.trim() || undefined, hygieneChecks: checks, ...(pin ? { lat: pin.lat, lng: pin.lng } : {}) }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['kitchen'] }); toast('Kitchen saved'); }, onError: (e) => toast((e as Error).message),
   });
 
@@ -36,10 +48,27 @@ export default function KitchenSettings() {
       {q.isLoading ? <Loading /> : q.error || !k ? <ErrorState error={q.error} onRetry={q.refetch} /> : (
         <>
           <Card white style={{ flexDirection: 'row', alignItems: 'center', gap: S.md, marginTop: S.sm }}>
-            <Avatar name={k.displayName} size={52} />
+            <MotherPhoto c={k} size={52} />
             <View style={{ flex: 1 }}><T v="card">{k.displayName}</T><T v="meta">{k.area} · {k.completedOrders} orders · {k.rating ? `${k.rating.toFixed(1)}★` : 'New'}</T></View>
             <Button title="View" size="sm" v="ghost" onPress={() => router.push(`/cook/${k.id}`)} />
           </Card>
+
+          <Section title={t('Your story', 'আপনার গল্প')} sub={t('Customers choose a mother, not a restaurant. Let them meet you.', 'মানুষ রেস্টুরেন্ট না, একজন মাকে বেছে নেন। তাঁদের সাথে পরিচয় করিয়ে দিন।')}>
+            <View style={{ gap: S.lg }}>
+              <Row gap={S.lg} style={{ alignItems: 'flex-start' }}>
+                <MediaSlot kind="PORTRAIT" round value={k.portraitId} onChange={(id) => savePhoto.mutate({ portraitId: id || '' })} label={t('Your photo', 'আপনার ছবি')} hint={t('Smiling, face clear', 'হাসিমুখে, মুখ পরিষ্কার')} />
+                <View style={{ flex: 1 }}>
+                  <MediaSlot kind="KITCHEN" value={k.kitchenPhotoId} onChange={(id) => savePhoto.mutate({ kitchenPhotoId: id || '' })} label={t('Your kitchen', 'আপনার রান্নাঘর')} hint={t('Clean and bright: builds trust', 'পরিষ্কার ও আলোকিত: বিশ্বাস বাড়ায়')} />
+                </View>
+              </Row>
+              <Input label={t('In your own words', 'নিজের ভাষায়')} value={story} onChangeText={setStory} maxLength={600} multiline
+                placeholder={t('e.g. I’ve cooked for my family for 30 years. My shorshe ilish is what my children miss most…', 'যেমন: ৩০ বছর ধরে পরিবারের জন্য রান্না করছি। আমার সর্ষে ইলিশ আমার ছেলেমেয়েরা সবচেয়ে বেশি মিস করে…')} style={{ minHeight: 110, alignItems: 'flex-start', paddingVertical: 12 }} />
+              <Field label={t('Your home district', 'আপনার জেলা')}>
+                <Row gap={S.sm} wrap>{Object.entries(REGIONS).map(([key, r]) => <Chip key={key} label={lang === 'bn' ? r.bn : r.en} on={region === key} onPress={() => setRegion(region === key ? null : key)} />)}</Row>
+                <T v="meta" style={{ marginTop: 6 }}>{t('Your dishes show under “A taste of home” for that district.', 'আপনার পদগুলো সেই জেলার “নিজের জেলার স্বাদ”-এ দেখাবে।')}</T>
+              </Field>
+            </View>
+          </Section>
 
           <Section title="Profile">
             <View style={{ gap: S.lg }}>

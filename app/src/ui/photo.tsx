@@ -3,6 +3,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { Camera, ImagePlus, X } from 'lucide-react-native';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Image, Platform, View } from 'react-native';
+import { API } from '../api';
+import { mediaUrl } from '../maa';
 import { C, R, S } from '../theme';
 import { T, Tap } from './index';
 
@@ -64,3 +66,50 @@ export function PhotoSlot({ label, value, onChange, required }: { label: string;
 }
 
 export const PhotoRow = ({ children }: { children: React.ReactNode }) => <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: S.md }}>{children}</View>;
+
+/**
+ * A photo the cook uploads straight away (dish, her portrait, her kitchen). Value is the uploaded photo's id.
+ * Wide slots suit dishes and kitchens; round ones suit a portrait.
+ */
+export function MediaSlot({ kind, value, onChange, label, hint, round }: { kind: 'DISH' | 'PORTRAIT' | 'KITCHEN'; value: string | null | undefined; onChange: (id: string | null) => void; label: string; hint?: string; round?: boolean }) {
+  const [busy, setBusy] = useState(false);
+  const say = (m: string) => (Platform.OS === 'web' ? globalThis.alert?.(m) : Alert.alert('Photo', m));
+  const run = async (source: 'camera' | 'library') => {
+    try {
+      const uri = await pick(source);
+      if (!uri) return;
+      setBusy(true);
+      const r = await API.uploadPhoto(kind, await compress(uri));
+      onChange(r.id);
+    } catch (e) { say((e as Error).message); } finally { setBusy(false); }
+  };
+  const choose = () => {
+    if (Platform.OS === 'web') return run('library');
+    Alert.alert(label, undefined, [{ text: 'Take photo', onPress: () => run('camera') }, { text: 'Choose from gallery', onPress: () => run('library') }, { text: 'Cancel', style: 'cancel' }]);
+  };
+  const uri = mediaUrl(value);
+  const box = round ? { width: 112, height: 112, borderRadius: 56 } : { width: '100%' as const, aspectRatio: 4 / 3, borderRadius: R.lg };
+  return (
+    <View style={{ gap: 6, alignItems: round ? 'center' : 'stretch' }}>
+      <View style={round ? undefined : { width: '100%' }}>
+        <Tap onPress={choose} scale={0.97} label={label}
+          style={{ ...box, overflow: 'hidden', backgroundColor: C.turmericSoft, borderWidth: 1.5, borderStyle: uri ? 'solid' : 'dashed', borderColor: uri ? C.turmeric : C.turmericDeep, alignItems: 'center', justifyContent: 'center' }}>
+          {busy ? <ActivityIndicator color={C.brand} /> : uri ? (
+            <Image source={{ uri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+          ) : (
+            <View style={{ alignItems: 'center', gap: 4, padding: 8 }}>
+              {Platform.OS === 'web' ? <ImagePlus size={26} color={C.brand} /> : <Camera size={26} color={C.brand} />}
+              <T v="label" color={C.brandText} center>{label}</T>
+            </View>
+          )}
+        </Tap>
+        {uri && !busy ? (
+          <Tap onPress={() => onChange(null)} label={`Remove ${label}`} style={{ position: 'absolute', top: 8, right: round ? 0 : 8, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.55)', alignItems: 'center', justifyContent: 'center' }}>
+            <X size={15} color="#fff" />
+          </Tap>
+        ) : null}
+      </View>
+      {hint ? <T v="meta" center={round}>{hint}</T> : null}
+    </View>
+  );
+}

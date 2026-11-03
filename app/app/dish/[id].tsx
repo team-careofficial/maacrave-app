@@ -2,7 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { AlertTriangle, BadgeCheck, Clock, Flame, Heart, ShoppingBag, Users } from 'lucide-react-native';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Image, View } from 'react-native';
+import { useAuth } from '@/auth';
+import { allergyHits, mediaUrl, regionOf } from '@/maa';
+import { AllergyNote, HealthPills, MotherPhoto, RegionPill } from '@/ui/maa';
 import { API } from '@/api';
 import { useCart } from '@/cart';
 import { tk } from '@/format';
@@ -19,6 +22,9 @@ export default function DishScreen() {
   const cart = useCart();
   const fav = useFavorites();
   const d = q.data;
+  const { me } = useAuth();
+  const photo = mediaUrl(d?.photoId);
+  const hits = d ? allergyHits(d, me?.allergies) : [];
 
   return (
     <Screen
@@ -36,6 +42,17 @@ export default function DishScreen() {
       ) : undefined}>
       {q.isLoading ? <Loading /> : q.error || !d ? <ErrorState error={q.error} onRetry={q.refetch} /> : (
         <View style={{ gap: S.lg }}>
+          {photo ? (
+            <View style={{ marginTop: S.sm, borderRadius: 30, overflow: 'hidden', backgroundColor: C.sunken }}>
+              <Image source={{ uri: photo }} style={{ width: '100%', aspectRatio: 4 / 3 }} resizeMode="cover" accessibilityLabel={d.name} />
+              <View style={{ position: 'absolute', left: S.lg, top: S.lg, backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: R.pill, paddingHorizontal: 12, height: 28, justifyContent: 'center' }}>
+                <T v="eyebrow" color={ON_GLOSS}>{CATEGORY_META[d.category]?.label || d.category}</T>
+              </View>
+              <View style={{ position: 'absolute', right: S.md, bottom: S.md, backgroundColor: 'rgba(46,29,20,0.6)', borderRadius: R.pill, paddingHorizontal: 10, height: 24, justifyContent: 'center' }}>
+                <T v="meta" color="#fff">{d.cook ? `📷 ${d.cook.displayName.split(' ')[0]}` : '📷'}</T>
+              </View>
+            </View>
+          ) : (
           <Glossy style={{ marginTop: S.sm }} radius={30}>
             <View style={{ height: 210, alignItems: 'center', justifyContent: 'center' }}>
               <Rings size={340} right={-60} top={-70} />
@@ -49,6 +66,7 @@ export default function DishScreen() {
               </View>
             </View>
           </Glossy>
+          )}
           <View style={{ gap: 6 }}>
             <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <View style={{ flex: 1 }}>
@@ -65,6 +83,8 @@ export default function DishScreen() {
               {d.spice ? <Row gap={1}>{Array.from({ length: d.spice }).map((_, i) => <Flame key={i} size={13} color={C.err} />)}</Row> : null}
             </Row>
           </View>
+          {(d.healthTags?.length || regionOf(d)) ? <View style={{ gap: 6 }}><RegionPill region={regionOf(d)} /><HealthPills tags={d.healthTags} max={6} /></View> : null}
+          <AllergyNote hits={hits} />
           {d.description ? <T v="body" color={C.text2}>{d.description}</T> : null}
 
           {d.openBatch ? (
@@ -77,7 +97,7 @@ export default function DishScreen() {
           {d.cook ? (
             <Card onPress={() => router.push(`/cook/${d.cook!.id}`)}>
               <Row>
-                <Avatar name={d.cook.displayName} />
+                <MotherPhoto c={d.cook} size={44} />
                 <View style={{ flex: 1 }}>
                   <Row gap={4}><T v="card">{d.cook.displayName}</T><BadgeCheck size={15} color={C.brand} /></Row>
                   <T v="meta">{d.cook.area} · {d.cook.completedOrders} orders · {d.cook.hours}</T>
