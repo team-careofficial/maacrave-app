@@ -97,6 +97,16 @@
           <div class="stat">Support<b>${s.openTickets || 0}</b><span class="muted small">waiting for a reply</span></div>
           <div class="stat">People<b>${s.users}</b><span class="muted small">${s.cooks} cooks · ${s.riders} riders</span></div>
         </div>
+        ${s.stuck && s.stuck.length ? `<div class="card mt" style="border-color:var(--err)"><h3>⚠ Food ready, no rider (12+ min)</h3><p class="muted small">Riders were alerted again automatically. Call a rider or cancel with a reason in Orders.</p>
+          <table><thead><tr><th>Order</th><th>Kitchen</th><th>Drop area</th><th>Ready since</th></tr></thead><tbody>${s.stuck.map((o) => `<tr><td>${esc(o.code)}</td><td>${esc(o.cook.displayName)} · ${esc(o.cook.area)}</td><td>${esc(o.area)}</td><td>${when(o.updatedAt)}</td></tr>`).join('')}</tbody></table></div>` : ''}
+        ${s.margin ? `<div class="card mt"><h3>What MaaCrave really keeps · last 30 days</h3>
+          <div class="stats">
+            <div class="stat">Delivered orders<b>${s.margin.orders}</b><span class="muted small">sales ${tk(s.margin.sales)}</span></div>
+            <div class="stat">Gross take<b>${tk(s.margin.gross)}</b><span class="muted small">commission + service + delivery − rider pay − discounts</span></div>
+            <div class="stat">Gateway fees<b>−${tk(s.margin.gateway)}</b><span class="muted small">estimated at ${s.margin.gatewayPct}% of online payments</span></div>
+            <div class="stat">Refunds we paid<b>−${tk(s.margin.refunds)}</b><span class="muted small">complaints charged to MaaCrave</span></div>
+            <div class="stat hero">Net<b>${tk(s.margin.net)}</b><span class="small">${tk(s.margin.perOrder)} per order, before server, marketing and staff costs</span></div>
+          </div></div>` : ''}
         <div class="card mt"><h3>Quick start</h3><p class="muted">Check <b>Applications</b> first — mothers can’t sell until you approve them. Open each NID and kitchen photo before approving.</p>
           <div class="row"><button class="btn primary" data-go="applications">Review applications</button><button class="btn ghost" data-go="reports">Open reports</button></div></div>`;
     },
@@ -118,7 +128,7 @@
               <dt>Email</dt><dd>${esc(u.email || '—')}</dd>
               <dt>Area</dt><dd>${esc(p?.area || u.area || '—')}</dd>
               <dt>NID last 4</dt><dd>${esc(p?.nidLast4 || '—')}</dd>
-              ${a.role === 'COOK' ? `<dt>Specialties</dt><dd>${esc((p?.specialties || []).join(', ') || '—')}</dd><dt>Hours · capacity</dt><dd>${esc(p?.hours)} · ${esc(p?.dailyCapacity)} portions/day</dd><dt>Experience</dt><dd>${esc(p?.experience || '—')}</dd><dt>Kitchen</dt><dd>${esc(p?.kitchenInfo || '—')}</dd>` : `<dt>Vehicle</dt><dd>${esc(p?.vehicle)}</dd>`}
+              ${a.role === 'COOK' ? `<dt>Specialties</dt><dd>${esc((p?.specialties || []).join(', ') || '—')}</dd><dt>Hours · capacity</dt><dd>${esc(p?.hours)} · ${esc(p?.dailyCapacity)} portions/day</dd><dt>Experience</dt><dd>${esc(p?.experience || '—')}</dd><dt>Kitchen</dt><dd>${esc(p?.kitchenInfo || '—')}</dd><dt>Food licence</dt><dd>${esc(p?.foodLicence || 'Not given')}</dd>` : `<dt>Vehicle</dt><dd>${esc(p?.vehicle)}</dd>`}
               ${a.note ? `<dt>Last note</dt><dd>${esc(a.note)}</dd>` : ''}
             </dl>
             <div class="docs">${u.documents.length ? u.documents.map((d) => `<button class="doc" data-doc="${esc(d.id)}">View<br>${esc(d.kind.replace('_', ' ').toLowerCase())}</button>`).join('') : '<span class="muted small">No photos uploaded (applied before photos were required).</span>'}</div>
@@ -285,6 +295,18 @@
         }).join('')}</div>`;
     },
 
+    async kitchens() {
+      const list = await api('/admin/kitchens');
+      const d = (x) => (x ? new Date(x).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
+      return `<div class="top"><div><h1>Kitchen safety</h1><p class="muted">Inspections, food-safety reports and pauses. A kitchen with 3 food-safety reports in 30 days is paused automatically until you check it.</p></div></div>
+        ${list.length ? `<table><thead><tr><th>Kitchen</th><th>Reports (30 d)</th><th>Hygiene</th><th>Last inspection</th><th>Licence</th><th>Status</th><th></th></tr></thead><tbody>${list.map((c) => `<tr>
+          <td><b>${esc(c.displayName)}</b><div class="muted small">${esc(c.area)} · ${c.ratingCount ? c.rating.toFixed(1) + '★' : 'New'} · ${c.completedOrders} orders</div></td>
+          <td>${c.safetyReports30d ? `<span class="badge ${c.safetyReports30d >= 3 ? 'err' : 'warn'}">${c.safetyReports30d}</span>` : '0'}</td>
+          <td>${c.hygieneChecks}/5</td><td>${d(c.inspectedAt)}</td><td class="small">${esc(c.foodLicence || '—')}</td>
+          <td>${c.paused ? `<span class="badge err">Paused</span><div class="muted small">${esc(c.pauseReason || '')}</div>` : c.accepting ? '<span class="badge ok">Open</span>' : '<span class="badge">Closed</span>'}${c.awayUntil && new Date(c.awayUntil) > new Date() ? `<div class="muted small">On leave until ${d(c.awayUntil)}</div>` : ''}</td>
+          <td class="row">${c.paused ? `<button class="btn small" data-kresume="${esc(c.id)}">Reopen</button>` : `<button class="btn small danger" data-kpause="${esc(c.id)}">Pause</button>`}<button class="btn small" data-kinspect="${esc(c.id)}">Inspected today</button></td></tr>`).join('')}</tbody></table>` : empty('No approved kitchens yet.')}`;
+    },
+
     async festivals() {
       const list = await api('/admin/festivals');
       // Times are entered and shown in Dhaka time (UTC+6).
@@ -340,7 +362,7 @@
         ${list.length ? `<table><thead><tr><th>When</th><th>Admin</th><th>Action</th><th>Detail</th></tr></thead><tbody>${list.map((l) => `<tr><td>${when(l.createdAt)}</td><td>${esc(l.adminEmail)}</td><td>${esc(l.action.replace(/_/g, ' ').toLowerCase())}</td><td class="muted small">${esc(l.detail || l.targetId || '')}</td></tr>`).join('')}</tbody></table>` : empty('Nothing yet.')}`;
     },
   };
-  const NAV = [['dashboard', 'Dashboard'], ['applications', 'Applications'], ['reports', 'Reports'], ['support', 'Support'], ['users', 'People'], ['orders', 'Orders'], ['payouts', 'Cook payouts'], ['riders', 'Rider cash'], ['rates', 'Rates'], ['spotlights', 'Home spotlight'], ['festivals', 'Festivals'], ['mothers', 'Mother of the week'], ['photos', 'Photos'], ['activity', 'Activity log']];
+  const NAV = [['dashboard', 'Dashboard'], ['applications', 'Applications'], ['reports', 'Reports'], ['support', 'Support'], ['users', 'People'], ['orders', 'Orders'], ['payouts', 'Cook payouts'], ['riders', 'Rider cash'], ['rates', 'Rates'], ['spotlights', 'Home spotlight'], ['kitchens', 'Kitchen safety'], ['festivals', 'Festivals'], ['mothers', 'Mother of the week'], ['photos', 'Photos'], ['activity', 'Activity log']];
 
   async function render() {
     const s = session.get();
@@ -463,6 +485,23 @@
       if (d.go) { state.view = d.go; return render(); }
       if (d.filter) { state.filters[d.filter] = d.value; return render(); }
       if (d.doc) return showDoc(d.doc);
+      if (d.kpause) {
+        const reason = await ask('Why pause this kitchen?', 'The cook sees this (e.g. “Hygiene complaint — inspection needed”)', true);
+        if (reason === null) return;
+        const days = await ask('For how many days?', 'Number of days (1–365)', true);
+        if (days === null) return;
+        el.disabled = true;
+        await api('/admin/kitchens/' + d.kpause + '/pause', { method: 'POST', body: { reason, days: Math.max(1, Math.min(365, parseInt(days, 10) || 7)) } });
+        toast('Kitchen paused — the cook has been told'); return render();
+      }
+      if (d.kresume) { el.disabled = true; await api('/admin/kitchens/' + d.kresume + '/resume', { method: 'POST' }); toast('Kitchen can reopen'); return render(); }
+      if (d.kinspect) {
+        const note = await ask('Inspection notes', 'What you checked (optional)', false);
+        if (note === null) return;
+        el.disabled = true;
+        await api('/admin/kitchens/' + d.kinspect + '/inspected', { method: 'POST', body: { note: note || undefined } });
+        toast('Inspection recorded — shown to customers'); return render();
+      }
       if ('feature' in d) {
         el.disabled = true;
         await api('/admin/featured', { method: 'POST', body: { cookId: d.feature || null } });

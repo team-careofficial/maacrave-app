@@ -124,7 +124,18 @@ export const REFUND: LegalDoc = {
       { en: 'Before the cook starts cooking: cancel free from the order screen. Online payments are refunded in full.', bn: 'রান্না শুরুর আগে: অর্ডার পাতা থেকে বিনা খরচে বাতিল। অনলাইন পেমেন্ট পুরো ফেরত।' },
       { en: 'After cooking starts: the order can’t be cancelled, because it is being made just for you.', bn: 'রান্না শুরুর পরে: বাতিল করা যায় না, কারণ খাবারটি শুধু আপনার জন্য তৈরি হচ্ছে।' },
       { en: 'If the cook declines or can’t make it, or a group order doesn’t fill, you get a full refund automatically.', bn: 'রাঁধুনি অর্ডার নিতে না পারলে বা গ্রুপ অর্ডার পূর্ণ না হলে নিজে থেকেই পুরো টাকা ফেরত।' },
+      { en: 'If the cook doesn’t accept within 20 minutes (3 hours before delivery for a pre-order), the order is cancelled and refunded automatically.', bn: 'রাঁধুনি ২০ মিনিটের মধ্যে গ্রহণ না করলে (প্রি-অর্ডারে ডেলিভারির ৩ ঘণ্টা আগে পর্যন্ত) অর্ডার নিজে থেকে বাতিল ও টাকা ফেরত হয়।' },
     ] },
+    { h: { en: 'If something goes wrong on our side', bn: 'আমাদের দিক থেকে সমস্যা হলে' }, p: { en: 'Situations you don’t have to argue about:', bn: 'যেসব ক্ষেত্রে আপনাকে কিছু প্রমাণ করতে হবে না:' }, points: [
+      { en: 'The cook cancels after accepting: full refund; the cook’s ranking drops.', bn: 'রাঁধুনি গ্রহণ করে পরে বাতিল করলে: পুরো টাকা ফেরত; রাঁধুনির র‍্যাংকিং কমে।' },
+      { en: 'Food is ready but no rider can be found: we alert more riders, then our team calls you. If it can’t be delivered, full refund.', bn: 'খাবার তৈরি কিন্তু রাইডার পাওয়া যাচ্ছে না: আরও রাইডারকে জানাই, তারপর আমাদের টিম আপনাকে ফোন করে। ডেলিভারি না হলে পুরো টাকা ফেরত।' },
+      { en: 'A rider hands back the trip before pickup: another rider is assigned, at no cost to you.', bn: 'পিকআপের আগে রাইডার ট্রিপ ফেরত দিলে: অন্য রাইডার দেওয়া হয়, আপনার কোনো খরচ নেই।' },
+      { en: 'An order is cancelled after pickup: full refund; the cost is charged to whoever caused it.', bn: 'পিকআপের পর অর্ডার বাতিল হলে: পুরো টাকা ফেরত; খরচ যার কারণে হয়েছে তার।' },
+      { en: 'You paid online but the order failed: the payment is matched to the order and refunded automatically.', bn: 'অনলাইনে টাকা দিয়েছেন কিন্তু অর্ডার হয়নি: পেমেন্টটি অর্ডারের সাথে মিলিয়ে নিজে থেকে ফেরত দেওয়া হয়।' },
+    ] },
+    { h: { en: 'Allergies', bn: 'অ্যালার্জি' }, p: {
+      en: 'Cooks declare the allergens in every dish, and your saved allergies are sent with each order. Home kitchens share pots and spices, so MaaCrave cannot guarantee a dish is free of traces. If a dish contained an allergen the cook didn’t declare, report it as “Wrong allergen info”: you get a full refund, and repeated reports pause the kitchen.',
+      bn: 'রাঁধুনিরা প্রতিটি খাবারের অ্যালার্জেন জানান, আর আপনার সেভ করা অ্যালার্জি প্রতিটি অর্ডারের সাথে মাকে পাঠানো হয়। ঘরের রান্নাঘরে হাঁড়ি-মশলা একসাথে ব্যবহার হয়, তাই MaaCrave শতভাগ নিশ্চয়তা দিতে পারে না যে সামান্যও মিশবে না। রাঁধুনি না জানানো কোনো অ্যালার্জেন খাবারে থাকলে “Wrong allergen info” হিসেবে জানান: পুরো টাকা ফেরত পাবেন, আর বারবার এমন হলে রান্নাঘর বন্ধ রাখা হয়।' } },
     { h: { en: 'When you get a refund', bn: 'কখন টাকা ফেরত পাবেন' }, p: { en: 'Report the problem from the order screen within 24 hours of delivery. Photos help us act faster.', bn: 'ডেলিভারির ২৪ ঘণ্টার মধ্যে অর্ডার পাতা থেকে সমস্যা জানান। ছবি দিলে দ্রুত সমাধান হয়।' }, points: [
       { en: 'Order never arrived — full refund.', bn: 'অর্ডার পৌঁছায়নি — পুরো টাকা ফেরত।' },
       { en: 'Wrong or missing items — refund for those items, or the full order if it can’t be eaten.', bn: 'ভুল বা কম খাবার — ওই অংশের টাকা, খাওয়ার অযোগ্য হলে পুরো টাকা।' },
