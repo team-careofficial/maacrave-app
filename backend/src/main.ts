@@ -13,6 +13,8 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bodyParser: false });
   app.use(json({ limit: '12mb' }));
   app.use(urlencoded({ extended: true, limit: '1mb' })); // SSLCommerz posts form data
+  // Render sits in front of the app: trust its proxy so rate limits see each visitor's real IP, not the proxy's.
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
   app.use(helmet());
   app.enableCors({ origin: (process.env.CORS_ORIGINS || '').split(',').map((s) => s.trim()).filter(Boolean), credentials: false });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: false, transform: true }));

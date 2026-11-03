@@ -136,7 +136,7 @@ export const API = {
   kitchenBatches: () => api<KitchenBatch[]>('/kitchen/batches'),
   createBatch: (b: { dishId: string; pricePerPortion: number; minPortions: number; maxPortions: number; closesInMinutes: number }) => api('/kitchen/batches', { method: 'POST', body: b }),
   batchAction: (id: string, action: 'close' | 'confirm' | 'cook' | 'ready' | 'cancel' | 'capacity', maxPortions?: number) => api(`/kitchen/batches/${id}/${action}`, { method: 'POST', body: maxPortions ? { maxPortions } : {} }),
-  earnings: () => api<{ delivered: number; gross: number; commission: number; net: number; available: number; recent: { id: string; code: string; updatedAt: string; subtotal: number; commission: number; cookEarning: number }[]; payouts: { id: string; amount: number; status: string; method: string; createdAt: string }[] }>('/kitchen/earnings'),
+  earnings: () => api<{ delivered: number; gross: number; commission: number; deductions?: number; net: number; available: number; recent: { id: string; code: string; updatedAt: string; subtotal: number; commission: number; cookEarning: number }[]; payouts: { id: string; amount: number; status: string; method: string; createdAt: string }[] }>('/kitchen/earnings'),
   requestPayout: () => api('/kitchen/payouts', { method: 'POST' }),
 
   plans: (q: { meal?: string; period?: string }) => api<MealPlan[]>('/plans', { query: q }),

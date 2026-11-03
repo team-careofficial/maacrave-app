@@ -139,7 +139,8 @@
           <p>${esc(c.text)}</p>
           <dl class="kv"><dt>Kitchen</dt><dd>${esc(c.order.cook.displayName)}</dd><dt>Order total</dt><dd>${tk(c.order.total)} · ${esc(c.order.payment?.method || '—')} ${c.order.payment ? statusBadge(c.order.payment.status) : ''}</dd>
           <dt>Refund asked</dt><dd>${c.refundRequested ? tk(c.refundAmount) : 'No'}</dd>
-          ${c.refundedAmount ? `<dt>Refunded</dt><dd>${tk(c.refundedAmount)}</dd>` : ''}
+          ${c.order.rider ? `<dt>Rider</dt><dd>${esc(c.order.rider.name || '—')}</dd>` : ''}
+          ${c.refundedAmount ? `<dt>Refunded</dt><dd>${tk(c.refundedAmount)}${c.chargedTo ? ` · charged to ${esc(c.chargedTo.toLowerCase())}` : ''}</dd>` : ''}
           ${c.resolution ? `<dt>Our reply</dt><dd>${esc(c.resolution)}</dd>` : ''}</dl>
           ${c.status !== 'RESOLVED' ? `<div class="row mt">
             ${c.status === 'OPEN' ? `<button class="btn ghost" data-report="INVESTIGATING" data-id="${esc(c.id)}">Mark investigating</button>` : ''}
@@ -166,10 +167,12 @@
       const list = await api(`/admin/orders${state.filters.orders ? '?status=' + state.filters.orders : ''}`);
       return `
         <div class="top"><div><h1>Orders</h1><p class="muted">Latest 80 orders.</p></div>${tabs('orders', [['', 'All'], ['SUBMITTED', 'New'], ['PREPARING', 'Cooking'], ['ON_THE_WAY', 'On the way'], ['DELIVERED', 'Delivered'], ['CANCELLED', 'Cancelled']])}</div>
-        ${list.length ? `<table><thead><tr><th>Order</th><th>Customer</th><th>Kitchen</th><th>Rider</th><th>Total</th><th>Status</th></tr></thead><tbody>${list.map((o) => `<tr>
+        ${list.length ? `<table><thead><tr><th>Order</th><th>Customer</th><th>Kitchen</th><th>Rider</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody>${list.map((o) => `<tr>
           <td><b>${esc(o.code)}</b><br><span class="muted small">${when(o.createdAt)}${o.batchId ? ' · group' : ''}</span></td>
-          <td>${esc(o.customer?.name || '—')}<br><span class="muted small">${esc(o.area)}</span></td><td>${esc(o.cook.displayName)}</td><td>${esc(o.rider?.name || '—')}</td>
+          <td>${esc(o.customer?.name || '—')}<br><span class="muted small">${esc(o.customer?.phone || '')} · ${esc(o.area)}</span></td><td>${esc(o.cook.displayName)}</td>
+          <td>${esc(o.rider?.name || '—')}${o.rider?.phone ? `<br><span class="muted small">${esc(o.rider.phone)}</span>` : ''}</td>
           <td>${tk(o.total)}<br><span class="muted small">${esc(o.payment?.method || '')} ${esc((o.payment?.status || '').toLowerCase())}</span></td><td>${statusBadge(o.status)}</td>
+          <td><div class="row">${o.status === 'RIDER_ASSIGNED' ? `<button class="btn sm ghost" data-order="release-rider" data-id="${esc(o.id)}">Reassign rider</button>` : ''}${!['DELIVERED', 'CANCELLED'].includes(o.status) ? `<button class="btn sm danger" data-order="cancel" data-id="${esc(o.id)}">Cancel</button>` : ''}</div></td>
         </tr>`).join('')}</tbody></table>` : empty('No orders yet.')}`;
     },
 
@@ -317,6 +320,16 @@
       m.querySelector('textarea').focus();
     });
   }
+  /** Pick one of a few choices; resolves to the chosen value or null. */
+  function choose(title, text, options) {
+    return new Promise((resolve) => {
+      const m = document.createElement('div'); m.className = 'modal';
+      m.innerHTML = `<div class="box"><h2>${esc(title)}</h2><p class="muted">${esc(text)}</p><div class="list">${options.map(([v, l, sub]) => `<button class="btn ghost choice" type="button" data-v="${esc(v)}"><b>${esc(l)}</b>${sub ? `<span class="muted small">${esc(sub)}</span>` : ''}</button>`).join('')}</div><button class="btn ghost" type="button" data-x>Cancel</button></div>`;
+      document.body.appendChild(m);
+      const close = (v) => { m.remove(); resolve(v); };
+      m.addEventListener('click', (e) => { const b = e.target.closest('button'); if (e.target === m || (b && b.hasAttribute('data-x'))) return close(null); if (b && b.dataset.v) close(b.dataset.v); });
+    });
+  }
   async function showDoc(id) {
     const m = document.createElement('div'); m.className = 'modal'; m.innerHTML = '<div class="spinner"></div>';
     document.body.appendChild(m); m.addEventListener('click', () => m.remove());
@@ -399,17 +412,23 @@
         toast(d.decide === 'approve' ? 'Approved — they have been notified' : 'Saved — they have been notified'); return render();
       }
       if (d.report) {
-        let refundAmount;
+        let refundAmount; let chargedTo;
         if (d.report === 'REFUND') {
           const amt = await ask('Refund amount (৳)', `Order total ${tk(Number(d.total))} · ${d.method === 'COD' ? 'cash order — send it to their bKash' : 'online — a full refund goes back automatically'}. Leave empty for the full amount.`, false);
           if (amt === null) return;
           refundAmount = amt ? Math.round(Number(amt.replace(/[^\d.]/g, ''))) : undefined;
           if (amt && !(refundAmount > 0)) { toast('Enter a number'); return; }
+          chargedTo = await choose('Who pays for this refund?', 'The cook or rider has it deducted from their earnings and is notified.', [
+            ['COOK', 'The cook', 'Wrong, missing, spoiled or unsafe food'],
+            ['RIDER', 'The rider', 'Lost, spilled or damaged in delivery'],
+            ['MAACRAVE', 'MaaCrave', 'Our mistake, goodwill, or not sure'],
+          ]);
+          if (!chargedTo) return;
         }
         const note = await ask(d.report === 'INVESTIGATING' ? 'Message to the customer' : 'Resolution message to the customer', 'Optional', false);
         if (note === null) return;
         el.disabled = true;
-        await api(`/admin/complaints/${d.id}`, { method: 'POST', body: { status: d.report === 'INVESTIGATING' ? 'INVESTIGATING' : 'RESOLVED', refund: d.report === 'REFUND', refundAmount, note: note || undefined } });
+        await api(`/admin/complaints/${d.id}`, { method: 'POST', body: { status: d.report === 'INVESTIGATING' ? 'INVESTIGATING' : 'RESOLVED', refund: d.report === 'REFUND', refundAmount, chargedTo, note: note || undefined } });
         toast('Report updated'); return render();
       }
       if (d.user) {
@@ -418,6 +437,13 @@
         el.disabled = true;
         await api(`/admin/users/${d.id}/${d.user}`, { method: 'POST', body: d.user === 'suspend' ? { note } : {} });
         toast(d.user === 'suspend' ? 'Suspended and signed out' : 'Restored'); return render();
+      }
+      if (d.order) {
+        const reason = await ask(d.order === 'cancel' ? 'Cancel this order?' : 'Give this order to another rider?', d.order === 'cancel' ? 'Reason — the customer, cook and rider are told. Online payments are refunded automatically.' : 'Reason (kept in the activity log)', true);
+        if (reason === null) return;
+        el.disabled = true;
+        await api(`/admin/orders/${d.id}/${d.order}`, { method: 'POST', body: { reason } });
+        toast(d.order === 'cancel' ? 'Order cancelled' : 'Offered to nearby riders again'); return render();
       }
       if (d.ledger) {
         const amt = await ask(d.ledger === 'PAYOUT' ? 'Earnings paid to the rider (৳)' : 'Cash received from the rider (৳)', `Up to ${tk(Number(d.max))}`, true);

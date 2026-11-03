@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Global, Injectable, Logger, Module, Param, Post, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Global, Injectable, Logger, Module, Param, Post, Query } from '@nestjs/common';
 import { Role } from '@prisma/client';
-import { IsIn, IsString } from 'class-validator';
+import { IsIn, IsString, MaxLength } from 'class-validator';
 import { AuthUser, CurrentUser } from '../common/auth';
 import { PrismaService } from '../common/prisma.service';
 
@@ -27,8 +27,11 @@ export class NotificationsService {
   }
 }
 
+const ROLES: Role[] = ['CUSTOMER', 'COOK', 'RIDER'];
+const roleOf = (r?: string): Role => { if (r && !ROLES.includes(r as Role)) throw new BadRequestException('Unknown role'); return (r as Role) || 'CUSTOMER'; };
+
 class PushTokenDto {
-  @IsString() token: string;
+  @IsString() @MaxLength(300) token: string;
   @IsIn(['ios', 'android', 'web']) platform: string;
 }
 
@@ -37,13 +40,13 @@ export class NotificationsController {
   constructor(private prisma: PrismaService) {}
 
   @Get()
-  list(@CurrentUser() user: AuthUser, @Query('role') role: Role = 'CUSTOMER') {
-    return this.prisma.notification.findMany({ where: { userId: user.id, role }, orderBy: { createdAt: 'desc' }, take: 50 });
+  list(@CurrentUser() user: AuthUser, @Query('role') r?: string) {
+    return this.prisma.notification.findMany({ where: { userId: user.id, role: roleOf(r) }, orderBy: { createdAt: 'desc' }, take: 50 });
   }
 
   @Post('read-all')
-  async readAll(@CurrentUser() user: AuthUser, @Query('role') role: Role = 'CUSTOMER') {
-    await this.prisma.notification.updateMany({ where: { userId: user.id, role, read: false }, data: { read: true } });
+  async readAll(@CurrentUser() user: AuthUser, @Query('role') r?: string) {
+    await this.prisma.notification.updateMany({ where: { userId: user.id, role: roleOf(r), read: false }, data: { read: true } });
     return { ok: true };
   }
 

@@ -450,6 +450,8 @@ model Complaint {
   status          ComplaintStatus @default(OPEN)
   resolution      String?         // what the team did, shown to the customer
   refundedAmount  Int             @default(0)
+  /// Who bears the refund: COOK (deducted from their earnings), RIDER, or MAACRAVE.
+  chargedTo       String?
   createdAt       DateTime        @default(now())
   order           Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
   user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)

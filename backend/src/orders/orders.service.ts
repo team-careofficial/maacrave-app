@@ -93,6 +93,14 @@ export class OrdersService {
       if (!cook.accepting) throw new BadRequestException(`${cook.displayName} isn’t taking orders right now.`);
       for (const d of dishes) if (!d.available) throw new BadRequestException(`${d.name} isn’t available today.`);
       const items = lines.map((l) => { const d = dishes.find((x) => x.id === l.dishId)!; return { dishId: d.id, name: d.name, unitPrice: d.price, quantity: Math.min(l.quantity, 50) }; });
+      // Each dish has a daily limit set by the cook; don't sell more than she can make today (Dhaka day).
+      const dayStart = new Date(new Date(Date.now() + 6 * 3600_000).toISOString().slice(0, 10) + 'T00:00:00+06:00');
+      for (const it of items) {
+        const d = dishes.find((x) => x.id === it.dishId)!;
+        const sold = await tx.orderItem.aggregate({ where: { dishId: d.id, order: { createdAt: { gte: dayStart }, status: { not: 'CANCELLED' } } }, _sum: { quantity: true } });
+        const left = d.dailyCapacity - (sold._sum.quantity || 0);
+        if (it.quantity > left) throw new BadRequestException(left > 0 ? `Only ${left} portion${left > 1 ? 's' : ''} of ${d.name} left today.` : `${d.name} is sold out for today.`);
+      }
       return { cookId: cook.id, cookUserId: cook.userId, items, isBatch: false as boolean, batchId: null as string | null, request: null, proposal: null };
     }
     if (input.kind === 'batch') {
@@ -137,6 +145,7 @@ export class OrdersService {
     const address = await this.prisma.address.findFirst({ where: { id: input.addressId, userId: user.id } });
     if (!address) throw new BadRequestException('Choose a delivery address.');
     if (!user.name) throw new BadRequestException('Add your name in your profile first.');
+    if (!user.phone) throw new BadRequestException('Add your mobile number first so the rider can reach you.');
     if (input.paymentMethod === 'BKASH' && !this.bkash.configured()) throw new BadRequestException('bKash isn’t available yet. Choose cash on delivery.');
     if (input.paymentMethod === 'SSLCOMMERZ' && !this.ssl.configured()) throw new BadRequestException('Card and wallet payments aren’t available yet. Choose cash on delivery.');
 
@@ -276,15 +285,19 @@ export class OrdersService {
     if (!o) throw new NotFoundException('Order not found');
     const isCook = user.cook?.id === o.cookId, isRider = o.riderId === user.id, isCustomer = o.customerId === user.id;
     if (!isCook && !isRider && !isCustomer) throw new ForbiddenException();
-    // Only the customer sees the delivery code; riders and cooks must ask for it.
-    if (!isCustomer) return { ...o, deliveryOtp: undefined };
+    if (!isCustomer) {
+      // Only the customer sees the delivery code. The cook never sees the address; the rider sees it once the food is picked up.
+      const showAddress = isRider && ['PICKED_UP', 'ON_THE_WAY', 'DELIVERED'].includes(o.status);
+      return { ...o, deliveryOtp: undefined, ...(showAddress ? {} : { addressText: o.area, lat: null, lng: null }) };
+    }
     // Live tracking: while a rider has the order, the customer sees where they are and can call them.
     let tracking: { lat: number | null; lng: number | null; locatedAt: Date | null; phone: string | null; vehicle: string } | null = null;
     if (o.riderId && ['RIDER_ASSIGNED', 'PICKED_UP', 'ON_THE_WAY'].includes(o.status)) {
       const r = await this.prisma.riderProfile.findUnique({ where: { userId: o.riderId }, select: { lat: true, lng: true, locatedAt: true, vehicle: true, user: { select: { phone: true } } } });
       if (r) tracking = { lat: r.lat, lng: r.lng, locatedAt: r.locatedAt, vehicle: r.vehicle, phone: r.user.phone };
     }
-    return { ...o, tracking };
+    // Internal split (commission, cook and rider shares) isn't the customer's business.
+    return { ...o, commission: undefined, cookEarning: undefined, riderPayout: undefined, tracking };
   }
 
   async review(user: AuthUser, id: string, stars: number, text?: string) {
@@ -314,6 +327,31 @@ export class OrdersService {
   }
 
   complaints(user: AuthUser) { return this.prisma.complaint.findMany({ where: { userId: user.id }, orderBy: { createdAt: 'desc' }, include: { order: { select: { code: true } } } }); }
+
+  /* ---------- operations team (admin panel) ---------- */
+  /** Cancel any order that hasn't been delivered, refund online payments and tell everyone involved. */
+  async adminCancel(orderId: string, reason: string) {
+    const o = await this.prisma.order.findUnique({ where: { id: orderId }, include: { cook: true } });
+    if (!o) throw new NotFoundException();
+    if (o.status === 'DELIVERED' || o.status === 'CANCELLED') throw new BadRequestException('This order is already finished.');
+    await this.transition(o.id, 'CANCELLED', null);
+    await this.refund(o.id, `Cancelled by MaaCrave: ${reason}`);
+    await this.notify.notify(o.cook.userId, 'COOK', `Order ${o.code} cancelled by MaaCrave`, reason);
+    if (o.riderId) await this.notify.notify(o.riderId, 'RIDER', `Order ${o.code} cancelled`, 'Don’t deliver this order. ' + reason);
+  }
+
+  /** Take an order back from a rider who hasn't picked it up, and offer it to nearby riders again. */
+  async releaseRider(orderId: string) {
+    const o = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!o) throw new NotFoundException();
+    if (o.status !== 'RIDER_ASSIGNED' || !o.riderId) throw new BadRequestException('Only orders a rider hasn’t picked up yet can be reassigned.');
+    const riderId = o.riderId;
+    const group = await this.prisma.order.findMany({ where: { riderId, status: 'RIDER_ASSIGNED', OR: [{ id: o.id }, ...(o.batchId ? [{ batchId: o.batchId }] : [])] }, select: { id: true } });
+    await this.prisma.order.updateMany({ where: { id: { in: group.map((g) => g.id) } }, data: { riderId: null } });
+    for (const g of group) await this.transition(g.id, 'READY', null);
+    await this.notify.notify(riderId, 'RIDER', 'Trip reassigned', `MaaCrave gave ${o.code} to another rider.`);
+    await this.offerToRiders(o.cookId, group.length);
+  }
 
   /** Delivered: credit loyalty points, cook stats, close batch when all drops are done. */
   async onDelivered(orderId: string) {

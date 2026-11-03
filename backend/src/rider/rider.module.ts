@@ -37,20 +37,22 @@ export class RiderService {
 
   /** Customer cash the rider is holding, what they've earned, and what's settled. */
   async wallet(riderUserId: string) {
-    const [cod, earned, ledger, s] = await Promise.all([
+    const [cod, earned, ledger, s, charged] = await Promise.all([
       this.prisma.order.aggregate({ where: { riderId: riderUserId, status: 'DELIVERED', payment: { method: 'COD' } }, _sum: { total: true } }),
       this.prisma.order.aggregate({ where: { riderId: riderUserId, status: 'DELIVERED' }, _sum: { riderPayout: true, tip: true } }),
       this.prisma.riderLedger.groupBy({ by: ['kind'], where: { riderId: riderUserId }, _sum: { amount: true } }),
       this.prisma.platformSetting.findUniqueOrThrow({ where: { id: 1 } }),
+      this.prisma.complaint.aggregate({ where: { chargedTo: 'RIDER', order: { riderId: riderUserId } }, _sum: { refundedAmount: true } }),
     ]);
     const sum = (k: string) => ledger.find((l) => l.kind === k)?._sum.amount || 0;
     const cashCollected = cod._sum.total || 0, deposited = sum('CASH_DEPOSIT');
-    const earnedTotal = (earned._sum.riderPayout || 0) + (earned._sum.tip || 0), paidOut = sum('PAYOUT');
+    const deductions = charged._sum.refundedAmount || 0;
+    const earnedTotal = (earned._sum.riderPayout || 0) + (earned._sum.tip || 0) - deductions, paidOut = sum('PAYOUT');
     const cashInHand = cashCollected - deposited;
     const unpaidEarnings = earnedTotal - paidOut;
     // Positive: rider owes MaaCrave. Negative: MaaCrave owes the rider.
     const balance = cashInHand - unpaidEarnings;
-    return { cashCollected, deposited, cashInHand, earnedTotal, paidOut, unpaidEarnings, balance, cashLimit: s.riderCashLimit, overLimit: cashInHand > s.riderCashLimit };
+    return { cashCollected, deposited, cashInHand, earnedTotal, deductions, paidOut, unpaidEarnings, balance, cashLimit: s.riderCashLimit, overLimit: cashInHand > s.riderCashLimit };
   }
 
   async tasks(user: AuthUser) {

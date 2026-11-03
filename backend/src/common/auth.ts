@@ -30,7 +30,7 @@ export class AuthGuard implements CanActivate {
         const payload = await this.jwt.verifyAsync<{ sub: string; typ: string }>(token);
         if (payload.typ === 'access') {
           const user = await this.prisma.user.findUnique({ where: { id: payload.sub }, include: { roles: true, cook: true, rider: true } });
-          if (user && !user.suspended) req.user = user;
+          if (user && !user.suspended && !user.deletedAt) req.user = user;
         }
       } catch {
         /* invalid or expired token: treated as anonymous */

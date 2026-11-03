@@ -1,7 +1,7 @@
 import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, HttpCode, Injectable, Module, NotFoundException, Param, Patch, Post, Query } from '@nestjs/common';
 import { OrderStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
 import { batchFilled } from '../catalog/catalog.module';
 import { AuthUser, CurrentUser, Roles } from '../common/auth';
 import { PrismaService } from '../common/prisma.service';
@@ -15,7 +15,7 @@ class KitchenDto {
   @IsOptional() @Type(() => Number) @IsNumber() @Min(20.5) @Max(26.8) lat?: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(88) @Max(92.8) lng?: number;
   @IsOptional() @IsString() @MaxLength(300) intro?: string;
-  @IsOptional() @IsArray() @IsString({ each: true }) specialties?: string[];
+  @IsOptional() @IsArray() @ArrayMaxSize(10) @IsString({ each: true }) @MaxLength(40, { each: true }) specialties?: string[];
   @IsOptional() @IsIn(DHAKA_AREAS) area?: string;
   @IsOptional() @IsString() @MaxLength(30) hours?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(300) dailyCapacity?: number;
@@ -30,8 +30,8 @@ class DishDto {
   @Type(() => Number) @IsInt() @Min(30) @Max(5000) price: number;
   @IsString() @MaxLength(40) portion: string;
   @Type(() => Number) @IsInt() @Min(5) @Max(600) prepMinutes: number;
-  @IsArray() @IsString({ each: true }) ingredients: string[];
-  @IsArray() @IsString({ each: true }) allergens: string[];
+  @IsArray() @ArrayMaxSize(30) @IsString({ each: true }) @MaxLength(40, { each: true }) ingredients: string[];
+  @IsArray() @ArrayMaxSize(20) @IsString({ each: true }) @MaxLength(40, { each: true }) allergens: string[];
   @IsOptional() @IsString() @MaxLength(400) description?: string;
   @Type(() => Number) @IsInt() @Min(0) @Max(3) spice: number;
   @Type(() => Number) @IsInt() @Min(1) @Max(300) dailyCapacity: number;
@@ -44,8 +44,8 @@ class EditDishDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(30) @Max(5000) price?: number;
   @IsOptional() @IsString() @MaxLength(40) portion?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(5) @Max(600) prepMinutes?: number;
-  @IsOptional() @IsArray() @IsString({ each: true }) ingredients?: string[];
-  @IsOptional() @IsArray() @IsString({ each: true }) allergens?: string[];
+  @IsOptional() @IsArray() @ArrayMaxSize(30) @IsString({ each: true }) @MaxLength(40, { each: true }) ingredients?: string[];
+  @IsOptional() @IsArray() @ArrayMaxSize(20) @IsString({ each: true }) @MaxLength(40, { each: true }) allergens?: string[];
   @IsOptional() @IsString() @MaxLength(400) description?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(3) spice?: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(300) dailyCapacity?: number;
@@ -54,7 +54,7 @@ class EditDishDto {
 class ProposeDto { @Type(() => Number) @IsInt() @Min(30) @Max(5000) pricePerPortion: number; @IsOptional() @IsString() @MaxLength(140) note?: string; }
 class BatchDto {
   @IsString() dishId: string;
-  @Type(() => Number) @IsInt() @Min(30) pricePerPortion: number;
+  @Type(() => Number) @IsInt() @Min(30) @Max(5000) pricePerPortion: number;
   @Type(() => Number) @IsInt() @Min(1) @Max(200) minPortions: number;
   @Type(() => Number) @IsInt() @Min(1) @Max(200) maxPortions: number;
   @Type(() => Number) @IsInt() @Min(30) @Max(720) closesInMinutes: number;
@@ -117,6 +117,7 @@ export class KitchenService {
     const r = await this.prisma.foodRequest.findFirst({ where: { id: requestId, status: { in: ['OPEN', 'PROPOSALS'] } } });
     if (!r) throw new BadRequestException('This request is no longer open.');
     if (r.customerId === user.id) throw new BadRequestException('You can’t reply to your own request.');
+    if (await this.prisma.proposal.findUnique({ where: { requestId_cookId: { requestId, cookId: cook.id } } })) throw new BadRequestException('You’ve already sent a price for this request.');
     await this.prisma.$transaction([
       this.prisma.proposal.create({ data: { requestId, cookId: cook.id, pricePerPortion: dto.pricePerPortion, note: dto.note } }),
       this.prisma.foodRequest.update({ where: { id: requestId }, data: { status: 'PROPOSALS' } }),
@@ -127,7 +128,7 @@ export class KitchenService {
 
   async declineRequest(user: AuthUser, requestId: string) {
     const cook = this.cookOf(user);
-    await this.prisma.foodRequest.update({ where: { id: requestId }, data: { declinedBy: { push: cook.id } } });
+    await this.prisma.foodRequest.updateMany({ where: { id: requestId }, data: { declinedBy: { push: cook.id } } });
     return { ok: true };
   }
 
@@ -142,7 +143,7 @@ export class KitchenService {
       include: { ...orderInclude, customer: { select: { name: true } } },
     });
     // The delivery code is only for the customer; the cook never sees it.
-    return list.map(({ deliveryOtp: _otp, ...o }) => ({ ...o, customer: { name: (o.customer.name || 'Customer').split(' ')[0] } }));
+    return list.map(({ deliveryOtp: _otp, addressText: _a, lat: _lat, lng: _lng, ...o }) => ({ ...o, addressText: o.area, customer: { name: (o.customer.name || 'Customer').split(' ')[0] } }));
   }
 
   private async ownOrder(user: AuthUser, id: string) {
@@ -224,12 +225,15 @@ export class KitchenService {
   }
 
   private async payoutSummary(cookId: string) {
-    const [earned, paid] = await Promise.all([
+    const [earned, paid, charged] = await Promise.all([
       this.prisma.order.aggregate({ where: { cookId, status: 'DELIVERED' }, _sum: { cookEarning: true, subtotal: true, commission: true }, _count: true }),
       this.prisma.payout.aggregate({ where: { cookId, status: { in: ['REQUESTED', 'PROCESSING', 'PAID'] } }, _sum: { amount: true } }),
+      // Refunds the team charged to this kitchen (wrong, missing or spoiled food) come off the balance.
+      this.prisma.complaint.aggregate({ where: { chargedTo: 'COOK', order: { cookId } }, _sum: { refundedAmount: true } }),
     ]);
-    const net = earned._sum.cookEarning || 0;
-    return { delivered: earned._count, gross: earned._sum.subtotal || 0, commission: earned._sum.commission || 0, net, available: Math.max(0, net - (paid._sum.amount || 0)) };
+    const deductions = charged._sum.refundedAmount || 0;
+    const net = (earned._sum.cookEarning || 0) - deductions;
+    return { delivered: earned._count, gross: earned._sum.subtotal || 0, commission: earned._sum.commission || 0, deductions, net, available: Math.max(0, net - (paid._sum.amount || 0)) };
   }
 
   async earnings(user: AuthUser) {
@@ -245,6 +249,8 @@ export class KitchenService {
   async requestPayout(user: AuthUser) {
     const cook = this.cookOf(user);
     if (!cook.payoutWallet) throw new BadRequestException('Add your bKash number in your kitchen profile first.');
+    const pending = await this.prisma.payout.count({ where: { cookId: cook.id, status: { in: ['REQUESTED', 'PROCESSING'] } } });
+    if (pending) throw new BadRequestException('Your last withdrawal is still being processed. You can request again once it’s paid.');
     const { available } = await this.payoutSummary(cook.id);
     if (available < 100) throw new BadRequestException('You can withdraw once you have at least ৳100.');
     return this.prisma.payout.create({ data: { cookId: cook.id, amount: available, method: `bKash ${cook.payoutWallet}` } });

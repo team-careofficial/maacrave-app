@@ -9,7 +9,9 @@ export function normalizePhone(input: string): string {
 export const sha256 = (v: string) => createHash('sha256').update(v).digest('hex');
 export const randomToken = () => randomBytes(32).toString('hex');
 export const digits = (n: number) => Array.from({ length: n }, () => randomInt(0, 10)).join('');
-export const orderCode = () => 'MC-' + Date.now().toString(36).toUpperCase().slice(-5) + randomInt(10, 99);
+/** Short, readable order code, e.g. MC-7KQ4M2X. 31^7 ≈ 27 billion combinations, no 0/O or 1/I confusion. */
+const CODE_CHARS = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+export const orderCode = () => 'MC-' + Array.from({ length: 7 }, () => CODE_CHARS[randomInt(0, CODE_CHARS.length)]).join('');
 
 export const DHAKA_AREAS = ['Mirpur 1','Mirpur 2','Mirpur 10','Mirpur 12','Pallabi','Kazipara','Shewrapara','Agargaon','Mohammadpur','Dhanmondi','Lalmatia','Farmgate','Tejgaon','Banani','Gulshan','Mohakhali','Uttara','Badda','Rampura','Bashundhara','Khilgaon','Motijheel','Old Dhaka','Jatrabari'];
 export const CATEGORIES = ['rice','bengali','fish','chicken','beef','veg','snacks','breakfast','lunch','dinner','dessert','healthy'];

@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const u = await API.me();
       setMe(u);
       if (u.language === 'bn' || u.language === 'en') setLang(u.language);
-      setStatus(u.name ? 'ready' : 'needsProfile');
+      setStatus(u.name && u.phone ? 'ready' : 'needsProfile'); // riders need a number to call, so it's part of the profile
       const saved = (await storage.get(MODE_KEY)) as Mode | null;
       setModeState(saved && canUseFor(u, saved) ? saved : 'CUSTOMER');
       return u;

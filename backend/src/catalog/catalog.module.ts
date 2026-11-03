@@ -38,12 +38,12 @@ export class CatalogService {
     const where = this.liveDish({
       ...(q.category && q.category !== 'budget' ? { category: q.category } : {}),
       ...(q.category === 'budget' ? { price: { lte: 150 } } : {}),
-      ...(q.maxPrice ? { price: { lte: Number(q.maxPrice) } } : {}),
+      ...(q.maxPrice && Number.isFinite(Number(q.maxPrice)) ? { price: { lte: Number(q.maxPrice) } } : {}),
       ...(q.q ? { OR: [{ name: { contains: q.q, mode: 'insensitive' } }, { nameBn: { contains: q.q } }, { cook: { displayName: { contains: q.q, mode: 'insensitive' } } }, { cook: { area: { contains: q.q, mode: 'insensitive' } } }] } : {}),
     });
     const orderBy: Prisma.DishOrderByWithRelationInput[] =
       q.sort === 'price' ? [{ price: 'asc' }] : q.sort === 'rating' ? [{ rating: 'desc' }, { ratingCount: 'desc' }] : q.sort === 'fast' ? [{ prepMinutes: 'asc' }] : [{ orderCount: 'desc' }, { rating: 'desc' }];
-    const list = await this.prisma.dish.findMany({ where, orderBy, take: Math.min(Number(q.take) || 60, 100), include: { cook: { select: cookPublic } } });
+    const list = await this.prisma.dish.findMany({ where, orderBy, take: Math.max(1, Math.min(Number(q.take) || 60, 100)), include: { cook: { select: cookPublic } } });
     if (q.area) list.sort((a, b) => Number(b.cook.area === q.area) - Number(a.cook.area === q.area));
     return list;
   }
@@ -63,7 +63,8 @@ export class CatalogService {
   }
 
   async cook(id: string) {
-    const c = await this.prisma.cookProfile.findUnique({ where: { id }, select: { ...cookPublic, dishes: { where: { deletedAt: null }, orderBy: { orderCount: 'desc' } } } });
+    // Only approved, active kitchens have a public page.
+    const c = await this.prisma.cookProfile.findFirst({ where: { id, user: { suspended: false, deletedAt: null, roles: { some: { role: 'COOK', status: 'APPROVED' } } } }, select: { ...cookPublic, dishes: { where: { deletedAt: null }, orderBy: { orderCount: 'desc' } } } });
     if (!c) throw new NotFoundException('Cook not found');
     const reviews = await this.prisma.review.findMany({ where: { cookId: id }, orderBy: { createdAt: 'desc' }, take: 10, include: { user: { select: { name: true } }, dish: { select: { name: true } } } });
     const batches = await this.prisma.batch.findMany({ where: { cookId: id, status: 'OPEN', cutoffAt: { gt: new Date() } }, include: { orders: { include: { items: true } }, cook: { select: cookPublic }, dish: true } });

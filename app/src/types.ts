@@ -75,4 +75,4 @@ export interface PartnerTerms { rates: RateCard; accepted: boolean; acceptedAt: 
 export type TicketStatus = 'OPEN' | 'ANSWERED' | 'CLOSED';
 export interface SupportMessage { id: string; fromAdmin: boolean; body: string; createdAt: string }
 export interface SupportTicket { id: string; role: Role; orderId: string | null; subject: string; status: TicketStatus; createdAt: string; updatedAt: string; messages: SupportMessage[]; support?: SupportContact }
-export interface RiderWallet { cashCollected: number; deposited: number; cashInHand: number; earnedTotal: number; paidOut: number; unpaidEarnings: number; balance: number; cashLimit: number; overLimit: boolean }
+export interface RiderWallet { cashCollected: number; deposited: number; cashInHand: number; earnedTotal: number; deductions?: number; paidOut: number; unpaidEarnings: number; balance: number; cashLimit: number; overLimit: boolean }

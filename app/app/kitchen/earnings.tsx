@@ -25,7 +25,7 @@ export default function Earnings() {
           </Card>
           <Row gap={S.md} wrap style={{ marginTop: S.lg }}>
             <Stat label="Delivered orders" value={String(e.delivered)} />
-            <Stat label="Total earned" value={tk(e.net)} sub={`${tk(e.gross)} sales − ${tk(e.commission)} commission`} />
+            <Stat label="Total earned" value={tk(e.net)} sub={`${tk(e.gross)} sales − ${tk(e.commission)} commission${e.deductions ? ` − ${tk(e.deductions)} refunds` : ''}`} />
           </Row>
           <Section title="Recent orders">
             {e.recent.length ? (

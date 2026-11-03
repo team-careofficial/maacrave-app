@@ -40,6 +40,7 @@ export default function RiderEarnings() {
               </View>
               <Divider />
               <KV k={t('Earned (all time)', 'মোট আয়')} v={tk(w.earnedTotal)} />
+              {w.deductions ? <KV k={t('Refunds charged to you', 'আপনার কারণে রিফান্ড')} v={`−${tk(w.deductions)}`} color={C.err} /> : null}
               <KV k={t('Paid to you', 'আপনাকে দেওয়া হয়েছে')} v={`−${tk(w.paidOut)}`} />
               <KV k={t('Unpaid earnings', 'বাকি আয়')} v={tk(w.unpaidEarnings)} strong color={C.ok} />
             </Card>

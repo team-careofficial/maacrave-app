@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, Get, HttpCode, Injectable, Module, NotFoundException, Param, Post } from '@nestjs/common';
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsDateString, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsDateString, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
 import { AuthUser, CurrentUser } from '../common/auth';
 import { PrismaService } from '../common/prisma.service';
 import { CATEGORIES } from '../common/util';
@@ -15,7 +15,7 @@ class CreateRequestDto {
   @IsString() addressId: string;
   @IsIn(['Mild', 'Medium', 'Hot']) spice: string;
   @IsIn(['Low oil', 'Normal', 'Rich']) oil: string;
-  @IsArray() @IsString({ each: true }) diet: string[];
+  @IsArray() @ArrayMaxSize(10) @IsString({ each: true }) @MaxLength(30, { each: true }) diet: string[];
   @IsOptional() @IsString() @MaxLength(120) exclusions?: string;
   @IsOptional() @IsString() @MaxLength(120) allergies?: string;
   @IsOptional() @IsString() @MaxLength(300) notes?: string;
@@ -31,6 +31,7 @@ export class RequestsService {
     if (!address) throw new BadRequestException('Choose a delivery address.');
     const neededAt = new Date(dto.neededAt);
     if (neededAt.getTime() < Date.now() + 60 * 60_000) throw new BadRequestException('Give cooks at least one hour.');
+    if (neededAt.getTime() > Date.now() + 7 * 86400_000) throw new BadRequestException('Requests can be up to 7 days ahead.');
     const open = await this.prisma.foodRequest.count({ where: { customerId: user.id, status: { in: ['OPEN', 'PROPOSALS'] } } });
     if (open >= 5) throw new BadRequestException('You can have up to 5 open requests at a time.');
     const req = await this.prisma.foodRequest.create({ data: { ...dto, neededAt, area: address.area, customerId: user.id } });

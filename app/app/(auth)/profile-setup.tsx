@@ -24,9 +24,9 @@ export default function ProfileSetup() {
   const meta = useQuery({ queryKey: ['meta'], queryFn: API.meta });
   const [step, setStep] = useState<0 | 1>(0);
   const [goal, setGoal] = useState<Goal>('eat');
-  const [name, setName] = useState('');
+  const [name, setName] = useState(me?.name || '');
   const [phone, setPhone] = useState('');
-  const [area, setArea] = useState<string | null>(null);
+  const [area, setArea] = useState<string | null>(me?.area || null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 

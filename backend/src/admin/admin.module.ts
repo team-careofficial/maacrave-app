@@ -64,6 +64,8 @@ class ComplaintDto {
   @IsOptional() @IsBoolean() refund?: boolean;
   /** Partial refund in taka; leave out for the full amount. */
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100000) refundAmount?: number;
+  /** Who bears the refund. COOK and RIDER have it deducted from their earnings. */
+  @IsOptional() @IsIn(['COOK', 'RIDER', 'MAACRAVE']) chargedTo?: 'COOK' | 'RIDER' | 'MAACRAVE';
   @IsOptional() @IsString() @MaxLength(300) note?: string;
 }
 class RatesDto {
@@ -85,6 +87,7 @@ class LedgerDto {
   @Type(() => Number) @IsInt() @Min(1) @Max(500000) amount: number;
   @IsOptional() @IsString() @MaxLength(60) reference?: string;
 }
+class OrderActionDto { @IsString() @MinLength(3) @MaxLength(200) reason: string; }
 class TicketReplyDto { @IsString() @MinLength(1) @MaxLength(1500) body: string; @IsOptional() @IsBoolean() close?: boolean; }
 export const SPOT_ICONS = ['soup', 'fish', 'drumstick', 'beef', 'leaf', 'cake', 'cookie', 'sun', 'moon', 'flame', 'sparkles', 'users', 'gift', 'heart', 'utensils', 'request', 'percent', 'coffee'];
 export const SPOT_THEMES = ['crimson', 'saffron', 'forest', 'night', 'rose', 'ocean'];
@@ -204,7 +207,7 @@ export class AdminService {
       orderBy: { createdAt: 'desc' }, take: 100,
       include: {
         user: { select: { id: true, name: true, phone: true, email: true } },
-        order: { select: { id: true, code: true, total: true, subtotal: true, status: true, cook: { select: { displayName: true, userId: true } }, payment: { select: { method: true, status: true } } } },
+        order: { select: { id: true, code: true, total: true, subtotal: true, status: true, cook: { select: { displayName: true, userId: true } }, rider: { select: { name: true } }, payment: { select: { method: true, status: true } } } },
       },
     });
   }
@@ -220,7 +223,15 @@ export class AdminService {
       else how = `৳${amount} will be sent to your bKash number within 3 working days.`;
     }
     const resolution = [dto.note, how].filter(Boolean).join(' ') || null;
-    await this.prisma.complaint.update({ where: { id }, data: { status: dto.status, resolution, refundedAmount: amount || c.refundedAmount } });
+    const chargedTo = dto.refund ? dto.chargedTo || 'MAACRAVE' : c.chargedTo;
+    await this.prisma.complaint.update({ where: { id }, data: { status: dto.status, resolution, refundedAmount: amount || c.refundedAmount, chargedTo } });
+    if (dto.refund && chargedTo === 'COOK') {
+      const cook = await this.prisma.cookProfile.findUnique({ where: { id: c.order.cookId } });
+      if (cook) await this.notify.notify(cook.userId, 'COOK', `৳${amount} refund on ${c.order.code}`, `A customer was refunded for “${c.type}”. It is deducted from your balance. Reply through Help & support if you disagree.`);
+    }
+    if (dto.refund && chargedTo === 'RIDER' && c.order.riderId) {
+      await this.notify.notify(c.order.riderId, 'RIDER', `৳${amount} refund on ${c.order.code}`, `A customer was refunded for “${c.type}”. It is deducted from your earnings. Reply through Help & support if you disagree.`);
+    }
     await this.notify.notify(c.userId, 'CUSTOMER', dto.status === 'RESOLVED' ? `Report on ${c.order.code} resolved` : `We're looking into ${c.order.code}`,
       resolution || 'Thanks for telling us. Our team will follow up.');
     await this.audit(admin, `COMPLAINT_${dto.status}${dto.refund ? '_REFUND' : ''}`, id, dto.note);
@@ -256,8 +267,13 @@ export class AdminService {
     return this.prisma.order.findMany({
       where: status && valid.includes(status) ? { status: status as OrderStatus } : {},
       orderBy: { createdAt: 'desc' }, take: 80,
-      select: { id: true, code: true, status: true, total: true, area: true, createdAt: true, batchId: true, customer: { select: { name: true } }, cook: { select: { displayName: true } }, rider: { select: { name: true } }, payment: { select: { method: true, status: true } } },
+      select: { id: true, code: true, status: true, total: true, area: true, createdAt: true, batchId: true, customer: { select: { name: true, phone: true } }, cook: { select: { displayName: true } }, rider: { select: { name: true, phone: true } }, payment: { select: { method: true, status: true } } },
     });
+  }
+
+  async orderAction(admin: string, id: string, action: 'cancel' | 'release', reason: string) {
+    if (action === 'cancel') await this.orders.adminCancel(id, reason); else await this.orders.releaseRider(id);
+    await this.audit(admin, action === 'cancel' ? 'ORDER_CANCEL' : 'ORDER_RELEASE_RIDER', id, reason);
   }
 
   payouts(status?: string) {
@@ -367,6 +383,8 @@ export class AdminController {
   @Post('users/:id/suspend') @HttpCode(200) suspend(@CurrentAdmin() a: string, @Param('id') id: string, @Body() dto: DecisionDto) { return this.admin.setSuspended(a, id, true, dto.note); }
   @Post('users/:id/restore') @HttpCode(200) restore(@CurrentAdmin() a: string, @Param('id') id: string) { return this.admin.setSuspended(a, id, false); }
   @Get('orders') orderList(@Query('status') status?: string) { return this.admin.orderList(status); }
+  @Post('orders/:id/cancel') @HttpCode(200) async cancelOrder(@CurrentAdmin() a: string, @Param('id') id: string, @Body() dto: OrderActionDto) { await this.admin.orderAction(a, id, 'cancel', dto.reason); return { ok: true }; }
+  @Post('orders/:id/release-rider') @HttpCode(200) async releaseRider(@CurrentAdmin() a: string, @Param('id') id: string, @Body() dto: OrderActionDto) { await this.admin.orderAction(a, id, 'release', dto.reason); return { ok: true }; }
   @Get('payouts') payouts(@Query('status') status?: string) { return this.admin.payouts(status); }
   @Post('payouts/:id') @HttpCode(200) payout(@CurrentAdmin() a: string, @Param('id') id: string, @Body() dto: PayoutDto) { return this.admin.setPayout(a, id, dto); }
   @Get('activity') activity() { return this.admin.activity(); }

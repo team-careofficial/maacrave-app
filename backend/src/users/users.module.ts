@@ -31,10 +31,10 @@ class DocumentDto {
 class ApplyCookDto {
   @IsString() @MinLength(2) @MaxLength(60) displayName: string;
   @IsIn(DHAKA_AREAS) area: string;
-  @IsArray() @IsString({ each: true }) specialties: string[];
-  @IsOptional() @IsString() experience?: string;
+  @IsArray() @ArrayMaxSize(10) @IsString({ each: true }) @MaxLength(40, { each: true }) specialties: string[];
+  @IsOptional() @IsString() @MaxLength(300) experience?: string;
   @IsOptional() @IsString() @MaxLength(200) kitchenInfo?: string;
-  @IsOptional() @IsString() hours?: string;
+  @IsOptional() @IsString() @MaxLength(30) hours?: string;
   @Type(() => Number) @IsInt() @Min(1) @Max(200) dailyCapacity: number;
   @Matches(/^\d{4}$/) nidLast4: string;
   @IsArray() @ArrayMinSize(2) @ArrayMaxSize(5) @ValidateNested({ each: true }) @Type(() => DocumentDto) documents: DocumentDto[];
@@ -151,7 +151,8 @@ export class UsersService {
    * without personal details because cooks, riders and accounting still need them.
    */
   async deleteAccount(userId: string) {
-    const live = await this.prisma.order.count({ where: { customerId: userId, status: { notIn: ['DELIVERED', 'CANCELLED'] } } });
+    const open = { notIn: ['DELIVERED', 'CANCELLED'] as ('DELIVERED' | 'CANCELLED')[] };
+    const live = await this.prisma.order.count({ where: { OR: [{ customerId: userId }, { riderId: userId }, { cook: { userId } }], status: open } });
     if (live) throw new BadRequestException('You have an order in progress. You can delete your account once it is delivered or cancelled.');
     await this.prisma.$transaction([
       this.prisma.refreshToken.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date() } }),
@@ -160,7 +161,9 @@ export class UsersService {
       this.prisma.favorite.deleteMany({ where: { userId } }),
       this.prisma.document.deleteMany({ where: { userId } }),
       this.prisma.cookProfile.updateMany({ where: { userId }, data: { accepting: false } }),
-      this.prisma.riderProfile.updateMany({ where: { userId }, data: { online: false } }),
+      this.prisma.riderProfile.updateMany({ where: { userId }, data: { online: false, lat: null, lng: null } }),
+      this.prisma.subscription.updateMany({ where: { customerId: userId, status: { in: ['ACTIVE', 'PAUSED'] } }, data: { status: 'CANCELLED' } }),
+      this.prisma.foodRequest.updateMany({ where: { customerId: userId, status: { in: ['OPEN', 'PROPOSALS'] } }, data: { status: 'CANCELLED' } }),
       this.prisma.user.update({ where: { id: userId }, data: { phone: null, email: null, name: 'Deleted user', area: null, referralCode: null, suspended: true, deletedAt: new Date() } }),
     ]);
     return { ok: true };

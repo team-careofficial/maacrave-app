@@ -14,6 +14,7 @@ import { tr, useLang } from '../i18n';
 import { Logo } from './logo';
 import { C, CATEGORY_META, F, GLOSS, MATTE, R, redShadow, S, shadow, SHEEN, TYPE, TypeKey } from '../theme';
 import type { Batch, CookPublic, Dish, Order, OrderStatus } from '../types';
+import { onAppError } from '../errors';
 
 const ND = Platform.OS !== 'web';
 const APressable = Animated.createAnimatedComponent(Pressable);
@@ -581,6 +582,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     timer.current = setTimeout(() => Animated.timing(a, { toValue: 0, duration: 200, useNativeDriver: ND }).start(() => setMsg(null)), 2600);
   }, [a]);
   useEffect(() => () => clearTimeout(timer.current), []);
+  useEffect(() => onAppError(show), [show]);
   return (
     <ToastCtx.Provider value={show}>
       {children}
