@@ -1,12 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Banknote, ChefHat, MapPin, Navigation, Phone } from 'lucide-react-native';
 import { useState } from 'react';
+import { router } from 'expo-router';
+import { t } from '@/i18n';
 import { Linking, Platform, View } from 'react-native';
 import { API } from '@/api';
 import { tk } from '@/format';
 import { C, S } from '@/theme';
 import type { RiderOrder } from '@/types';
-import { Button, Card, Divider, Empty, ErrorState, Header, Input, Loading, Row, Screen, StatusBadge, T, useToast } from '@/ui';
+import { Button, Card, confirm, Divider, Empty, ErrorState, Header, Input, Loading, Row, Screen, StatusBadge, T, useToast } from '@/ui';
 
 const maps = (q: string) => Linking.openURL(Platform.OS === 'ios' ? `maps://?q=${encodeURIComponent(q)}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q + ', Dhaka')}`);
 
@@ -29,6 +31,7 @@ function Drop({ o }: { o: RiderOrder }) {
           {o.customer.phone ? <Button title="Call" size="sm" v="outline" icon={<Phone size={15} color={C.text} />} onPress={() => Linking.openURL(`tel:${o.customer.phone}`)} /> : null}
         </Row>
       ) : null}
+      <Button title={t('Message', 'বার্তা')} size="sm" v="ghost" style={{ alignSelf: 'flex-start' }} onPress={() => router.push({ pathname: '/chat/[orderId]', params: { orderId: o.id, code: o.code } })} />
       {o.status === 'ON_THE_WAY' ? (
         <Row gap={S.sm} style={{ alignItems: 'flex-end' }}>
           <View style={{ flex: 1 }}><Input label="Customer’s 4-digit code" value={code} onChangeText={(t) => setCode(t.replace(/\D/g, '').slice(0, 4))} keyboardType="number-pad" maxLength={4} placeholder="••••" /></View>
@@ -48,6 +51,7 @@ function Trip({ orders }: { orders: RiderOrder[] }) {
   const onDone = (d: RiderOrder[]) => qc.setQueryData(['riderActive'], d);
   const pickup = useMutation({ mutationFn: () => API.pickup(key), onSuccess: (d) => { onDone(d); toast('Picked up'); }, onError: (e) => toast((e as Error).message) });
   const start = useMutation({ mutationFn: () => API.startTrip(key), onSuccess: (d) => { onDone(d); toast('Customers notified you’re on the way'); }, onError: (e) => toast((e as Error).message) });
+  const release = useMutation({ mutationFn: () => API.riderRelease(orders[0].id), onSuccess: () => { qc.invalidateQueries({ queryKey: ['riderActive'] }); qc.invalidateQueries({ queryKey: ['riderTasks'] }); toast(t('Trip handed back. Another rider will take it.', 'ট্রিপ ফেরত দেওয়া হয়েছে। অন্য রাইডার নেবেন।')); }, onError: (e) => toast((e as Error).message) });
   const cook = orders[0].cook;
   const cash = orders.reduce((a, o) => a + o.cashToCollect, 0);
   return (
@@ -58,6 +62,7 @@ function Trip({ orders }: { orders: RiderOrder[] }) {
         {cook.user?.phone ? <Button title="Call" size="sm" v="ghost" icon={<Phone size={15} color={C.text} />} onPress={() => Linking.openURL(`tel:${cook.user!.phone}`)} /> : null}
       </Row>
       {assigned ? <Button title="Picked up from kitchen" loading={pickup.isPending} onPress={() => pickup.mutate()} /> : null}
+      {assigned ? <Button title={t('I can’t make this trip', 'এই ট্রিপ করতে পারব না')} v="ghost" size="sm" loading={release.isPending} onPress={async () => { if (await confirm(t('Hand this trip back?', 'ট্রিপটা ফেরত দেবেন?'), t('Another rider is alerted right away. Doing this often lowers your priority.', 'সাথে সাথে অন্য রাইডারকে জানানো হবে। বারবার করলে আপনার অগ্রাধিকার কমে।'), t('Hand back', 'ফেরত দিন'), true)) release.mutate(); }} /> : null}
       {picked ? <Button title="Start delivery" v="dark" loading={start.isPending} onPress={() => start.mutate()} /> : null}
       {orders.map((o) => <View key={o.id} style={{ gap: S.md }}><Divider /><Drop o={o} /></View>)}
     </Card>

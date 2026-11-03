@@ -5,8 +5,9 @@ export type BatchStatus = 'OPEN' | 'FULL' | 'CONFIRMED' | 'COOKING' | 'READY' | 
 export type PaymentMethod = 'BKASH' | 'SSLCOMMERZ' | 'COD';
 
 export interface CookPublic { id: string; displayName: string; area: string; intro: string; specialties: string[]; rating: number; ratingCount: number; completedOrders: number; hours: string; accepting: boolean; lat?: number | null; lng?: number | null;
-  story?: string; region?: string | null; portraitId?: string | null; kitchenPhotoId?: string | null; createdAt?: string }
-export interface Kitchen extends CookPublic { dailyCapacity: number; hygieneChecks: number; payoutWallet: string | null; kitchenInfo: string | null; experience: string | null }
+  story?: string; region?: string | null; portraitId?: string | null; kitchenPhotoId?: string | null; createdAt?: string;
+  inspectedAt?: string | null; awayUntil?: string | null; hygieneChecks?: number }
+export interface Kitchen extends CookPublic { dailyCapacity: number; hygieneChecks: number; payoutWallet: string | null; kitchenInfo: string | null; experience: string | null; pausedUntil?: string | null; pauseReason?: string | null; foodLicence?: string | null }
 export interface Me {
   id: string; phone: string | null; email: string | null; name: string | null; area: string | null; language: 'en' | 'bn'; loyaltyPoints: number; referralCode: string | null; termsAcceptedAt?: string | null; phoneVerifiedAt?: string | null; createdAt?: string;
   dietPrefs?: string[]; allergies?: string[];
@@ -29,14 +30,15 @@ export interface Batch {
   status: BatchStatus; filled: number; participants: number; myOrderId: string | null; myPortions: number; cook?: CookPublic; dish?: Dish | null; who?: { name: string; portions: number }[];
 }
 export interface DishDetail extends Dish { reviews: Review[]; openBatch: Batch | null }
-export interface CookDetail extends CookPublic { dishes: Dish[]; reviews: Review[]; openBatches: Batch[] }
+export interface CookDetail extends CookPublic { dishes: Dish[]; reviews: Review[]; openBatches: Batch[]; subRatings?: { portion: number | null; packaging: number | null; hygiene: number | null } }
+export interface OrderChat { open: boolean; me: 'CUSTOMER' | 'COOK' | 'RIDER'; messages: { id: string; role: 'CUSTOMER' | 'COOK' | 'RIDER'; mine: boolean; body: string; createdAt: string }[] }
 export interface Address { id: string; label: string; area: string; road: string; house: string; floor: string | null; landmark: string | null; isDefault: boolean; lat?: number | null; lng?: number | null }
 export interface Fees { subtotal: number; serviceFee: number; deliveryFee: number; discount: number; total: number; couponCode: string | null; distanceKm?: number; tip?: number }
 export interface OrderItem { id: string; dishId: string | null; name: string; unitPrice: number; quantity: number }
 export interface Order {
   id: string; code: string; status: OrderStatus; customerId: string; cookId: string; batchId: string | null; requestId: string | null;
   subtotal: number; serviceFee: number; deliveryFee: number; discount: number; total: number; commission: number; cookEarning: number; riderPayout?: number; tip?: number; couponCode: string | null;
-  addressText: string; area: string; lat?: number | null; lng?: number | null; deliveryOtp?: string; notes: string | null; createdAt: string; updatedAt: string; scheduledFor?: string | null;
+  addressText: string; area: string; lat?: number | null; lng?: number | null; deliveryOtp?: string; notes: string | null; createdAt: string; updatedAt: string; scheduledFor?: string | null; allergyNote?: string | null; etaAt?: string | null;
   items: OrderItem[]; events: { id: string; status: OrderStatus; createdAt: string }[];
   payment: { method: PaymentMethod; status: string; amount: number } | null; review: { stars: number } | null;
   cook: { id: string; displayName: string; area: string; lat?: number | null; lng?: number | null }; rider: { id: string; name: string | null } | null; batch: { id: string; title: string; readyBy: string; status: BatchStatus } | null;
@@ -64,7 +66,7 @@ export interface MealPlan {
   createdAt: string; cook?: CookPublic; _count?: { subscriptions: number };
 }
 export interface Subscription {
-  id: string; planId: string; status: SubscriptionStatus; startDate: string; endDate: string; addressText: string; area: string; notes: string | null; createdAt: string;
+  id: string; planId: string; status: SubscriptionStatus; startDate: string; endDate: string; addressText: string; area: string; notes: string | null; createdAt: string; skipDates?: string[];
   plan: MealPlan & { cook: CookPublic };
 }
 export interface KitchenSubscriber {

@@ -1,7 +1,7 @@
 import { BadRequestException, Body, Controller, Delete, ForbiddenException, Get, HttpCode, Injectable, Module, NotFoundException, Param, Patch, Post, Query } from '@nestjs/common';
 import { OrderStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, Equals, IsArray, IsBoolean, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
 import { batchFilled } from '../catalog/catalog.module';
 import { AuthUser, CurrentUser, Roles } from '../common/auth';
 import { PrismaService } from '../common/prisma.service';
@@ -27,6 +27,8 @@ class KitchenDto {
   @IsOptional() @IsIn([...REGIONS, '']) region?: string;
   @IsOptional() @IsString() @MaxLength(40) portraitId?: string;
   @IsOptional() @IsString() @MaxLength(40) kitchenPhotoId?: string;
+  /** On leave until this date (ISO), or '' to come back now. */
+  @IsOptional() @IsString() @MaxLength(40) awayUntil?: string;
 }
 class DishDto {
   @IsString() @MinLength(2) @MaxLength(60) name: string;
@@ -35,8 +37,10 @@ class DishDto {
   @Type(() => Number) @IsInt() @Min(30) @Max(5000) price: number;
   @IsString() @MaxLength(40) portion: string;
   @Type(() => Number) @IsInt() @Min(5) @Max(600) prepMinutes: number;
-  @IsArray() @ArrayMaxSize(30) @IsString({ each: true }) @MaxLength(40, { each: true }) ingredients: string[];
+  @IsArray() @ArrayMinSize(1, { message: 'List the main ingredients.' }) @ArrayMaxSize(30) @IsString({ each: true }) @MaxLength(40, { each: true }) ingredients: string[];
   @IsArray() @ArrayMaxSize(20) @IsString({ each: true }) @MaxLength(40, { each: true }) allergens: string[];
+  /** The cook confirms the allergen list is complete (or that there are none). */
+  @Equals(true, { message: 'Please confirm the allergens for this dish.' }) allergensConfirmed: boolean;
   @IsOptional() @IsString() @MaxLength(400) description?: string;
   @Type(() => Number) @IsInt() @Min(0) @Max(3) spice: number;
   @Type(() => Number) @IsInt() @Min(1) @Max(300) dailyCapacity: number;
@@ -53,7 +57,8 @@ class EditDishDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(30) @Max(5000) price?: number;
   @IsOptional() @IsString() @MaxLength(40) portion?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(5) @Max(600) prepMinutes?: number;
-  @IsOptional() @IsArray() @ArrayMaxSize(30) @IsString({ each: true }) @MaxLength(40, { each: true }) ingredients?: string[];
+  @IsOptional() @IsArray() @ArrayMinSize(1, { message: 'List the main ingredients.' }) @ArrayMaxSize(30) @IsString({ each: true }) @MaxLength(40, { each: true }) ingredients?: string[];
+  @IsOptional() @IsBoolean() allergensConfirmed?: boolean;
   @IsOptional() @IsArray() @ArrayMaxSize(20) @IsString({ each: true }) @MaxLength(40, { each: true }) allergens?: string[];
   @IsOptional() @IsString() @MaxLength(400) description?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(0) @Max(3) spice?: number;
@@ -108,16 +113,29 @@ export class KitchenService {
 
   async update(user: AuthUser, dto: KitchenDto) {
     const cook = this.cookOf(user);
-    if (dto.accepting) await this.business.requireAccepted(user.id, 'COOK');
-    return this.prisma.cookProfile.update({ where: { id: cook.id }, data: await this.clean(user, dto) });
+    if (dto.accepting) {
+      await this.business.requireAccepted(user.id, 'COOK');
+      const c = await this.prisma.cookProfile.findUniqueOrThrow({ where: { id: cook.id } });
+      if (c.pausedUntil && c.pausedUntil > new Date()) throw new BadRequestException(`Your kitchen is paused by MaaCrave: ${c.pauseReason || 'quality check'}. We'll contact you.`);
+    }
+    const { awayUntil, ...rest } = dto;
+    const data: Record<string, unknown> = { ...(await this.clean(user, rest)) };
+    if (awayUntil !== undefined) {
+      const d = awayUntil ? new Date(awayUntil) : null;
+      if (d && (isNaN(d.getTime()) || d < new Date() || d.getTime() > Date.now() + 90 * 86400_000)) throw new BadRequestException('Choose a return date within the next 90 days.');
+      data.awayUntil = d;
+      if (d) data.accepting = false;
+    }
+    return this.prisma.cookProfile.update({ where: { id: cook.id }, data });
   }
 
   dishes(user: AuthUser) { return this.prisma.dish.findMany({ where: { cookId: this.cookOf(user).id, deletedAt: null }, orderBy: { createdAt: 'desc' } }); }
-  async addDish(user: AuthUser, dto: DishDto) { const d = await this.clean(user, dto); return this.prisma.dish.create({ data: { ...d, description: d.description || '', cookId: this.cookOf(user).id } }); }
+  async addDish(user: AuthUser, dto: DishDto) { const { allergensConfirmed: _c, ...body } = dto; const d = await this.clean(user, body); return this.prisma.dish.create({ data: { ...d, description: d.description || '', cookId: this.cookOf(user).id } }); }
   async editDish(user: AuthUser, id: string, dto: EditDishDto) {
     const d = await this.prisma.dish.findFirst({ where: { id, cookId: this.cookOf(user).id, deletedAt: null } });
     if (!d) throw new NotFoundException();
-    return this.prisma.dish.update({ where: { id }, data: await this.clean(user, dto) });
+    const { allergensConfirmed: _c, ...body } = dto;
+    return this.prisma.dish.update({ where: { id }, data: await this.clean(user, body) });
   }
   async removeDish(user: AuthUser, id: string) {
     await this.prisma.dish.updateMany({ where: { id, cookId: this.cookOf(user).id }, data: { deletedAt: new Date(), available: false } });

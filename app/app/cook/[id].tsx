@@ -81,9 +81,26 @@ export default function CookScreen() {
 
           <Row gap={S.sm} wrap style={{ marginTop: S.lg }}>
             <Badge tone="ok" label="Verified kitchen" icon={<ShieldCheck size={12} color={C.ok} />} />
+            {c.inspectedAt ? <Badge tone="ok" label={t(`Kitchen inspected ${new Date(c.inspectedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`, `রান্নাঘর পরিদর্শন ${new Date(c.inspectedAt).toLocaleDateString('bn-BD', { day: 'numeric', month: 'short', year: 'numeric' })}`)} /> : null}
+            {c.hygieneChecks ? <Badge label={t(`Hygiene ${c.hygieneChecks}/5`, `পরিচ্ছন্নতা ${num(c.hygieneChecks)}/৫`)} /> : null}
             {c.accepting ? <Badge tone="brand" label="Taking orders" /> : <Badge label="Closed now" />}
             {c.specialties.map((s) => <Badge key={s} label={s} />)}
           </Row>
+
+          {c.awayUntil && new Date(c.awayUntil) > new Date() ? (
+            <View style={{ marginTop: S.lg, backgroundColor: C.warnSoft, borderRadius: R.md, padding: S.md }}>
+              <T v="label" color={C.warn}>{t(`On leave until ${new Date(c.awayUntil).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}`, `${new Date(c.awayUntil).toLocaleDateString('bn-BD', { day: 'numeric', month: 'long' })} পর্যন্ত ছুটিতে`)}</T>
+            </View>
+          ) : null}
+          {c.subRatings && (c.subRatings.portion || c.subRatings.packaging || c.subRatings.hygiene) ? (
+            <Row gap={S.sm} style={{ marginTop: S.lg }}>
+              {([['portion', 'Portion', 'পরিমাণ'], ['packaging', 'Packaging', 'প্যাকেজিং'], ['hygiene', 'Cleanliness', 'পরিচ্ছন্নতা']] as const).map(([k, en, bn]) => c.subRatings![k] ? (
+                <View key={k} style={{ flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: R.md, borderWidth: 1, borderColor: C.line }}>
+                  <T v="price">{num(c.subRatings![k]!.toFixed(1))}★</T><T v="meta">{t(en, bn)}</T>
+                </View>
+              ) : null)}
+            </Row>
+          ) : null}
 
           <Card style={{ marginTop: S.lg, flexDirection: 'row', alignItems: 'center', gap: S.md }}>
             <MessageSquare size={20} color={C.brandText} />

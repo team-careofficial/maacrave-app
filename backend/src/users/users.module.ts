@@ -52,6 +52,8 @@ class ApplyCookDto {
   @IsOptional() @IsString() @MaxLength(30) hours?: string;
   @Type(() => Number) @IsInt() @Min(1) @Max(200) dailyCapacity: number;
   @Matches(/^\d{4}$/) nidLast4: string;
+  /** BFSA food business registration / licence number, if the kitchen has one. */
+  @IsOptional() @IsString() @MaxLength(40) foodLicence?: string;
   @IsArray() @ArrayMinSize(2) @ArrayMaxSize(5) @ValidateNested({ each: true }) @Type(() => DocumentDto) documents: DocumentDto[];
 }
 class ApplyRiderDto {

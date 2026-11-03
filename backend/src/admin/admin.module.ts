@@ -117,6 +117,7 @@ class FestivalDto {
   @IsString() @Matches(/^\d{4}-\d{2}-\d{2}T/) deliverOn: string;
   @IsOptional() @IsBoolean() active?: boolean;
 }
+class PauseDto { @Type(() => Number) @IsInt() @Min(1) @Max(365) days: number; @IsString() @MinLength(3) @MaxLength(200) reason: string; }
 class FeaturedDto { @IsOptional() @IsString() @MaxLength(40) cookId?: string | null; }
 class PayoutDto { @IsIn(['PROCESSING', 'PAID', 'FAILED']) status: 'PROCESSING' | 'PAID' | 'FAILED'; @IsOptional() @IsString() @MaxLength(60) reference?: string; }
 
@@ -174,7 +175,22 @@ export class AdminService {
       this.prisma.payout.count({ where: { status: { in: ['REQUESTED', 'PROCESSING'] } } }),
     ]);
     const openTickets = await this.prisma.supportTicket.count({ where: { status: 'OPEN' } });
-    return { users, cooks, riders, pendingApps, openComplaints, ordersToday, activeOrders, salesToday: salesToday._sum.total || 0, commissionToday: salesToday._sum.commission || 0, pendingPayouts, openTickets };
+    // Orders that need a human: ready but no rider for 12+ minutes.
+    const stuck = await this.prisma.order.findMany({ where: { status: 'READY', riderId: null, updatedAt: { lt: new Date(Date.now() - 12 * 60_000) } }, select: { id: true, code: true, area: true, updatedAt: true, cook: { select: { displayName: true, area: true } } }, take: 20 });
+    // What MaaCrave really keeps per delivered order over the last 30 days, after gateway fees and refunds it paid.
+    const since = new Date(Date.now() - 30 * 86400_000);
+    const gatewayPct = Number(process.env.GATEWAY_PCT || 1.5);
+    const [m, online, refunds] = await Promise.all([
+      this.prisma.order.aggregate({ where: { status: 'DELIVERED', updatedAt: { gte: since } }, _count: true, _sum: { total: true, commission: true, serviceFee: true, deliveryFee: true, riderPayout: true, discount: true } }),
+      this.prisma.order.aggregate({ where: { status: 'DELIVERED', updatedAt: { gte: since }, payment: { method: { in: ['BKASH', 'SSLCOMMERZ'] } } }, _sum: { total: true } }),
+      this.prisma.complaint.aggregate({ where: { chargedTo: 'MAACRAVE', createdAt: { gte: since } }, _sum: { refundedAmount: true } }),
+    ]);
+    const s30 = m._sum;
+    const gross = (s30.commission || 0) + (s30.serviceFee || 0) + (s30.deliveryFee || 0) - (s30.riderPayout || 0) - (s30.discount || 0);
+    const gateway = Math.round((online._sum.total || 0) * gatewayPct / 100);
+    const net = gross - gateway - (refunds._sum.refundedAmount || 0);
+    const margin = { orders: m._count, sales: s30.total || 0, gross, gateway, refunds: refunds._sum.refundedAmount || 0, net, perOrder: m._count ? Math.round(net / m._count) : 0, gatewayPct };
+    return { stuck, margin, users, cooks, riders, pendingApps, openComplaints, ordersToday, activeOrders, salesToday: salesToday._sum.total || 0, commissionToday: salesToday._sum.commission || 0, pendingPayouts, openTickets };
   }
 
   /* ---------- cook & rider applications ---------- */
@@ -352,6 +368,35 @@ export class AdminService {
     return { ok: true };
   }
 
+  /* ---------- kitchen safety: inspections, pauses ---------- */
+  async kitchens() {
+    const since = new Date(Date.now() - 30 * 86400_000);
+    const cooks = await this.prisma.cookProfile.findMany({ where: { user: { roles: { some: { role: 'COOK', status: 'APPROVED' } } } }, orderBy: { displayName: 'asc' }, take: 300,
+      select: { id: true, displayName: true, area: true, rating: true, ratingCount: true, completedOrders: true, hygieneChecks: true, inspectedAt: true, pausedUntil: true, pauseReason: true, awayUntil: true, accepting: true, foodLicence: true } });
+    const reports = await this.prisma.complaint.groupBy({ by: ['orderId'], where: { createdAt: { gte: since }, type: { in: ['Food quality', 'Hygiene concern', 'Wrong allergen info'] } }, _count: true });
+    const orders = reports.length ? await this.prisma.order.findMany({ where: { id: { in: reports.map((r) => r.orderId) } }, select: { id: true, cookId: true } }) : [];
+    const per: Record<string, number> = {};
+    for (const o of orders) per[o.cookId] = (per[o.cookId] || 0) + 1;
+    return cooks.map((c) => ({ ...c, safetyReports30d: per[c.id] || 0, paused: !!(c.pausedUntil && c.pausedUntil > new Date()) })).sort((a, b) => b.safetyReports30d - a.safetyReports30d || Number(b.paused) - Number(a.paused));
+  }
+  async pauseKitchen(admin: string, id: string, dto: PauseDto) {
+    const c = await this.prisma.cookProfile.update({ where: { id }, data: { accepting: false, pausedUntil: new Date(Date.now() + dto.days * 86400_000), pauseReason: dto.reason } });
+    await this.audit(admin, 'KITCHEN_PAUSE', id, `${dto.days}d · ${dto.reason}`);
+    await this.notify.notify(c.userId, 'COOK', 'Your kitchen is paused', `${dto.reason} The MaaCrave team will contact you.`);
+    return { ok: true };
+  }
+  async resumeKitchen(admin: string, id: string) {
+    const c = await this.prisma.cookProfile.update({ where: { id }, data: { pausedUntil: null, pauseReason: null } });
+    await this.audit(admin, 'KITCHEN_RESUME', id);
+    await this.notify.notify(c.userId, 'COOK', 'Your kitchen can reopen', 'Thank you. Turn on “Taking orders” when you are ready.');
+    return { ok: true };
+  }
+  async inspected(admin: string, id: string, note?: string) {
+    await this.prisma.cookProfile.update({ where: { id }, data: { inspectedAt: new Date() } });
+    await this.audit(admin, 'KITCHEN_INSPECTED', id, note);
+    return { ok: true };
+  }
+
   /* ---------- Festivals, mother of the week, photos ---------- */
   festivals() { return this.prisma.festival.findMany({ orderBy: { closesAt: 'desc' }, take: 50 }); }
   async saveFestival(admin: string, id: string | null, dto: FestivalDto) {
@@ -456,6 +501,10 @@ export class AdminController {
   @Post('riders/:id/ledger') @HttpCode(200) riderLedger(@CurrentAdmin() a: string, @Param('id') id: string, @Body() dto: LedgerDto) { return this.admin.riderLedger(a, id, dto); }
   @Get('tickets') tickets(@Query('status') status?: string) { return this.admin.tickets(status); }
   @Post('tickets/:id/reply') @HttpCode(200) replyTicket(@CurrentAdmin() a: string, @Param('id') id: string, @Body() dto: TicketReplyDto) { return this.admin.replyTicket(a, id, dto); }
+  @Get('kitchens') kitchens() { return this.admin.kitchens(); }
+  @Post('kitchens/:id/pause') @HttpCode(200) pauseKitchen(@CurrentAdmin() a: string, @Param('id') id: string, @Body() dto: PauseDto) { return this.admin.pauseKitchen(a, id, dto); }
+  @Post('kitchens/:id/resume') @HttpCode(200) resumeKitchen(@CurrentAdmin() a: string, @Param('id') id: string) { return this.admin.resumeKitchen(a, id); }
+  @Post('kitchens/:id/inspected') @HttpCode(200) inspected(@CurrentAdmin() a: string, @Param('id') id: string, @Body() dto: DecisionDto) { return this.admin.inspected(a, id, dto.note); }
   @Get('festivals') festivals() { return this.admin.festivals(); }
   @Post('festivals') @HttpCode(200) createFestival(@CurrentAdmin() a: string, @Body() dto: FestivalDto) { return this.admin.saveFestival(a, null, dto); }
   @Post('festivals/:id') @HttpCode(200) editFestival(@CurrentAdmin() a: string, @Param('id') id: string, @Body() dto: FestivalDto) { return this.admin.saveFestival(a, id, dto); }

@@ -1,5 +1,5 @@
 import { storage } from './storage';
-import type { Festival, HomeData, KitchenSubscriber, MealPlan, PartnerTerms, PlanInput, RiderWallet, Subscription, SupportContact, SupportTicket, Address, Batch, CookDetail, CookPublic, Dish, DishDetail, Fees, FoodRequest, Kitchen, KitchenBatch, KitchenDashboard, Me, Meta, Notification, Order, PaymentMethod, Proposal, Role, RiderOrder, RiderTask } from './types';
+import type { Festival, HomeData, OrderChat, KitchenSubscriber, MealPlan, PartnerTerms, PlanInput, RiderWallet, Subscription, SupportContact, SupportTicket, Address, Batch, CookDetail, CookPublic, Dish, DishDetail, Fees, FoodRequest, Kitchen, KitchenBatch, KitchenDashboard, Me, Meta, Notification, Order, PaymentMethod, Proposal, Role, RiderOrder, RiderTask } from './types';
 
 export const API_URL = (process.env.EXPO_PUBLIC_API_URL || '').replace(/\/$/, '');
 const RT_KEY = 'maacrave.rt';
@@ -95,7 +95,7 @@ export const API = {
   addAddress: (b: Omit<Address, 'id' | 'isDefault' | 'lat' | 'lng'> & { isDefault?: boolean; lat?: number; lng?: number }) => api<Address>('/me/addresses', { method: 'POST', body: b }),
   setDefaultAddress: (id: string) => api<Address[]>(`/me/addresses/${id}/default`, { method: 'POST' }),
   deleteAddress: (id: string) => api<Address[]>(`/me/addresses/${id}`, { method: 'DELETE' }),
-  applyCook: (b: { displayName: string; area: string; specialties: string[]; experience?: string; kitchenInfo?: string; hours?: string; dailyCapacity: number; nidLast4: string; documents: UploadDoc[] }) => api<Me>('/me/apply/cook', { method: 'POST', body: b }),
+  applyCook: (b: { displayName: string; area: string; specialties: string[]; experience?: string; kitchenInfo?: string; hours?: string; dailyCapacity: number; nidLast4: string; foodLicence?: string; documents: UploadDoc[] }) => api<Me>('/me/apply/cook', { method: 'POST', body: b }),
   applyRider: (b: { vehicle: string; nidLast4: string; documents: UploadDoc[] }) => api<Me>('/me/apply/rider', { method: 'POST', body: b }),
   favorites: () => api<{ id: string; dish: (Dish & { cook: CookPublic }) | null; cook: CookPublic | null }[]>('/me/favorites'),
   toggleFavorite: (b: { dishId?: string; cookId?: string }) => api<{ saved: boolean }>('/me/favorites/toggle', { method: 'POST', body: b }),
@@ -120,7 +120,11 @@ export const API = {
   order: (id: string) => api<Order>(`/orders/${id}`),
   pay: (id: string, client: 'app' | 'web') => api<{ paymentUrl: string }>(`/orders/${id}/pay`, { method: 'POST', body: { client } }),
   cancelOrder: (id: string) => api<Order>(`/orders/${id}/cancel`, { method: 'POST' }),
-  review: (id: string, stars: number, text?: string) => api<Order>(`/orders/${id}/review`, { method: 'POST', body: { stars, text } }),
+  review: (id: string, stars: number, text?: string, extra: { portion?: number; packaging?: number; hygiene?: number } = {}) => api<Order>(`/orders/${id}/review`, { method: 'POST', body: { stars, text, ...extra } }),
+  messages: (id: string) => api<OrderChat>(`/orders/${id}/messages`),
+  sendMessage: (id: string, body: string) => api<OrderChat>(`/orders/${id}/messages`, { method: 'POST', body: { body } }),
+  skipPlanDay: (id: string, date: string, skip = true) => api<Subscription[]>(`/subscriptions/${id}/skip`, { method: 'POST', body: { date, skip } }),
+  riderRelease: (id: string) => api(`/rider/orders/${id}/release`, { method: 'POST' }),
   complaint: (id: string, b: { type: string; text: string; refundRequested: boolean; refundAmount: number }) => api(`/orders/${id}/complaint`, { method: 'POST', body: b }),
   // requests
   requests: () => api<FoodRequest[]>('/requests'),
@@ -129,9 +133,9 @@ export const API = {
   declineProposal: (id: string, pid: string) => api<FoodRequest[]>(`/requests/${id}/proposals/${pid}/decline`, { method: 'POST' }),
   // kitchen (cook mode)
   kitchen: () => api<KitchenDashboard>('/kitchen'),
-  updateKitchen: (b: Partial<Pick<Kitchen, 'intro' | 'specialties' | 'hours' | 'dailyCapacity' | 'accepting' | 'hygieneChecks' | 'payoutWallet'>> & { area?: string; lat?: number; lng?: number; story?: string; region?: string; portraitId?: string; kitchenPhotoId?: string }) => api<Kitchen>('/kitchen', { method: 'PATCH', body: b }),
+  updateKitchen: (b: Partial<Pick<Kitchen, 'intro' | 'specialties' | 'hours' | 'dailyCapacity' | 'accepting' | 'hygieneChecks' | 'payoutWallet'>> & { area?: string; lat?: number; lng?: number; story?: string; region?: string; portraitId?: string; kitchenPhotoId?: string; awayUntil?: string }) => api<Kitchen>('/kitchen', { method: 'PATCH', body: b }),
   kitchenDishes: () => api<Dish[]>('/kitchen/dishes'),
-  saveDish: (id: string | null, b: Partial<Dish>) => (id ? api<Dish>(`/kitchen/dishes/${id}`, { method: 'PATCH', body: b }) : api<Dish>('/kitchen/dishes', { method: 'POST', body: b })),
+  saveDish: (id: string | null, b: Partial<Dish> & { allergensConfirmed?: boolean }) => (id ? api<Dish>(`/kitchen/dishes/${id}`, { method: 'PATCH', body: b }) : api<Dish>('/kitchen/dishes', { method: 'POST', body: b })),
   removeDish: (id: string) => api(`/kitchen/dishes/${id}`, { method: 'DELETE' }),
   kitchenRequests: () => api<FoodRequest[]>('/kitchen/requests'),
   kitchenProposals: () => api<(Proposal & { request: { dishName: string; portions: number; status: string } })[]>('/kitchen/proposals'),

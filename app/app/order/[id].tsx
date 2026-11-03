@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Bike, CalendarClock, Check, FileText, KeyRound, LifeBuoy, MapPin, MessageCircle, Phone, Star, Users } from 'lucide-react-native';
+import { Bike, CalendarClock, Check, Clock, FileText, KeyRound, LifeBuoy, MapPin, MessageCircle, Phone, Star, Users } from 'lucide-react-native';
 import { useState } from 'react';
 import { Linking, Pressable, View } from 'react-native';
 import { API } from '@/api';
@@ -15,7 +15,8 @@ import { DeliveryRoute } from '@/ui/route';
 
 const CANCELLABLE = ['AWAITING_PAYMENT', 'SUBMITTED', 'COOK_ACCEPTED', 'CONFIRMED'];
 const PAY_LABEL = { BKASH: 'bKash', SSLCOMMERZ: 'Card / wallet', COD: 'Cash on delivery' } as const;
-const COMPLAINTS = ['Missing item', 'Food quality', 'Late delivery', 'Hygiene concern', 'Wrong order', 'Rider behaviour', 'Other'];
+const COMPLAINTS = ['Missing item', 'Food quality', 'Late delivery', 'Hygiene concern', 'Wrong allergen info', 'Photo didn’t match', 'Wrong order', 'Rider behaviour', 'Other'];
+const SUB: [('portion' | 'packaging' | 'hygiene'), string, string][] = [['portion', 'Portion size', 'পরিমাণ'], ['packaging', 'Packaging', 'প্যাকেজিং'], ['hygiene', 'Cleanliness', 'পরিচ্ছন্নতা']];
 
 function Timeline({ o }: { o: Order }) {
   const steps = TIMELINE.filter((s) => s !== 'RIDER_ASSIGNED' || o.events.some((e) => e.status === s) || TIMELINE.indexOf(o.status) >= TIMELINE.indexOf('RIDER_ASSIGNED'));
@@ -52,7 +53,8 @@ function ReviewBox({ o }: { o: Order }) {
   const toast = useToast();
   const [stars, setStars] = useState(5);
   const [text, setText] = useState('');
-  const m = useMutation({ mutationFn: () => API.review(o.id, stars, text.trim() || undefined), onSuccess: (d) => { qc.setQueryData(['order', o.id], d); toast('Thanks for your review'); } });
+  const [extra, setExtra] = useState<{ portion?: number; packaging?: number; hygiene?: number }>({});
+  const m = useMutation({ mutationFn: () => API.review(o.id, stars, text.trim() || undefined, extra), onSuccess: (d) => { qc.setQueryData(['order', o.id], d); toast('Thanks for your review'); } });
   return (
     <Card style={{ gap: S.md }}>
       <T v="card">How was the food?</T>
@@ -63,6 +65,19 @@ function ReviewBox({ o }: { o: Order }) {
           </Pressable>
         ))}
       </Row>
+      {/* optional detail ratings */}
+      <View style={{ gap: 6 }}>
+        {SUB.map(([k, en, bn]) => (
+          <Row key={k} style={{ justifyContent: 'space-between' }}>
+            <T v="sub">{t(en, bn)}</T>
+            <Row gap={4}>{[1, 2, 3, 4, 5].map((n) => (
+              <Pressable key={n} onPress={() => setExtra({ ...extra, [k]: n })} hitSlop={4} accessibilityLabel={`${en} ${n}`}>
+                <Star size={20} color={C.star} fill={n <= (extra[k] || 0) ? C.star : 'transparent'} />
+              </Pressable>
+            ))}</Row>
+          </Row>
+        ))}
+      </View>
       <Input value={text} onChangeText={setText} placeholder={`Tell others about ${o.cook.displayName.split(' ')[0]}’s cooking`} maxLength={400} multiline style={{ minHeight: 80, alignItems: 'flex-start', paddingVertical: 12 }} />
       <Button title="Submit review" onPress={() => m.mutate()} loading={m.isPending} style={{ alignSelf: 'flex-start' }} />
     </Card>
@@ -118,6 +133,7 @@ export default function OrderScreen() {
               </Row>
               {o.scheduledFor ? <Row gap={6}><CalendarClock size={15} color={C.brandText} /><T v="meta" color={C.brandText}>{t(`Scheduled · arrives ${new Date(o.scheduledFor).toLocaleString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' })}`, `নির্ধারিত · পৌঁছাবে ${new Date(o.scheduledFor).toLocaleString('bn-BD', { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' })}`)}</T></Row> : null}
               {o.batch ? <Row gap={6}><Users size={15} color={C.brandText} /><T v="meta" color={C.brandText}>Group order · ready by {clock(o.batch.readyBy)}</T></Row> : null}
+              {o.etaAt && !['DELIVERED', 'CANCELLED'].includes(o.status) ? <Row gap={6}><Clock size={15} color={C.brandText} /><T v="label" color={C.brandText}>{t(`Arrives around ${clock(o.etaAt)}`, `আনুমানিক ${clock(o.etaAt)}-এ পৌঁছাবে`)}</T></Row> : null}
               {o.status === 'AWAITING_PAYMENT' ? <Note tone="warn">Waiting for payment. Unpaid orders are cancelled automatically after 20 minutes.</Note> : null}
             </Card>
 
@@ -133,7 +149,18 @@ export default function OrderScreen() {
               <DeliveryRoute title={STATUS_LABEL[o.status]} kitchen={{ name: o.cook.displayName, area: o.cook.area, lat: o.cook.lat, lng: o.cook.lng }} drop={{ name: 'You', area: o.area, lat: o.lat, lng: o.lng }}
                 rider={o.tracking?.lat != null && o.tracking?.lng != null ? { lat: o.tracking.lat, lng: o.tracking.lng } : null} />
             ) : null}
-            {o.status !== 'CANCELLED' ? <Card><Timeline o={o} /></Card> : <Note>This order was cancelled. Any online payment is refunded to the same account within 3–7 working days.</Note>}
+            {o.status !== 'CANCELLED' ? <Card><Timeline o={o} /></Card> : (
+              <Note>{o.payment?.method === 'COD' || !o.payment || o.payment.status === 'PENDING' || o.payment.status === 'FAILED'
+                ? t('This order was cancelled. Nothing was charged.', 'অর্ডারটি বাতিল হয়েছে। কোনো টাকা কাটা হয়নি।')
+                : o.payment.status === 'REFUNDED' ? t('This order was cancelled. Your refund is complete.', 'অর্ডারটি বাতিল হয়েছে। রিফান্ড সম্পন্ন হয়েছে।')
+                : t('This order was cancelled. Your refund is being processed and reaches the same account within 3–7 working days.', 'অর্ডারটি বাতিল হয়েছে। রিফান্ড প্রক্রিয়াধীন, ৩–৭ কার্যদিবসের মধ্যে একই অ্যাকাউন্টে পৌঁছাবে।')}</Note>
+            )}
+            {o.status !== 'AWAITING_PAYMENT' ? (
+              <Card onPress={() => router.push({ pathname: '/chat/[orderId]', params: { orderId: o.id, code: o.code } })} style={{ flexDirection: 'row', alignItems: 'center', gap: S.md }}>
+                <MessageCircle size={18} color={C.brand} />
+                <View style={{ flex: 1 }}><T v="label">{t('Message the mother', 'মায়ের সাথে কথা বলুন')}</T><T v="meta">{t('Ask, or add an instruction for this order', 'প্রশ্ন বা বিশেষ নির্দেশনা দিন')}</T></View>
+              </Card>
+            ) : null}
 
             {o.rider ? (
               <Card style={{ gap: S.md }}>
@@ -162,11 +189,12 @@ export default function OrderScreen() {
                 {o.discount ? <KV k={`Discount${o.couponCode ? ` (${o.couponCode})` : ''}`} v={`−${tk(o.discount)}`} color={C.ok} /> : null}
                 <Divider />
                 <KV k="Total" v={tk(o.total)} strong />
-                <KV k="Payment" v={`${o.payment ? PAY_LABEL[o.payment.method] : '—'}${o.payment?.status === 'PAID' ? ' · Paid' : o.payment?.status === 'REFUNDED' ? ' · Refunded' : ''}`} />
+                <KV k="Payment" v={`${o.payment ? PAY_LABEL[o.payment.method] : '—'}${o.payment?.status === 'PAID' ? ' · Paid' : o.payment?.status === 'REFUNDED' ? ' · Refunded' : o.payment?.status === 'REFUND_PENDING' ? ' · Refund in progress' : ''}`} />
               </Card>
             </Section>
             <Row gap={8} style={{ alignItems: 'flex-start' }}><MapPin size={16} color={C.muted} /><T v="sub" style={{ flex: 1 }}>{o.addressText}</T></Row>
             {o.notes ? <T v="sub" color={C.text2}>Note: {o.notes}</T> : null}
+            {o.allergyNote ? <T v="sub" color={C.err}>{t(`Your allergies were sent to the mother: ${o.allergyNote}`, `আপনার অ্যালার্জির তথ্য মাকে পাঠানো হয়েছে: ${o.allergyNote}`)}</T> : null}
 
             {o.status === 'DELIVERED' && !o.review ? <ReviewBox o={o} /> : null}
             {o.review ? <Row gap={6}><Star size={16} color={C.star} fill={C.star} /><T v="sub">You rated this {o.review.stars}/5. Thank you!</T></Row> : null}
