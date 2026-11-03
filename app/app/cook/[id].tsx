@@ -7,7 +7,7 @@ import { Image, StyleSheet, View } from 'react-native';
 import { API } from '@/api';
 import { useAddToCart, useFavorites } from '@/hooks';
 import { num, t, useLang } from '@/i18n';
-import { mediaUrl, REGIONS } from '@/maa';
+import { bnOf, mediaUrl, REGIONS } from '@/maa';
 import { C, MAROON, R, S } from '@/theme';
 import { Badge, BatchCard, Button, Card, DishCard, ErrorState, Header, IconButton, Loading, Row, Screen, Section, Segmented, T } from '@/ui';
 import { Grid } from '@/ui/grid';
@@ -41,7 +41,7 @@ export default function CookScreen() {
               <MotherPhoto c={c} size={96} />
               <View style={{ alignItems: 'center', gap: 4 }}>
                 <Row gap={6}><T v="title" color="#fff" style={{ flexShrink: 1, textAlign: 'center' }}>{c.displayName}</T><BadgeCheck size={20} color={C.turmeric} /></Row>
-                {region ? <T v="label" color={C.turmeric} bn={lang === 'bn'}>{lang === 'bn' ? `${region.bn}র রান্না` : `Cooks the ${region.en} way`}</T> : null}
+                {region ? <T v="label" color={C.turmeric} bn={lang === 'bn'}>{lang === 'bn' ? `${bnOf(region.bn)} রান্না` : `Cooks the ${region.en} way`}</T> : null}
                 <Row gap={S.md} wrap style={{ justifyContent: 'center' }}>
                   <Row gap={4}><MapPin size={13} color="rgba(255,255,255,0.75)" /><T v="meta" color="rgba(255,255,255,0.85)">{c.area}</T></Row>
                   <Row gap={4}><Clock size={13} color="rgba(255,255,255,0.75)" /><T v="meta" color="rgba(255,255,255,0.85)">{c.hours}</T></Row>

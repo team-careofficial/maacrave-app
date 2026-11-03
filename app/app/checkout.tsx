@@ -8,6 +8,7 @@ import { useCart } from '@/cart';
 import { tk } from '@/format';
 import { num, t } from '@/i18n';
 import { useAddresses, useMeta } from '@/hooks';
+import { festDay } from '@/maa';
 import { CLIENT, openPayment } from '@/pay';
 import { C, S } from '@/theme';
 import type { PaymentMethod } from '@/types';
@@ -118,7 +119,7 @@ export default function Checkout() {
               <Card style={{ gap: S.sm }}>
                 {quote.data!.scheduledFor ? (
                   <View style={{ backgroundColor: C.turmericSoft, borderRadius: 12, padding: 10 }}>
-                    <T v="label" color={C.onTurmeric}>{t(`🎉 Festival pre-order: arrives ${new Date(quote.data!.scheduledFor).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}`, `🎉 উৎসবের প্রি-অর্ডার: পৌঁছাবে ${new Date(quote.data!.scheduledFor).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}`)}</T>
+                    <T v="label" color={C.onTurmeric}>{t(`🎉 Festival pre-order: arrives ${festDay(quote.data!.scheduledFor, 'en')}`, `🎉 উৎসবের প্রি-অর্ডার: পৌঁছাবে ${festDay(quote.data!.scheduledFor, 'bn')}`)}</T>
                   </View>
                 ) : null}
                 {quote.data!.items.map((i, k) => <KV key={k} k={`${i.quantity} × ${i.name}`} v={tk(i.unitPrice * i.quantity)} />)}

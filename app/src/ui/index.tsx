@@ -111,7 +111,7 @@ export function CategoryTile({ category, size = 44, solid }: { category: string;
   return (
     <View style={{ width: size, height: size, borderRadius: size * 0.3, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: solid ? C.surface : undefined }}>
       {solid ? null : <LinearGradient colors={[m.color + '14', m.color + '2E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />}
-      <Icon size={size * 0.46} color={m.color} strokeWidth={1.9} />
+      <View style={{ position: 'relative', zIndex: 1 }}><Icon size={size * 0.46} color={m.color} strokeWidth={1.9} /></View>
     </View>
   );
 }
@@ -283,7 +283,7 @@ export function AddButton({ onPress, disabled, label = 'Add to cart' }: { onPres
       <View style={{ flex: 1, borderRadius: 19, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
         <LinearGradient colors={GLOSS} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
         <LinearGradient colors={SHEEN} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '50%' }} pointerEvents="none" />
-        <Plus size={19} color={ON_GLOSS} strokeWidth={2.6} />
+        <View style={{ position: 'relative', zIndex: 1 }}><Plus size={19} color={ON_GLOSS} strokeWidth={2.6} /></View>
       </View>
     </Tap>
   );

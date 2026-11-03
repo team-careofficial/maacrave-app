@@ -46,7 +46,15 @@ for (const [name, path, lang] of [['home-bn', '/', 'bn'], ['home-en', '/', 'en']
     return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
   });
   await p.goto('http://localhost:4173' + path); await p.waitForTimeout(6500);
-  await p.screenshot({ path: `../shots/${name}.png`, fullPage: name.startsWith('home') || name.startsWith('cook') });
+  await p.screenshot({ path: `../shots/${name}.png` });
+  // the app scrolls inside its own view: photograph further down too
+  for (const k of [1, 2, 3]) {
+    if (!(name.startsWith('home') || name.startsWith('cook')) || (k > 1 && !name.startsWith('home'))) break;
+    const moved = await p.evaluate((k) => { const els = [...document.querySelectorAll('div')].filter((d) => d.scrollHeight > d.clientHeight + 40 && getComputedStyle(d).overflowY !== 'visible'); const el = els.sort((a, b) => b.scrollHeight - a.scrollHeight)[0]; if (!el) return false; el.scrollTop = k * (el.clientHeight - 120); return true; }, k);
+    if (!moved) break;
+    await p.waitForTimeout(900);
+    await p.screenshot({ path: `../shots/${name}-${k}.png` });
+  }
   await p.close();
 }
 await b.close();

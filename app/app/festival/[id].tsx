@@ -6,12 +6,12 @@ import { StyleSheet, Text, View } from 'react-native';
 import { API } from '@/api';
 import { useAddToCart, useFavorites } from '@/hooks';
 import { num, t, useLang } from '@/i18n';
+import { festDay } from '@/maa';
 import { C, F, R, S } from '@/theme';
 import { DishCard, Empty, ErrorState, Header, Loading, Note, Row, Screen, T } from '@/ui';
 import { Grid } from '@/ui/grid';
 import { Countdown, Stitch } from '@/ui/maa';
 
-const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
 
 /** One festival's pre-order menu: Eid, Pohela Boishakh, pitha season… Food arrives on the festival day. */
 export default function FestivalScreen() {
@@ -42,7 +42,7 @@ export default function FestivalScreen() {
           <Row gap={S.md} style={{ backgroundColor: C.surface, borderRadius: R.lg, padding: S.md }}>
             <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.turmericSoft, alignItems: 'center', justifyContent: 'center' }}><Truck size={18} color={C.brand} /></View>
             <View style={{ flex: 1 }}>
-              <T v="label">{t(`Delivered on ${day(f.deliverOn)}`, `${day(f.deliverOn)} পৌঁছে যাবে`)}</T>
+              <T v="label">{t(`Delivered on ${festDay(f.deliverOn, lang)}`, `${festDay(f.deliverOn, lang)} পৌঁছে যাবে`)}</T>
               <T v="meta">{t('Mothers cook fresh for the day. Order now, eat on the festival.', 'মায়েরা সেদিনের জন্য টাটকা রান্না করবেন। এখন অর্ডার দিন, উৎসবের দিন খান।')}</T>
             </View>
           </Row>

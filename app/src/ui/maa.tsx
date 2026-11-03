@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { tk } from '../format';
 import { num, t, useLang } from '../i18n';
-import { ALLERGY, HEALTH, mediaUrl, REGIONS, untilParts } from '../maa';
+import { ALLERGY, bnOf, festDay, HEALTH, mediaUrl, REGIONS, untilParts } from '../maa';
 import { C, F, GLOSS, MAROON, ON_GLOSS, R, S, shadow } from '../theme';
 import type { CookPublic, Dish, Festival, HomeData } from '../types';
 import { Avatar, CategoryTile, Row, T, Tap } from './index';
@@ -68,7 +68,7 @@ export function RegionPill({ region }: { region?: string | null }) {
   return (
     <View style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, height: 22, borderRadius: R.pill, backgroundColor: C.turmericSoft }}>
       <Text style={{ fontSize: 10 }}>📍</Text>
-      <Text style={{ fontFamily: lang === 'bn' ? F.bnBold : F.semibold, fontSize: 11.5, color: C.onTurmeric }}>{lang === 'bn' ? `${r.bn}র স্বাদ` : `${r.en} style`}</Text>
+      <Text style={{ fontFamily: lang === 'bn' ? F.bnBold : F.semibold, fontSize: 11.5, color: C.onTurmeric }}>{lang === 'bn' ? `${bnOf(r.bn)} স্বাদ` : `${r.en} style`}</Text>
     </View>
   );
 }
@@ -104,7 +104,7 @@ export function MotherOfWeek({ c }: { c: NonNullable<HomeData['featured']> }) {
           <MotherPhoto c={c} size={68} />
           <View style={{ flex: 1, gap: 3 }}>
             <T v="section" color="#fff" numberOfLines={1}>{c.displayName}</T>
-            <T v="meta" color="rgba(255,255,255,0.78)" numberOfLines={1}>{c.area}{c.region && REGIONS[c.region] ? ` · ${lang === 'bn' ? REGIONS[c.region].bn + 'র মেয়ে' : 'from ' + REGIONS[c.region].en}` : ''}</T>
+            <T v="meta" color="rgba(255,255,255,0.78)" numberOfLines={1}>{c.area}{c.region && REGIONS[c.region] ? ` · ${lang === 'bn' ? bnOf(REGIONS[c.region].bn) + ' মেয়ে' : 'from ' + REGIONS[c.region].en}` : ''}</T>
             <Row gap={10} style={{ marginTop: 2 }}>
               {c.ratingCount ? <Row gap={3}><Star size={12} color={C.turmeric} fill={C.turmeric} /><T v="meta" color="#fff">{num(c.rating.toFixed(1))}</T></Row> : null}
               {c.completedOrders ? <T v="meta" color="#fff">{t(`${c.completedOrders} meals`, `${num(c.completedOrders)} বার রান্না`)}</T> : null}
@@ -166,18 +166,18 @@ function useTick(ms = 30_000) {
 
 export function Countdown({ to, light }: { to: string; light?: boolean }) {
   useTick();
+  const lang = useLang();
   const p = untilParts(to);
   if (!p) return null;
   const box = (v: number, en: string, bn: string) => (
     <View style={{ minWidth: 48, alignItems: 'center', paddingVertical: 6, borderRadius: R.sm, backgroundColor: light ? 'rgba(255,255,255,0.65)' : C.surface }}>
-      <Text style={{ fontFamily: F.displayX, fontSize: 20, color: C.brand }}>{num(v)}</Text>
+      <Text style={{ fontFamily: lang === 'bn' ? F.bnBold : F.displayX, fontSize: 20, lineHeight: 26, color: C.brand }}>{num(v)}</Text>
       <T v="meta" color={C.text2}>{t(en, bn)}</T>
     </View>
   );
   return <Row gap={6}>{box(p.d, 'days', 'দিন')}{box(p.h, 'hrs', 'ঘণ্টা')}{box(p.m, 'min', 'মিনিট')}</Row>;
 }
 
-const dayName = (iso: string) => new Date(iso).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
 
 /** Festival pre-order banner: turmeric, nakshi stitch, live countdown. */
 export function FestivalBanner({ f }: { f: Festival }) {
@@ -198,7 +198,7 @@ export function FestivalBanner({ f }: { f: Festival }) {
           <Countdown to={open ? f.closesAt : f.opensAt} light />
         </View>
         <Row style={{ justifyContent: 'space-between' }}>
-          <T v="meta" color={C.onTurmeric} style={{ flex: 1 }}>{t(`Arrives ${dayName(f.deliverOn)}`, `পৌঁছাবে ${dayName(f.deliverOn)}`)}{f.dishCount ? ` · ${t(`${f.dishCount} dishes`, `${num(f.dishCount)}টি পদ`)}` : ''}</T>
+          <T v="meta" color={C.onTurmeric} style={{ flex: 1 }}>{t(`Arrives ${festDay(f.deliverOn, lang)}`, `পৌঁছাবে ${festDay(f.deliverOn, lang)}`)}{f.dishCount ? ` · ${t(`${f.dishCount} dishes`, `${num(f.dishCount)}টি পদ`)}` : ''}</T>
           <Row gap={6} style={{ backgroundColor: C.brand, borderRadius: R.pill, paddingHorizontal: 14, height: 34 }}>
             <T v="label" color="#fff">{open ? t('Pre-order', 'প্রি-অর্ডার') : t('See menu', 'মেনু দেখুন')}</T><ArrowRight size={15} color="#fff" />
           </Row>

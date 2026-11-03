@@ -20,6 +20,12 @@ export const REGIONS: Record<string, { en: string; bn: string; known: string; kn
   bogura: { en: 'Bogura', bn: 'বগুড়া', known: 'Doi, chitoi pitha', knownBn: 'দই, চিতই পিঠা', tint: '#7B4B2A' },
 };
 
+/** Bangla possessive: চট্টগ্রাম → চট্টগ্রামের, খুলনা → খুলনার. */
+export const bnOf = (w: string) => (/[\u09BE-\u09CC\u0985-\u0994]$/.test(w) ? w + 'র' : w + 'ের');
+
+/** "রবিবার, ৮ নভেম্বর" in Bangla, "Sunday, 8 November" in English. */
+export const festDay = (iso: string, lang: string) => new Date(iso).toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+
 /** Health and care labels cooks add to dishes ("স্বাস্থ্য ও যত্ন"). Keys match the backend HEALTH_TAGS list. */
 export const HEALTH: Record<string, { en: string; bn: string; color: string }> = {
   diabetic: { en: 'Diabetic-friendly', bn: 'ডায়াবেটিস-বান্ধব', color: '#2F6E8E' },

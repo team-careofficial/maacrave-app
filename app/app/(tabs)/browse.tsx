@@ -10,7 +10,7 @@ import { BatchCard, Chip, CookCard, DishCard, Empty, ErrorState, Header, Loading
 import { Grid } from '@/ui/grid';
 import { useAuth } from '@/auth';
 import { t, useLang } from '@/i18n';
-import { allergyHits, HEALTH, REGIONS } from '@/maa';
+import { allergyHits, bnOf, HEALTH, REGIONS } from '@/maa';
 import { Stitch } from '@/ui/maa';
 
 type Tab = 'dishes' | 'groups' | 'cooks';
@@ -84,7 +84,7 @@ export default function Browse() {
             <View style={{ marginTop: S.md, borderRadius: 20, padding: S.lg, gap: 6, backgroundColor: C.turmericSoft, borderLeftWidth: 4, borderLeftColor: r.tint }}>
               <T v="eyebrow" color={C.brand} bn={lang === 'bn'}>{t('A taste of home', 'নিজের জেলার স্বাদ')}</T>
               <T v="section" color={r.tint} bn>{r.bn}</T>
-              <T v="sub" color={C.onTurmeric}>{t(`Mothers from ${r.en} cooking ${r.known.toLowerCase()} and more, here in Dhaka.`, `${r.bn}র মায়েরা ঢাকায় বসেই রান্না করছেন ${r.knownBn} আর আরও অনেক কিছু।`)}</T>
+              <T v="sub" color={C.onTurmeric}>{t(`Mothers from ${r.en} cooking ${r.known.toLowerCase()} and more, here in Dhaka.`, `${bnOf(r.bn)} মায়েরা ঢাকায় বসেই রান্না করছেন ${r.knownBn} আর আরও অনেক কিছু।`)}</T>
               <Stitch color={r.tint} style={{ marginTop: 4 }} />
             </View>
           ) : null}
