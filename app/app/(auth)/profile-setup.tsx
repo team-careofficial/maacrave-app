@@ -115,7 +115,7 @@ export default function ProfileSetup() {
               ) : <Button title="Have a referral code?" v="ghost" size="sm" icon={<Gift size={15} color={C.text} />} onPress={() => setShowRef(true)} style={{ alignSelf: 'flex-start' }} />}
 
               {/* explicit agreement, recorded with the time */}
-              <Tap role="checkbox" onPress={() => { setAgreed(!agreed); setError(null); }} scale={0.99} style={{ flexDirection: 'row', gap: S.md, alignItems: 'flex-start', padding: S.md, borderRadius: R.md, backgroundColor: C.surface2 }}>
+              <Tap role="switch" onPress={() => { setAgreed(!agreed); setError(null); }} scale={0.99} style={{ flexDirection: 'row', gap: S.md, alignItems: 'flex-start', padding: S.md, borderRadius: R.md, backgroundColor: C.surface2 }}>
                 <View style={{ width: 24, height: 24, borderRadius: 7, borderWidth: 2, borderColor: agreed ? C.brand : C.line2, backgroundColor: agreed ? C.brand : C.surface, alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
                   {agreed ? <Check size={15} color="#fff" strokeWidth={3} /> : null}
                 </View>
