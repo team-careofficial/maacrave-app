@@ -36,7 +36,7 @@ export interface OrderItem { id: string; dishId: string | null; name: string; un
 export interface Order {
   id: string; code: string; status: OrderStatus; customerId: string; cookId: string; batchId: string | null; requestId: string | null;
   subtotal: number; serviceFee: number; deliveryFee: number; discount: number; total: number; commission: number; cookEarning: number; riderPayout?: number; tip?: number; couponCode: string | null;
-  addressText: string; area: string; lat?: number | null; lng?: number | null; deliveryOtp?: string; notes: string | null; createdAt: string; updatedAt: string;
+  addressText: string; area: string; lat?: number | null; lng?: number | null; deliveryOtp?: string; notes: string | null; createdAt: string; updatedAt: string; scheduledFor?: string | null;
   items: OrderItem[]; events: { id: string; status: OrderStatus; createdAt: string }[];
   payment: { method: PaymentMethod; status: string; amount: number } | null; review: { stars: number } | null;
   cook: { id: string; displayName: string; area: string; lat?: number | null; lng?: number | null }; rider: { id: string; name: string | null } | null; batch: { id: string; title: string; readyBy: string; status: BatchStatus } | null;

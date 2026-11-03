@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpCode, Logger, Module, Param, Post, Query, Req, Res } from '@nestjs/common';
 import { PaymentMethod } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength, ValidateNested, IsISO8601 } from 'class-validator';
 import type { Request, Response } from 'express';
 import { AuthUser, CurrentUser, Public } from '../common/auth';
 import { PrismaService } from '../common/prisma.service';
@@ -27,7 +27,7 @@ class PlaceDto extends CheckoutDto {
   @IsString() addressId: string;
   @IsIn(['BKASH', 'SSLCOMMERZ', 'COD']) paymentMethod: PaymentMethod;
   @IsOptional() @IsString() @MaxLength(300) notes?: string;
-  @IsOptional() @IsString() scheduledFor?: string;
+  @IsOptional() @IsISO8601() scheduledFor?: string;
   @IsOptional() @IsString() @MaxLength(64) idempotencyKey?: string;
   @IsOptional() @IsIn(['app', 'web']) client?: 'app' | 'web';
 }
