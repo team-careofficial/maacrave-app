@@ -16,7 +16,6 @@ jobs:
     defaults: { run: { working-directory: app } }
     env:
       EXPO_PUBLIC_API_URL: https://maacrave-api.onrender.com/v1
-      NODE_ENV: production
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
