@@ -120,3 +120,12 @@ input[type=file].input { padding: 9px 10px; }
 .reply { display: grid; gap: 8px; }
 h3.mt { margin-top: 18px; }
 .choice { display: grid; justify-items: start; text-align: left; gap: 2px; border-radius: 14px; padding: 12px 16px; }
+
+/* festivals, mother of the week, photos */
+.stack { display: grid; gap: 14px; }
+.face { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid var(--turmeric, #E9A100); display: inline-flex; align-items: center; justify-content: center; background: var(--sunken); color: var(--muted); }
+.pill.ok { display: inline-block; padding: 3px 10px; border-radius: 999px; background: #E8F5EE; color: #1E7F4F; font-weight: 700; font-size: 12px; }
+.photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; margin-top: 14px; }
+.photo { margin: 0; padding: 10px; display: grid; gap: 8px; }
+.photo img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; background: var(--sunken); }
+.photo figcaption { display: grid; gap: 2px; }
