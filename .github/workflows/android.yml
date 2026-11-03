@@ -25,6 +25,8 @@ jobs:
         with: { distribution: temurin, java-version: 17 }
       - uses: gradle/actions/setup-gradle@v4
       - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - name: Align native packages with Expo SDK 52
+        run: npx expo install --fix -- --legacy-peer-deps
       - name: Generate the native Android project
         run: npx expo prebuild --platform android --no-install --clean
       - name: Signing key
