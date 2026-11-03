@@ -153,6 +153,10 @@ export class OrdersService {
     if (!address) throw new BadRequestException('Choose a delivery address.');
     if (!user.name) throw new BadRequestException('Add your name in your profile first.');
     if (!user.phone) throw new BadRequestException('Add your mobile number first so the rider can reach you.');
+    if (input.scheduledFor) {
+      const at = new Date(input.scheduledFor).getTime();
+      if (!Number.isFinite(at) || at < Date.now() + 30 * 60_000 || at > Date.now() + 30 * 86400_000) throw new BadRequestException('Choose a delivery time between 30 minutes and 30 days from now.');
+    }
     if (input.paymentMethod === 'BKASH' && !this.bkash.configured()) throw new BadRequestException('bKash isn’t available yet. Choose cash on delivery.');
     if (input.paymentMethod === 'SSLCOMMERZ' && !this.ssl.configured()) throw new BadRequestException('Card and wallet payments aren’t available yet. Choose cash on delivery.');
 
@@ -240,7 +244,8 @@ export class OrdersService {
   private async notifyCookOfNewOrder(orderId: string) {
     const o = await this.prisma.order.findUniqueOrThrow({ where: { id: orderId }, include: { items: true, cook: true } });
     const what = o.items.map((i) => `${i.quantity}× ${i.name}`).join(', ');
-    await this.notify.notify(o.cook.userId, 'COOK', o.batchId ? 'New group order portion' : 'New order', `${what} · ${o.code}`);
+    const when = o.scheduledFor ? ` · deliver ${o.scheduledFor.toLocaleString('en-GB', { timeZone: 'Asia/Dhaka', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}` : '';
+    await this.notify.notify(o.cook.userId, 'COOK', o.batchId ? 'New group order portion' : o.scheduledFor ? 'New pre-order' : 'New order', `${what} · ${o.code}${when}`);
   }
 
   /** The only place order status changes. Records an event and tells the customer. */

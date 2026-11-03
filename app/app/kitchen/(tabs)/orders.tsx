@@ -6,6 +6,8 @@ import { View } from 'react-native';
 import { API } from '@/api';
 import { clock, countdown, tk } from '@/format';
 import { num, t } from '@/i18n';
+
+const whenAt = (iso: string) => new Date(iso).toLocaleString(t('en-GB', 'bn-BD'), { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
 import { C, S } from '@/theme';
 import type { KitchenBatch, Order } from '@/types';
 import { Badge, Button, Card, confirm, Divider, Empty, ErrorState, Header, Loading, Meter, Row, Screen, Segmented, StatusBadge, T, useToast } from '@/ui';
@@ -27,6 +29,7 @@ function KitchenOrder({ o }: { o: Order }) {
         <View style={{ flex: 1 }}><T v="card">{o.code}</T><T v="meta">{o.customer?.name || 'Customer'} · {o.area} · {clock(o.createdAt)}</T></View>
         <StatusBadge status={o.status} />
       </Row>
+      {o.scheduledFor ? <View style={{ backgroundColor: C.brandSoft, borderRadius: 10, paddingHorizontal: S.md, paddingVertical: 8 }}><T v="label" color={C.brandText}>{t(`Pre-order · deliver ${whenAt(o.scheduledFor)}`, `প্রি-অর্ডার · ডেলিভারি ${whenAt(o.scheduledFor)}`)}</T></View> : null}
       <View style={{ gap: 4 }}>{o.items.map((i) => <T key={i.id} v="body">{i.quantity} × {i.name}</T>)}</View>
       {o.notes ? <View style={{ backgroundColor: C.warnSoft, borderRadius: 10, padding: S.md }}><T v="sub" color={C.warn}>Note: {o.notes}</T></View> : null}
       <Divider />

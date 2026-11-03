@@ -68,7 +68,7 @@ export class CatalogService {
 
   async cook(id: string) {
     // Only approved, active kitchens have a public page.
-    const c = await this.prisma.cookProfile.findFirst({ where: { id, user: { suspended: false, deletedAt: null, roles: { some: { role: 'COOK', status: 'APPROVED' } } } }, select: { ...cookPublic, dishes: { where: { deletedAt: null }, orderBy: { orderCount: 'desc' } } } });
+    const c = await this.prisma.cookProfile.findFirst({ where: { id, user: { suspended: false, deletedAt: null, roles: { some: { role: 'COOK', status: 'APPROVED' } } } }, select: { ...cookPublic, dishes: { where: { deletedAt: null, festivalId: null }, orderBy: { orderCount: 'desc' } } } });
     if (!c) throw new NotFoundException('Cook not found');
     const reviews = await this.prisma.review.findMany({ where: { cookId: id }, orderBy: { createdAt: 'desc' }, take: 10, include: { user: { select: { name: true } }, dish: { select: { name: true } } } });
     const batches = await this.prisma.batch.findMany({ where: { cookId: id, status: 'OPEN', cutoffAt: { gt: new Date() } }, include: { orders: { include: { items: true } }, cook: { select: cookPublic }, dish: true } });
@@ -79,7 +79,7 @@ export class CatalogService {
   async home() {
     const s = await this.prisma.settings();
     const live = { user: { suspended: false, deletedAt: null, roles: { some: { role: 'COOK' as const, status: 'APPROVED' as const } } } };
-    const featured = s.featuredCookId ? await this.prisma.cookProfile.findFirst({ where: { id: s.featuredCookId, ...live }, select: { ...cookPublic, dishes: { where: { deletedAt: null, available: true }, orderBy: { orderCount: 'desc' }, take: 3, select: { id: true, name: true, nameBn: true, price: true, photoId: true } } } }) : null;
+    const featured = s.featuredCookId ? await this.prisma.cookProfile.findFirst({ where: { id: s.featuredCookId, ...live }, select: { ...cookPublic, dishes: { where: { deletedAt: null, available: true, festivalId: null }, orderBy: { orderCount: 'desc' }, take: 3, select: { id: true, name: true, nameBn: true, price: true, photoId: true } } } }) : null;
     const now = new Date();
     const festivals = await this.prisma.festival.findMany({ where: { active: true, closesAt: { gt: now }, opensAt: { lt: new Date(now.getTime() + 14 * 86400_000) } }, orderBy: { closesAt: 'asc' }, take: 3 });
     const withCounts = await Promise.all(festivals.map(async (f) => ({ ...f, dishCount: await this.prisma.dish.count({ where: this.liveDish({ festivalId: f.id }) }) })));

@@ -51,7 +51,7 @@ export default function Browse() {
       onRefresh={() => (tab === 'dishes' ? dishes.refetch() : tab === 'groups' ? batches.refetch() : cooks.refetch())}>
       <View style={{ height: 50, borderRadius: 12, borderWidth: 1, borderColor: C.line2, flexDirection: 'row', alignItems: 'center', gap: S.sm, paddingHorizontal: 14 }}>
         <Search size={20} color={C.muted} />
-        <TextInput value={q} onChangeText={setQ} placeholder={tab === 'cooks' ? 'Search cooks or areas' : 'Search dishes, cooks or areas'} placeholderTextColor={C.muted}
+        <TextInput value={q} onChangeText={setQ} placeholder={tab === 'cooks' ? t('Search cooks or areas', 'রাঁধুনি বা এলাকা খুঁজুন') : t('Search dishes, cooks or areas', 'খাবার, রাঁধুনি বা এলাকা খুঁজুন')} placeholderTextColor={C.muted}
           returnKeyType="search" style={{ flex: 1, fontFamily: F.regular, fontSize: 15, color: C.text, height: 48 }} accessibilityLabel="Search" />
         {q ? <Pressable onPress={() => setQ('')} hitSlop={10} accessibilityLabel="Clear search"><X size={18} color={C.muted} /></Pressable> : null}
       </View>

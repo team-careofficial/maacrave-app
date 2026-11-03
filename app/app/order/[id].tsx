@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Bike, Check, FileText, KeyRound, LifeBuoy, MapPin, MessageCircle, Phone, Star, Users } from 'lucide-react-native';
+import { Bike, CalendarClock, Check, FileText, KeyRound, LifeBuoy, MapPin, MessageCircle, Phone, Star, Users } from 'lucide-react-native';
 import { useState } from 'react';
 import { Linking, Pressable, View } from 'react-native';
 import { API } from '@/api';
@@ -116,6 +116,7 @@ export default function OrderScreen() {
                 <View style={{ flex: 1 }}><T v="section">{STATUS_LABEL[o.status]}</T><T v="sub">{o.cook.displayName} · {o.cook.area}</T></View>
                 <StatusBadge status={o.status} />
               </Row>
+              {o.scheduledFor ? <Row gap={6}><CalendarClock size={15} color={C.brandText} /><T v="meta" color={C.brandText}>{t(`Scheduled · arrives ${new Date(o.scheduledFor).toLocaleString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' })}`, `নির্ধারিত · পৌঁছাবে ${new Date(o.scheduledFor).toLocaleString('bn-BD', { weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' })}`)}</T></Row> : null}
               {o.batch ? <Row gap={6}><Users size={15} color={C.brandText} /><T v="meta" color={C.brandText}>Group order · ready by {clock(o.batch.readyBy)}</T></Row> : null}
               {o.status === 'AWAITING_PAYMENT' ? <Note tone="warn">Waiting for payment. Unpaid orders are cancelled automatically after 20 minutes.</Note> : null}
             </Card>

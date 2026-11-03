@@ -82,7 +82,7 @@ export default function Home() {
 
       {/* the two ways to eat, side by side */}
       <Row gap={S.md} style={{ marginTop: S.md, alignItems: 'stretch' }}>
-        {/* Order now: white card with a fine mango-to-paprika outline */}
+        {/* Order now: white card with a fine gold-to-burgundy outline */}
         <Tap onPress={() => router.push('/browse')} scale={0.97} style={{ flex: 1, borderRadius: R.xl, ...(shadow as object) }}>
           <LinearGradient colors={['#E9A23B', '#FBEEEE', '#A9151B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, borderRadius: R.xl, padding: 1 }}>
             <View style={{ flex: 1, borderRadius: R.xl - 1, backgroundColor: '#fff', padding: S.md, gap: S.sm }}>
@@ -91,9 +91,9 @@ export default function Home() {
             </View>
           </LinearGradient>
         </Tap>
-        {/* Request a dish: soft mango gradient */}
+        {/* Request a dish: soft blush gradient */}
         <Tap onPress={() => router.push('/request/new')} scale={0.97} style={{ flex: 1, borderRadius: R.xl, overflow: 'hidden' }}>
-          <LinearGradient colors={['#FFF9EE', '#FDEDCB', '#FADB9A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, padding: S.md, gap: S.sm, borderRadius: R.xl, borderWidth: 1, borderColor: '#F3D69A' }}>
+          <LinearGradient colors={['#FFFAFA', '#FBEEEE', '#F6DCDC']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, padding: S.md, gap: S.sm, borderRadius: R.xl, borderWidth: 1, borderColor: '#F0D6D6' }}>
             <View style={{ position: 'absolute', right: -26, top: -26, width: 90, height: 90, borderRadius: 45, backgroundColor: 'rgba(255,255,255,0.45)' }} />
             <View style={{ width: 40, height: 40, borderRadius: 20, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
               <LinearGradient colors={MAROON} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} />
