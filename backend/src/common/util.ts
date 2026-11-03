@@ -15,3 +15,10 @@ export const orderCode = () => 'MC-' + Array.from({ length: 7 }, () => CODE_CHAR
 
 export const DHAKA_AREAS = ['Mirpur 1','Mirpur 2','Mirpur 10','Mirpur 12','Pallabi','Kazipara','Shewrapara','Agargaon','Mohammadpur','Dhanmondi','Lalmatia','Farmgate','Tejgaon','Banani','Gulshan','Mohakhali','Uttara','Badda','Rampura','Bashundhara','Khilgaon','Motijheel','Old Dhaka','Jatrabari'];
 export const CATEGORIES = ['rice','bengali','fish','chicken','beef','veg','snacks','breakfast','lunch','dinner','dessert','healthy'];
+
+/** Districts whose home cooking MaaCrave highlights ("নিজের জেলার স্বাদ"). */
+export const REGIONS = ['chattogram', 'sylhet', 'barishal', 'old-dhaka', 'rajshahi', 'khulna', 'mymensingh', 'noakhali', 'cumilla', 'rangpur', 'faridpur', 'bogura'];
+/** Health and diet labels a cook can put on a dish. */
+export const HEALTH_TAGS = ['diabetic', 'low-oil', 'low-salt', 'kids', 'patient', 'veg'];
+/** Things customers can say they avoid; dishes listing these in allergens get a warning. */
+export const ALLERGENS = ['nuts', 'dairy', 'egg', 'shrimp', 'fish', 'beef', 'gluten', 'mushroom'];

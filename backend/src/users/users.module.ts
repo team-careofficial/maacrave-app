@@ -3,7 +3,7 @@ import { Type } from 'class-transformer';
 import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsEmail, IsIn, IsInt, IsNumber, IsOptional, IsString, Length, Matches, Max, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
 import { AuthUser, CurrentUser } from '../common/auth';
 import { PrismaService } from '../common/prisma.service';
-import { BD_PHONE, DHAKA_AREAS, digits, normalizePhone, sha256 } from '../common/util';
+import { ALLERGENS, BD_PHONE, DHAKA_AREAS, HEALTH_TAGS, digits, normalizePhone, sha256 } from '../common/util';
 import { EmailService } from '../sms/email.service';
 import { SmsService } from '../sms/sms.service';
 import { Throttle } from '@nestjs/throttler';
@@ -20,6 +20,9 @@ class UpdateMeDto {
   @IsOptional() @IsBoolean() acceptTerms?: boolean;
   /** Friend's referral code, accepted once. */
   @IsOptional() @IsString() @MaxLength(20) referralCode?: string;
+  /** "আমার খাদ্যাভ্যাস": what they like to eat, and what they must avoid. */
+  @IsOptional() @IsArray() @ArrayMaxSize(6) @IsIn(HEALTH_TAGS, { each: true }) dietPrefs?: string[];
+  @IsOptional() @IsArray() @ArrayMaxSize(8) @IsIn(ALLERGENS, { each: true }) allergies?: string[];
 }
 /** Add or change a phone number or email: a code is sent there first, so only the real owner can attach it. */
 class ContactDto { @IsOptional() @IsString() phone?: string; @IsOptional() @IsEmail() @MaxLength(120) email?: string; }
@@ -65,7 +68,7 @@ export class UsersService {
   me(userId: string) {
     return this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { id: true, phone: true, email: true, name: true, area: true, language: true, loyaltyPoints: true, referralCode: true, termsAcceptedAt: true, phoneVerifiedAt: true, createdAt: true, roles: { select: { role: true, status: true, note: true } }, cook: true, rider: true },
+      select: { id: true, phone: true, email: true, name: true, area: true, language: true, loyaltyPoints: true, referralCode: true, termsAcceptedAt: true, phoneVerifiedAt: true, createdAt: true, dietPrefs: true, allergies: true, roles: { select: { role: true, status: true, note: true } }, cook: true, rider: true },
     });
   }
 

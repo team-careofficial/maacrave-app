@@ -98,6 +98,9 @@ model User {
   suspended     Boolean        @default(false)
   /// When the person agreed to the Terms of Service and Privacy Policy (asked once at sign-up, again if they change).
   termsAcceptedAt DateTime?
+  /// Food preferences used to suggest dishes and warn about allergens.
+  dietPrefs     String[]       @default([])
+  allergies     String[]       @default([])
   /// Set when the number was confirmed with an SMS code (null if it was saved while SMS wasn't set up yet).
   phoneVerifiedAt DateTime?
   /// Who invited them (referral code entered at sign-up).
@@ -192,6 +195,12 @@ model CookProfile {
   hygieneChecks   Int         @default(0)
   nidLast4        String?
   payoutWallet    String?
+  /// The mother's own words, shown on her page ("30 years of cooking for my family…").
+  story           String      @default("")
+  /// Home district whose food she's known for, e.g. sylhet, chattogram (see REGIONS).
+  region          String?
+  portraitId      String?     // MediaImage: her photo
+  kitchenPhotoId  String?     // MediaImage: her kitchen
   lat             Float?      // kitchen location for the delivery map
   lng             Float?
   rating          Float       @default(0)
@@ -242,6 +251,10 @@ model Dish {
   dailyCapacity Int         @default(20)
   available     Boolean     @default(true)
   photoUrl      String?
+  photoId       String?     // MediaImage uploaded by the cook
+  region        String?     // district style, e.g. chattogram mezbani
+  healthTags    String[]    @default([]) // diabetic, low-oil, low-salt, kids, patient, veg
+  festivalId    String?     // part of a festival pre-order menu
   rating        Float       @default(0)
   ratingCount   Int         @default(0)
   orderCount    Int         @default(0)
@@ -519,6 +532,34 @@ model PlatformSetting {
   ratesUpdatedAt   DateTime?
   /// One-time data upgrades already applied to this row.
   upgrades         Int   @default(0)
+  /// "Mother of the week" shown on Home, chosen in the admin panel.
+  featuredCookId   String?
+}
+
+/// Photos uploaded by cooks (dishes, portrait, kitchen). Served from /v1/media/:id. The team can remove any.
+model MediaImage {
+  id        String   @id @default(cuid())
+  ownerId   String   // user id
+  kind      String   // DISH | PORTRAIT | KITCHEN
+  mime      String
+  data      String   // base64
+  removed   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  @@index([kind, createdAt])
+}
+
+/// A festival pre-order window (Eid, Pohela Boishakh, Pitha utsob, Ramadan iftar…).
+model Festival {
+  id        String   @id @default(cuid())
+  title     String
+  titleBn   String
+  blurb     String   @default("")
+  blurbBn   String   @default("")
+  opensAt   DateTime // customers can start pre-ordering
+  closesAt  DateTime // last moment to order
+  deliverOn DateTime // the day the food arrives
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
 }
 
 /// A cook or rider agreeing to the partner terms and the rates of a given version.

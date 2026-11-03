@@ -93,15 +93,22 @@ export class OrdersService {
       if (!cook.accepting) throw new BadRequestException(`${cook.displayName} isn’t taking orders right now.`);
       for (const d of dishes) if (!d.available) throw new BadRequestException(`${d.name} isn’t available today.`);
       const items = lines.map((l) => { const d = dishes.find((x) => x.id === l.dishId)!; return { dishId: d.id, name: d.name, unitPrice: d.price, quantity: Math.min(l.quantity, 50) }; });
+      // Festival dishes are pre-orders: delivered on the festival day, and can't share a cart with today's food.
+      const festIds = new Set(dishes.map((d) => d.festivalId || ''));
+      if (festIds.size > 1) throw new BadRequestException('Festival pre-orders arrive on the festival day, so order them separately from today’s food.');
+      const festId = dishes[0].festivalId;
+      const fest = festId ? await tx.festival.findUnique({ where: { id: festId } }) : null;
+      if (festId && (!fest || !fest.active || fest.opensAt > new Date() || fest.closesAt < new Date())) throw new BadRequestException('Pre-orders for this festival aren’t open right now.');
       // Each dish has a daily limit set by the cook; don't sell more than she can make today (Dhaka day).
-      const dayStart = new Date(new Date(Date.now() + 6 * 3600_000).toISOString().slice(0, 10) + 'T00:00:00+06:00');
+      // For a festival dish the limit covers the whole pre-order window.
+      const dayStart = fest ? fest.opensAt : new Date(new Date(Date.now() + 6 * 3600_000).toISOString().slice(0, 10) + 'T00:00:00+06:00');
       for (const it of items) {
         const d = dishes.find((x) => x.id === it.dishId)!;
         const sold = await tx.orderItem.aggregate({ where: { dishId: d.id, order: { createdAt: { gte: dayStart }, status: { not: 'CANCELLED' } } }, _sum: { quantity: true } });
         const left = d.dailyCapacity - (sold._sum.quantity || 0);
-        if (it.quantity > left) throw new BadRequestException(left > 0 ? `Only ${left} portion${left > 1 ? 's' : ''} of ${d.name} left today.` : `${d.name} is sold out for today.`);
+        if (it.quantity > left) throw new BadRequestException(left > 0 ? `Only ${left} portion${left > 1 ? 's' : ''} of ${d.name} left${fest ? '' : ' today'}.` : `${d.name} is sold out${fest ? '' : ' for today'}.`);
       }
-      return { cookId: cook.id, cookUserId: cook.userId, items, isBatch: false as boolean, batchId: null as string | null, request: null, proposal: null };
+      return { cookId: cook.id, cookUserId: cook.userId, items, isBatch: false as boolean, batchId: null as string | null, request: null, proposal: null, scheduledFor: fest?.deliverOn ?? null };
     }
     if (input.kind === 'batch') {
       if (!input.batchId || !input.quantity || input.quantity < 1) throw new BadRequestException('Choose how many portions.');
@@ -133,7 +140,7 @@ export class OrdersService {
       const check = input.couponCode ? (coupon ? couponDiscount(coupon, subtotal, r.isBatch) : { amount: 0, error: 'This code isn’t valid.' }) : { amount: 0 };
       const address = input.addressId ? await tx.address.findFirst({ where: { id: input.addressId, userId: user.id } }) : null;
       const km = await this.distance(tx, r.cookId, address);
-      return { items: r.items, fees: computeFees(subtotal, r.isBatch, s, coupon, km, input.tip), couponError: check.error ?? null };
+      return { items: r.items, fees: computeFees(subtotal, r.isBatch, s, coupon, km, input.tip), couponError: check.error ?? null, scheduledFor: 'scheduledFor' in r ? r.scheduledFor : null };
     });
   }
 
@@ -176,7 +183,8 @@ export class OrdersService {
           code: orderCode(), customerId: user.id, cookId: r.cookId, batchId, requestId: r.request?.id ?? null,
           status: firstStatus, subtotal: fees.subtotal, serviceFee: fees.serviceFee, deliveryFee: fees.deliveryFee, discount: fees.discount, total: fees.total,
           commission: fees.commission, cookEarning: fees.cookEarning, riderPayout: fees.riderPayout, couponCode: fees.couponCode, distanceKm: fees.distanceKm, tip: fees.tip,
-          addressText, area: address.area, lat: address.lat, lng: address.lng, deliveryOtp: digits(4), notes: input.notes?.slice(0, 300), scheduledFor: input.scheduledFor ? new Date(input.scheduledFor) : null,
+          addressText, area: address.area, lat: address.lat, lng: address.lng, deliveryOtp: digits(4), notes: input.notes?.slice(0, 300),
+          scheduledFor: ('scheduledFor' in r && r.scheduledFor) ? r.scheduledFor : input.scheduledFor ? new Date(input.scheduledFor) : null,
           idempotencyKey: input.idempotencyKey,
           items: { create: r.items },
           events: { create: { status: firstStatus, actorId: user.id } },

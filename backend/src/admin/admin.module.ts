@@ -107,6 +107,17 @@ class SpotlightDto {
   @IsOptional() @Matches(/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/) @MaxLength(1_500_000) image?: string;
   @IsOptional() @IsBoolean() removeImage?: boolean;
 }
+class FestivalDto {
+  @IsString() @MinLength(2) @MaxLength(60) title: string;
+  @IsString() @MinLength(2) @MaxLength(60) titleBn: string;
+  @IsOptional() @IsString() @MaxLength(240) blurb?: string;
+  @IsOptional() @IsString() @MaxLength(240) blurbBn?: string;
+  @IsString() @Matches(/^\d{4}-\d{2}-\d{2}T/) opensAt: string;
+  @IsString() @Matches(/^\d{4}-\d{2}-\d{2}T/) closesAt: string;
+  @IsString() @Matches(/^\d{4}-\d{2}-\d{2}T/) deliverOn: string;
+  @IsOptional() @IsBoolean() active?: boolean;
+}
+class FeaturedDto { @IsOptional() @IsString() @MaxLength(40) cookId?: string | null; }
 class PayoutDto { @IsIn(['PROCESSING', 'PAID', 'FAILED']) status: 'PROCESSING' | 'PAID' | 'FAILED'; @IsOptional() @IsString() @MaxLength(60) reference?: string; }
 
 @Injectable()
@@ -341,6 +352,57 @@ export class AdminService {
     return { ok: true };
   }
 
+  /* ---------- Festivals, mother of the week, photos ---------- */
+  festivals() { return this.prisma.festival.findMany({ orderBy: { closesAt: 'desc' }, take: 50 }); }
+  async saveFestival(admin: string, id: string | null, dto: FestivalDto) {
+    const opensAt = new Date(dto.opensAt), closesAt = new Date(dto.closesAt), deliverOn = new Date(dto.deliverOn);
+    if ([opensAt, closesAt, deliverOn].some((d) => isNaN(d.getTime()))) throw new BadRequestException('Check the dates.');
+    if (!(opensAt < closesAt && closesAt <= deliverOn)) throw new BadRequestException('Orders must open before they close, and close before the delivery day.');
+    const data = { ...dto, blurb: dto.blurb || '', blurbBn: dto.blurbBn || '', opensAt, closesAt, deliverOn };
+    const f = id ? await this.prisma.festival.update({ where: { id }, data }) : await this.prisma.festival.create({ data });
+    await this.audit(admin, id ? 'FESTIVAL_EDIT' : 'FESTIVAL_CREATE', f.id, dto.title);
+    if (!id && f.active) {
+      // Tell every approved cook so they can add festival dishes.
+      const cooks = await this.prisma.userRole.findMany({ where: { role: 'COOK', status: 'APPROVED' }, select: { userId: true } });
+      await Promise.all(cooks.map((c) => this.notify.notify(c.userId, 'COOK', `${dto.title} pre-orders`, `Add your ${dto.title} special to the festival menu: Kitchen → Menu → add dish → Festival.`)));
+    }
+    return f;
+  }
+  async featured() {
+    const s = await this.prisma.settings();
+    const cooks = await this.prisma.cookProfile.findMany({ where: { user: { suspended: false, deletedAt: null, roles: { some: { role: 'COOK', status: 'APPROVED' } } } }, orderBy: [{ rating: 'desc' }, { completedOrders: 'desc' }], take: 100,
+      select: { id: true, displayName: true, area: true, rating: true, ratingCount: true, completedOrders: true, story: true, portraitId: true, region: true } });
+    return { featuredCookId: s.featuredCookId, cooks };
+  }
+  async setFeatured(admin: string, cookId: string | null | undefined) {
+    if (cookId && !(await this.prisma.cookProfile.findUnique({ where: { id: cookId } }))) throw new NotFoundException();
+    await this.prisma.platformSetting.update({ where: { id: 1 }, data: { featuredCookId: cookId || null } });
+    await this.audit(admin, 'FEATURED_COOK', cookId || undefined);
+    if (cookId) {
+      const c = await this.prisma.cookProfile.findUniqueOrThrow({ where: { id: cookId } });
+      await this.notify.notify(c.userId, 'COOK', 'You’re this week’s mother! 🌼', 'Your kitchen is featured on the MaaCrave home page this week. Thank you for cooking with love.');
+    }
+    return this.featured();
+  }
+  async photos(kind?: string) {
+    const rows = await this.prisma.mediaImage.findMany({ where: { removed: false, ...(kind ? { kind } : {}) }, orderBy: { createdAt: 'desc' }, take: 120, select: { id: true, ownerId: true, kind: true, createdAt: true } });
+    const owners = await this.prisma.cookProfile.findMany({ where: { userId: { in: [...new Set(rows.map((r) => r.ownerId))] } }, select: { userId: true, displayName: true } });
+    return rows.map((r) => ({ ...r, cook: owners.find((o) => o.userId === r.ownerId)?.displayName || '—' }));
+  }
+  async removePhoto(admin: string, id: string, note?: string) {
+    const m = await this.prisma.mediaImage.findUnique({ where: { id } });
+    if (!m) throw new NotFoundException();
+    await this.prisma.$transaction([
+      this.prisma.mediaImage.update({ where: { id }, data: { removed: true, data: '' } }),
+      this.prisma.dish.updateMany({ where: { photoId: id }, data: { photoId: null } }),
+      this.prisma.cookProfile.updateMany({ where: { portraitId: id }, data: { portraitId: null } }),
+      this.prisma.cookProfile.updateMany({ where: { kitchenPhotoId: id }, data: { kitchenPhotoId: null } }),
+    ]);
+    await this.audit(admin, 'PHOTO_REMOVE', id, note);
+    await this.notify.notify(m.ownerId, 'COOK', 'A photo was removed', `One of your photos was taken down by the MaaCrave team${note ? `: ${note}` : '.'} Please upload a clear, real photo of your own food or kitchen.`);
+    return { ok: true };
+  }
+
   /* ---------- Home spotlight cards ---------- */
   async spotlights() {
     const rows = await this.prisma.spotlight.findMany({ orderBy: { slot: 'asc' } });
@@ -394,6 +456,13 @@ export class AdminController {
   @Post('riders/:id/ledger') @HttpCode(200) riderLedger(@CurrentAdmin() a: string, @Param('id') id: string, @Body() dto: LedgerDto) { return this.admin.riderLedger(a, id, dto); }
   @Get('tickets') tickets(@Query('status') status?: string) { return this.admin.tickets(status); }
   @Post('tickets/:id/reply') @HttpCode(200) replyTicket(@CurrentAdmin() a: string, @Param('id') id: string, @Body() dto: TicketReplyDto) { return this.admin.replyTicket(a, id, dto); }
+  @Get('festivals') festivals() { return this.admin.festivals(); }
+  @Post('festivals') @HttpCode(200) createFestival(@CurrentAdmin() a: string, @Body() dto: FestivalDto) { return this.admin.saveFestival(a, null, dto); }
+  @Post('festivals/:id') @HttpCode(200) editFestival(@CurrentAdmin() a: string, @Param('id') id: string, @Body() dto: FestivalDto) { return this.admin.saveFestival(a, id, dto); }
+  @Get('featured') featured() { return this.admin.featured(); }
+  @Post('featured') @HttpCode(200) setFeatured(@CurrentAdmin() a: string, @Body() dto: FeaturedDto) { return this.admin.setFeatured(a, dto.cookId); }
+  @Get('photos') photos(@Query('kind') kind?: string) { return this.admin.photos(kind); }
+  @Post('photos/:id/remove') @HttpCode(200) removePhoto(@CurrentAdmin() a: string, @Param('id') id: string, @Body() dto: DecisionDto) { return this.admin.removePhoto(a, id, dto.note); }
   @Get('spotlights') spotlights() { return this.admin.spotlights(); }
   @Post('spotlights/:slot') @HttpCode(200) saveSpotlight(@CurrentAdmin() a: string, @Param('slot') slot: string, @Body() dto: SpotlightDto) { return this.admin.saveSpotlight(a, Number(slot), dto); }
 }

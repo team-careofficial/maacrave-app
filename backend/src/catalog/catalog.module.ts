@@ -3,9 +3,9 @@ import type { Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { Public } from '../common/auth';
 import { PrismaService } from '../common/prisma.service';
-import { CATEGORIES, DHAKA_AREAS } from '../common/util';
+import { ALLERGENS, CATEGORIES, DHAKA_AREAS, HEALTH_TAGS, REGIONS } from '../common/util';
 
-const cookPublic = { id: true, displayName: true, area: true, intro: true, specialties: true, rating: true, ratingCount: true, completedOrders: true, hours: true, accepting: true, lat: true, lng: true } as const;
+const cookPublic = { id: true, displayName: true, area: true, intro: true, specialties: true, rating: true, ratingCount: true, completedOrders: true, hours: true, accepting: true, lat: true, lng: true, story: true, region: true, portraitId: true, kitchenPhotoId: true, createdAt: true } as const;
 const firstName = (n?: string | null) => (n ? n.split(' ')[0] + ((n.split(' ')[1] || '')[0] ? ' ' + n.split(' ')[1][0] + '.' : '') : 'Neighbour');
 
 export function batchFilled(orders: { status: string; items: { quantity: number }[] }[]) {
@@ -30,16 +30,20 @@ export class CatalogService {
   async meta() {
     const s = await this.prisma.settings();
     const coupons = await this.prisma.coupon.findMany({ where: { active: true }, select: { code: true, description: true } });
-    return { categories: CATEGORIES, areas: DHAKA_AREAS, fees: { serviceFee: s.serviceFee, deliveryFee: s.deliveryFee, batchDeliveryFee: s.batchDeliveryFee, commissionPct: s.commissionPct, freeKm: s.freeKm, deliveryPerKm: s.deliveryPerKm }, coupons,
+    return { categories: CATEGORIES, areas: DHAKA_AREAS, regions: REGIONS, healthTags: HEALTH_TAGS, allergens: ALLERGENS, fees: { serviceFee: s.serviceFee, deliveryFee: s.deliveryFee, batchDeliveryFee: s.batchDeliveryFee, commissionPct: s.commissionPct, freeKm: s.freeKm, deliveryPerKm: s.deliveryPerKm }, coupons,
       payments: { bkash: !!(process.env.BKASH_APP_KEY && process.env.BKASH_APP_SECRET), card: !!(process.env.SSLCZ_STORE_ID && process.env.SSLCZ_STORE_PASSWORD), cod: true } };
   }
 
-  async dishes(q: { q?: string; category?: string; maxPrice?: string; sort?: string; area?: string; take?: string }) {
+  async dishes(q: { q?: string; category?: string; maxPrice?: string; sort?: string; area?: string; take?: string; region?: string; tag?: string; festival?: string }) {
     const where = this.liveDish({
+      // Festival pre-order dishes only show on their festival's page.
+      festivalId: q.festival ? q.festival : null,
+      ...(q.region && REGIONS.includes(q.region) ? { OR: [{ region: q.region }, { region: null, cook: { region: q.region } }] } : {}),
+      ...(q.tag && HEALTH_TAGS.includes(q.tag) ? { healthTags: { has: q.tag } } : {}),
       ...(q.category && q.category !== 'budget' ? { category: q.category } : {}),
       ...(q.category === 'budget' ? { price: { lte: 150 } } : {}),
       ...(q.maxPrice && Number.isFinite(Number(q.maxPrice)) ? { price: { lte: Number(q.maxPrice) } } : {}),
-      ...(q.q ? { OR: [{ name: { contains: q.q, mode: 'insensitive' } }, { nameBn: { contains: q.q } }, { cook: { displayName: { contains: q.q, mode: 'insensitive' } } }, { cook: { area: { contains: q.q, mode: 'insensitive' } } }] } : {}),
+      ...(q.q ? { AND: [{ OR: [{ name: { contains: q.q, mode: 'insensitive' } }, { nameBn: { contains: q.q } }, { cook: { displayName: { contains: q.q, mode: 'insensitive' } } }, { cook: { area: { contains: q.q, mode: 'insensitive' } } }] }] } : {}),
     });
     const orderBy: Prisma.DishOrderByWithRelationInput[] =
       q.sort === 'price' ? [{ price: 'asc' }] : q.sort === 'rating' ? [{ rating: 'desc' }, { ratingCount: 'desc' }] : q.sort === 'fast' ? [{ prepMinutes: 'asc' }] : [{ orderCount: 'desc' }, { rating: 'desc' }];
@@ -69,6 +73,29 @@ export class CatalogService {
     const reviews = await this.prisma.review.findMany({ where: { cookId: id }, orderBy: { createdAt: 'desc' }, take: 10, include: { user: { select: { name: true } }, dish: { select: { name: true } } } });
     const batches = await this.prisma.batch.findMany({ where: { cookId: id, status: 'OPEN', cutoffAt: { gt: new Date() } }, include: { orders: { include: { items: true } }, cook: { select: cookPublic }, dish: true } });
     return { ...c, reviews: reviews.map((r) => ({ ...r, user: { name: firstName(r.user.name) } })), openBatches: batches.map((b) => this.shapeBatch(b)) };
+  }
+
+  /** Home page stories: mother of the week, the open festival, and which districts have cooks. */
+  async home() {
+    const s = await this.prisma.settings();
+    const live = { user: { suspended: false, deletedAt: null, roles: { some: { role: 'COOK' as const, status: 'APPROVED' as const } } } };
+    const featured = s.featuredCookId ? await this.prisma.cookProfile.findFirst({ where: { id: s.featuredCookId, ...live }, select: { ...cookPublic, dishes: { where: { deletedAt: null, available: true }, orderBy: { orderCount: 'desc' }, take: 3, select: { id: true, name: true, nameBn: true, price: true, photoId: true } } } }) : null;
+    const now = new Date();
+    const festivals = await this.prisma.festival.findMany({ where: { active: true, closesAt: { gt: now }, opensAt: { lt: new Date(now.getTime() + 14 * 86400_000) } }, orderBy: { closesAt: 'asc' }, take: 3 });
+    const withCounts = await Promise.all(festivals.map(async (f) => ({ ...f, dishCount: await this.prisma.dish.count({ where: this.liveDish({ festivalId: f.id }) }) })));
+    const regionRows = await this.prisma.dish.findMany({ where: this.liveDish({ festivalId: null }), select: { region: true, cook: { select: { region: true } } } });
+    const counts: Record<string, number> = {};
+    for (const r of regionRows) { const k = r.region || r.cook.region; if (k) counts[k] = (counts[k] || 0) + 1; }
+    const healthy = await this.prisma.dish.count({ where: this.liveDish({ festivalId: null, healthTags: { isEmpty: false } }) });
+    return { featured, festivals: withCounts, regions: REGIONS.filter((r) => counts[r]).map((r) => ({ key: r, dishes: counts[r] })), healthyCount: healthy };
+  }
+
+  async festival(id: string) {
+    const f = await this.prisma.festival.findFirst({ where: { id, active: true } });
+    if (!f) throw new NotFoundException('This festival menu isn’t available.');
+    const dishes = await this.prisma.dish.findMany({ where: this.liveDish({ festivalId: id }), orderBy: [{ orderCount: 'desc' }], include: { cook: { select: cookPublic } } });
+    const now = new Date();
+    return { ...f, open: f.opensAt <= now && f.closesAt > now, dishes };
   }
 
   shapeBatch(b: Prisma.BatchGetPayload<{ include: { orders: { include: { items: true } } } }> & { cook?: unknown; dish?: unknown }, viewerId?: string) {
@@ -115,6 +142,8 @@ export class CatalogController {
   }
   @Get('dishes') dishes(@Query() q: Record<string, string>) { return this.catalog.dishes(q); }
   @Get('dishes/:id') dish(@Param('id') id: string) { return this.catalog.dish(id); }
+  @Get('home') home() { return this.catalog.home(); }
+  @Get('festivals/:id') festival(@Param('id') id: string) { return this.catalog.festival(id); }
   @Get('cooks') cooks(@Query('q') q?: string) { return this.catalog.cooks(q); }
   @Get('cooks/:id') cook(@Param('id') id: string) { return this.catalog.cook(id); }
 }
