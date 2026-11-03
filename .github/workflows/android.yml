@@ -3,7 +3,7 @@ name: Android APK
 # so anyone can download it from https://github.com/<owner>/<repo>/releases/latest
 on:
   push:
-    branches: [main, app-updates]
+    branches: [main]
     paths: ['app/**', '.github/workflows/android.yml']
   workflow_dispatch:
 permissions:
@@ -70,7 +70,8 @@ jobs:
             fs.writeFileSync('../dist-apk/version.json',JSON.stringify({sha:process.env.GITHUB_SHA,builtAt:process.env.EXPO_PUBLIC_BUILD_TIME,notes,url:'https://github.com/'+process.env.GITHUB_REPOSITORY+'/releases/download/android-latest/MaaCrave.apk'}));"
           cat ../dist-apk/version.json; ls -lh ../dist-apk
           echo "Signing certificate (must stay the same for updates to install):"
-          keytool -printcert -jarfile ../dist-apk/MaaCrave.apk | grep -E "SHA256|Owner" || true
+          ls -l android/app/*.keystore || true
+          "$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)/apksigner" verify --print-certs ../dist-apk/MaaCrave.apk | grep -E "SHA-256|DN" || true
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: android-latest
