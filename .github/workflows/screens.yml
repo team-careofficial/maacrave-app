@@ -33,7 +33,7 @@ jobs:
           }
           await b.close();
           JS
-          mkdir -p ../shots && npm i --no-save playwright@1.48.2 >/dev/null 2>&1 && node shot.mjs && ls -la ../shots
+          mkdir -p ../shots && npm i --no-save playwright@1.48.2 >/dev/null 2>&1 && node shot.mjs && cp ../.github/preview/signed-in.mjs . && node signed-in.mjs && ls -la ../shots
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: design-preview

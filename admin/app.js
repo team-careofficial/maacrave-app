@@ -318,7 +318,7 @@
           <td>${img(c.portraitId)}</td><td><b>${esc(c.displayName)}</b><div class="muted small">${esc(c.area)}${c.region ? ' · ' + esc(c.region) : ''}</div></td>
           <td>${c.ratingCount ? c.rating.toFixed(1) + '★ (' + c.ratingCount + ')' : 'New'}</td><td>${c.completedOrders}</td>
           <td class="small muted">${c.story ? esc(c.story.slice(0, 90)) + (c.story.length > 90 ? '…' : '') : '<i>No story yet</i>'}</td>
-          <td>${c.id === r.featuredCookId ? '<span class="pill ok">Featured</span>' : `<button class="btn small" data-feature="${esc(c.id)}">Feature</button>`}</td></tr>`).join('')}</tbody></table>` : empty('No approved cooks yet.')}`;
+          <td>${c.id === r.featuredCookId ? '<span class="badge ok">Featured</span>' : `<button class="btn small" data-feature="${esc(c.id)}">Feature</button>`}</td></tr>`).join('')}</tbody></table>` : empty('No approved cooks yet.')}`;
     },
 
     async photos() {
