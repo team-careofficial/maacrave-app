@@ -25,7 +25,8 @@ export class JobsService {
   async expireUnaccepted() {
     const now = Date.now();
     const list = await this.prisma.order.findMany({ where: { status: 'SUBMITTED', OR: [
-      { scheduledFor: null, createdAt: { lt: new Date(now - 20 * 60_000) } },
+      // updatedAt = when it became SUBMITTED (after an online payment, that's when the payment cleared)
+      { scheduledFor: null, updatedAt: { lt: new Date(now - 20 * 60_000) } },
       { scheduledFor: { lt: new Date(now + 3 * 3600_000) } },
     ] }, select: { id: true, code: true, customerId: true, cook: { select: { userId: true, displayName: true } } } });
     for (const o of list) {
