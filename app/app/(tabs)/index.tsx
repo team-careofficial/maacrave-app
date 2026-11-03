@@ -15,7 +15,7 @@ import { SpotlightGrid } from '@/ui/spotlight';
 import { KitchenTicker } from '@/ui/kitchenTicker';
 import { Grid, useCols } from '@/ui/grid';
 import { t, tr, useLang } from '@/i18n';
-import { CareRow, FestivalBanner, MotherOfWeek, RegionRow, Stitch } from '@/ui/maa';
+import { CareRow, FestivalBanner, MotherOfWeek, RegionRow } from '@/ui/maa';
 
 /** A short line for the banner; changes every day. */
 const QUOTES = [
@@ -68,7 +68,7 @@ export default function Home() {
       </FadeIn>
 
       <Row gap={S.sm} style={{ marginTop: S.lg }}>
-        <Tap onPress={() => router.push('/browse')} scale={0.98} style={{ flex: 1, height: 50, borderRadius: R.pill, backgroundColor: C.surface2, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18 }}>
+        <Tap onPress={() => router.push('/browse')} scale={0.98} style={{ flex: 1, height: 50, borderRadius: R.pill, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line2, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18 }}>
           <Search size={19} color={C.muted} />
           <T v="body" color={C.muted} numberOfLines={1}>Search biryani, bhorta, cooks…</T>
         </Tap>
@@ -82,24 +82,24 @@ export default function Home() {
 
       {/* the two ways to eat, side by side */}
       <Row gap={S.md} style={{ marginTop: S.md, alignItems: 'stretch' }}>
-        {/* Order now: white card with a turmeric-to-maroon outline */}
+        {/* Order now: white card with a fine mango-to-paprika outline */}
         <Tap onPress={() => router.push('/browse')} scale={0.97} style={{ flex: 1, borderRadius: R.xl, ...(shadow as object) }}>
-          <LinearGradient colors={['#F4BC2B', '#FCEFCB', '#7A1F24']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, borderRadius: R.xl, padding: 1 }}>
+          <LinearGradient colors={['#F5B942', '#FCE4D9', '#D94F32']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, borderRadius: R.xl, padding: 1 }}>
             <View style={{ flex: 1, borderRadius: R.xl - 1, backgroundColor: '#fff', padding: S.md, gap: S.sm }}>
               <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.brandSoft, alignItems: 'center', justifyContent: 'center' }}><UtensilsCrossed size={19} color={C.brand} /></View>
               <View><T v="card" style={{ fontSize: 15 }}>Order now</T><T v="meta" numberOfLines={2}>Ready dishes cooking today</T></View>
             </View>
           </LinearGradient>
         </Tap>
-        {/* Request a dish: soft turmeric gradient */}
+        {/* Request a dish: soft mango gradient */}
         <Tap onPress={() => router.push('/request/new')} scale={0.97} style={{ flex: 1, borderRadius: R.xl, overflow: 'hidden' }}>
-          <LinearGradient colors={['#FFF6DE', '#FCE9B8', '#F7DA8E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, padding: S.md, gap: S.sm, borderRadius: R.xl, borderWidth: 1, borderColor: '#F0D48A' }}>
+          <LinearGradient colors={['#FFF9EE', '#FDEDCB', '#FADB9A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, padding: S.md, gap: S.sm, borderRadius: R.xl, borderWidth: 1, borderColor: '#F3D69A' }}>
             <View style={{ position: 'absolute', right: -26, top: -26, width: 90, height: 90, borderRadius: 45, backgroundColor: 'rgba(255,255,255,0.45)' }} />
             <View style={{ width: 40, height: 40, borderRadius: 20, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
               <LinearGradient colors={MAROON} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} />
               <View style={{ position: 'relative' }}><MessageSquarePlus size={19} color="#fff" /></View>
             </View>
-            <View><T v="card" color={C.brandDark} style={{ fontSize: 15 }}>Request a dish</T><T v="meta" color={C.brandText} numberOfLines={2}>Mothers reply with a price</T></View>
+            <View><T v="card" color={C.text} style={{ fontSize: 15 }}>Request a dish</T><T v="meta" color={C.brandText} numberOfLines={2}>Mothers reply with a price</T></View>
           </LinearGradient>
         </Tap>
       </Row>
@@ -156,18 +156,16 @@ export default function Home() {
         )}
       </Section>
 
-      {home.data?.regions.length ? (
-        <Section title={t('A taste of home', 'নিজের জেলার স্বাদ')} sub={t('Mothers from every district, cooking in Dhaka', 'প্রতিটি জেলার মায়েরা, ঢাকায় বসে রান্না করছেন')}>
-          <RegionRow regions={home.data.regions} />
-        </Section>
-      ) : null}
-
       <Section title={t('Health & care', 'স্বাস্থ্য ও যত্ন')} sub={t('Cooked the way a mother cooks for someone unwell, a child or a diabetic', 'অসুস্থ মানুষ, বাচ্চা বা ডায়াবেটিস রোগীর জন্য মা যেভাবে রাঁধেন')}>
         <CareRow mine={me?.dietPrefs} />
         {care.data?.length ? <Grid>{care.data.slice(0, cols === 1 ? 2 : 3).map((d) => <DishCard key={d.id} d={d} onAdd={() => add(d)} saved={fav.dishIds.has(d.id)} onToggleSave={() => fav.toggle({ dishId: d.id })} />)}</Grid> : null}
       </Section>
 
-      <Stitch style={{ marginTop: S.xxl }} />
+      {home.data?.regions.length ? (
+        <Section title={t('Regional dishes', 'আঞ্চলিক খাবার')} sub={t('Each district’s famous food, cooked by mothers from there', 'প্রতিটি জেলার বিখ্যাত খাবার, সেই জেলার মায়েদের হাতে রান্না')}>
+          <RegionRow regions={home.data.regions} />
+        </Section>
+      ) : null}
 
       <Section title="Group orders" sub="Join neighbours, share one rider, pay less for delivery." action={batches.data?.length ? 'See all' : undefined} onAction={() => router.push({ pathname: '/browse', params: { tab: 'groups' } })}>
         {batches.data?.length ? <Grid>{batches.data.slice(0, 3).map((b) => <BatchCard key={b.id} b={b} />)}</Grid> : (

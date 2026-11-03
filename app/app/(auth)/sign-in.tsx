@@ -60,7 +60,7 @@ export default function SignIn() {
             <View style={{ width: '100%', maxWidth: 440, alignSelf: 'center', gap: S.xxl }}>
               <Row style={{ justifyContent: 'space-between' }}>
                 <Brand onTurmeric />
-                <Tap onPress={() => setLang(lang === 'bn' ? 'en' : 'bn')} scale={0.92} style={{ backgroundColor: 'rgba(255,255,255,0.4)', borderRadius: R.pill, paddingHorizontal: 14, height: 34, justifyContent: 'center' }}>
+                <Tap onPress={() => setLang(lang === 'bn' ? 'en' : 'bn')} scale={0.92} style={{ backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: R.pill, paddingHorizontal: 14, height: 34, justifyContent: 'center' }}>
                   <Text style={{ fontFamily: lang === 'bn' ? F.bold : F.bnBold, fontSize: 13.5, color: ON_GLOSS }}>{lang === 'bn' ? 'English' : 'বাংলা'}</Text>
                 </Tap>
               </Row>
@@ -70,7 +70,7 @@ export default function SignIn() {
               </FadeIn>
               <Row gap={S.sm} wrap>
                 {PERKS.map(({ Icon, t }) => (
-                  <Row key={t} gap={6} style={{ backgroundColor: 'rgba(255,255,255,0.4)', borderRadius: R.pill, paddingHorizontal: 12, height: 30 }}>
+                  <Row key={t} gap={6} style={{ backgroundColor: 'rgba(255,255,255,0.16)', borderRadius: R.pill, paddingHorizontal: 12, height: 30 }}>
                     <Icon size={13} color={ON_GLOSS} /><T v="meta" color={ON_GLOSS}>{t}</T>
                   </Row>
                 ))}
@@ -127,7 +127,7 @@ export default function SignIn() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: C.turmeric }}>
+    <View style={{ flex: 1, backgroundColor: C.brand }}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" bounces={false}>
           <View style={{ paddingTop: insets.top + S.xl, paddingHorizontal: S.xl, paddingBottom: 60, overflow: 'hidden' }}>

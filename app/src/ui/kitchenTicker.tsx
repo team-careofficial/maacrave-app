@@ -43,12 +43,11 @@ export function KitchenTicker({ cooks, fallback }: { cooks: CookPublic[]; fallba
   return (
     <Glossy style={{ marginTop: S.lg }} radius={22} glow={false} onPress={c ? () => router.push(`/cook/${c.id}`) : undefined}>
       <View style={{ paddingVertical: S.lg, paddingHorizontal: S.xl, flexDirection: 'row', alignItems: 'center', gap: S.md, minHeight: 88 }}>
-        {/* maroon "border" along the bottom, like the red border of a turmeric-yellow sari */}
-        <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 5, backgroundColor: C.brand }} />
-        <View pointerEvents="none" style={{ position: 'absolute', right: -50, top: -60, width: 160, height: 160, borderRadius: 80, borderWidth: 1, borderColor: 'rgba(58,35,24,0.12)' }} />
+        <View pointerEvents="none" style={{ position: 'absolute', right: -50, top: -60, width: 170, height: 170, borderRadius: 85, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)' }} />
+        <View pointerEvents="none" style={{ position: 'absolute', right: -20, top: -30, width: 110, height: 110, borderRadius: 55, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' }} />
         {c ? (
           <>
-            <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(255,255,255,0.35)', alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' }}>
               <ChefHat size={22} color={ON_GLOSS} />
             </View>
             <View style={{ flex: 1, overflow: 'hidden' }}>
@@ -59,7 +58,7 @@ export function KitchenTicker({ cooks, fallback }: { cooks: CookPublic[]; fallba
                   <T v="meta" color={ON_GLOSS_SOFT} numberOfLines={1}>{c.area}</T>
                   {c.ratingCount ? (
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                      <Star size={11} color={C.brand} fill={C.brand} />
+                      <Star size={11} color={C.turmeric} fill={C.turmeric} />
                       <T v="meta" color={ON_GLOSS_SOFT}>{num(c.rating.toFixed(1))}</T>
                     </View>
                   ) : null}
@@ -69,7 +68,7 @@ export function KitchenTicker({ cooks, fallback }: { cooks: CookPublic[]; fallba
             {/* small dots showing which kitchen is on screen */}
             {list.length > 1 ? (
               <View style={{ position: 'absolute', left: S.xl, bottom: 8, flexDirection: 'row', gap: 4 }}>
-                {list.map((x, k) => <View key={x.id} style={{ width: k === i % list.length ? 12 : 4, height: 4, borderRadius: 2, backgroundColor: k === i % list.length ? C.brand : 'rgba(122,31,36,0.25)' }} />)}
+                {list.map((x, k) => <View key={x.id} style={{ width: k === i % list.length ? 12 : 4, height: 4, borderRadius: 2, backgroundColor: k === i % list.length ? '#fff' : 'rgba(255,255,255,0.35)' }} />)}
               </View>
             ) : null}
           </>
@@ -79,8 +78,8 @@ export function KitchenTicker({ cooks, fallback }: { cooks: CookPublic[]; fallba
             <T v="meta" color={ON_GLOSS_SOFT}>{fallback.en}</T>
           </View>
         )}
-        <Tap onPress={() => router.push(c ? `/cook/${c.id}` : '/browse')} scale={0.92} style={{ backgroundColor: C.brand, borderRadius: R.pill, height: 40, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <T v="label" color="#fff">{c ? t('View', 'দেখুন') : 'Explore'}</T><ArrowRight size={15} color="#fff" />
+        <Tap onPress={() => router.push(c ? `/cook/${c.id}` : '/browse')} scale={0.92} style={{ backgroundColor: '#fff', borderRadius: R.pill, height: 40, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <T v="label" color={C.brandText}>{c ? t('View', 'দেখুন') : 'Explore'}</T><ArrowRight size={15} color={C.brandText} />
         </Tap>
       </View>
     </Glossy>

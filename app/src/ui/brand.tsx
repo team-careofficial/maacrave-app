@@ -8,10 +8,12 @@ export { Logo };
 
 /** Logo + name. `light` = on a dark background; `onTurmeric` = on the turmeric theme colour (white logo tile, dark text). */
 export function Brand({ light, onTurmeric }: { light?: boolean; onTurmeric?: boolean }) {
+  // on paprika: white tile, white name with a mango 'Crave'
+  if (onTurmeric) light = true;
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-      <Logo inverse={light || onTurmeric} />
-      <T v="section" color={light ? '#fff' : C.text} style={{ fontSize: 23 }}>Maa<T v="section" color={light ? '#FFE3A3' : C.brand} style={{ fontSize: 23 }}>Crave</T></T>
+      <Logo inverse={light} />
+      <T v="section" color={light ? '#fff' : C.text} style={{ fontSize: 23 }}>Maa<T v="section" color={light ? '#F8C65C' : C.brand} style={{ fontSize: 23 }}>Crave</T></T>
     </View>
   );
 }

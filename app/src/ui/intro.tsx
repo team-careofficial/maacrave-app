@@ -4,7 +4,7 @@ import { Animated, Easing, Platform, StyleSheet, Text, View } from 'react-native
 import { C, F, GLOSS, ON_GLOSS } from '../theme';
 import { Logo } from './logo';
 
-/** Turmeric launch screen (matches the native splash colour #E9A100). */
+/** Paprika launch screen (matches the native splash colour #D94F32). */
 const INTRO = GLOSS;
 /** Never keep people on the intro longer than this, even if the server is slow to wake up. */
 const MAX_MS = 4500;
@@ -56,7 +56,7 @@ export function Intro({ ready, onDone }: { ready: boolean; onDone: () => void })
     <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 100, opacity: out.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]}>
       <LinearGradient colors={INTRO} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={StyleSheet.absoluteFill} />
       {/* soft light from the top, like a lamp over the kitchen */}
-      <LinearGradient colors={['rgba(255,247,225,0.45)', 'rgba(255,247,225,0)']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '55%' }} />
+      <LinearGradient colors={['rgba(255,236,214,0.28)', 'rgba(255,236,214,0)']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '55%' }} />
 
       <Animated.View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', transform: [{ scale: out.interpolate({ inputRange: [0, 1], outputRange: [1, 1.06] }) }] }}>
         <Animated.View style={{ alignItems: 'center', transform: [{ translateY: lift.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) }] }}>
@@ -77,15 +77,14 @@ export function Intro({ ready, onDone }: { ready: boolean; onDone: () => void })
           {/* name slides up beneath the logo */}
           <View style={{ overflow: 'hidden', marginTop: 18, paddingHorizontal: 4 }}>
             <Animated.View style={{ flexDirection: 'row', opacity: name, transform: [{ translateY: name.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) }] }}>
-              <Text style={{ fontFamily: F.displayX, fontSize: 40, lineHeight: 48, letterSpacing: -1.2, color: ON_GLOSS }}>Maa</Text>
-              <Text style={{ fontFamily: F.displayX, fontSize: 40, lineHeight: 48, letterSpacing: -1.2, color: C.brand }}>Crave</Text>
+              <Text style={{ fontFamily: F.displayX, fontSize: 40, lineHeight: 48, letterSpacing: -1.2, color: '#FFFFFF' }}>Maa</Text>
+              <Text style={{ fontFamily: F.displayX, fontSize: 40, lineHeight: 48, letterSpacing: -1.2, color: '#F8C65C' }}>Crave</Text>
             </Animated.View>
           </View>
 
           <Animated.View style={{ alignItems: 'center', marginTop: 8, opacity: tag, transform: [{ translateY: tag.interpolate({ inputRange: [0, 1], outputRange: [6, 0] }) }] }}>
-            <View style={{ backgroundColor: C.brandDark, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 6, marginTop: 4 }}>
-              <Text style={{ fontFamily: F.bnBold, fontSize: 16.5, lineHeight: 24, color: '#FCEFCB' }}>ঘরের খাবার, মায়ের হাতের</Text>
-            </View>
+            <View style={{ width: 28, height: 2, borderRadius: 1, backgroundColor: 'rgba(255,244,223,0.55)', marginBottom: 10 }} />
+            <Text style={{ fontFamily: F.bnBold, fontSize: 17, lineHeight: 26, color: '#FFF4DF', letterSpacing: 0.2 }}>ঘরের খাবার, মায়ের হাতের</Text>
           </Animated.View>
         </Animated.View>
       </Animated.View>

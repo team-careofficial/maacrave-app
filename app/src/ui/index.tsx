@@ -16,7 +16,7 @@ import { C, CATEGORY_META, F, GLOSS, MAROON, MATTE, ON_GLOSS, R, S, SHEEN, TYPE,
 import type { Batch, CookPublic, Dish, Order, OrderStatus } from '../types';
 import { onAppError } from '../errors';
 import { useAuth } from '../auth';
-import { allergyHits, HEALTH, mediaUrl, regionOf, REGIONS } from '../maa';
+import { allergyHits, bnOf, HEALTH, mediaUrl, regionOf, REGIONS } from '../maa';
 
 const ND = Platform.OS !== 'web';
 const APressable = Animated.createAnimatedComponent(Pressable);
@@ -155,7 +155,7 @@ export function Wordmark({ size = 34, onDark }: { size?: number; onDark?: boolea
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: size * 0.26 }}>
       <Logo size={size} />
       <Text style={{ fontFamily: F.displayX, fontSize: fs, letterSpacing: -0.6, color: onDark ? '#fff' : C.text }}>
-        Maa<Text style={{ color: onDark ? '#FFE3A3' : C.brand }}>Crave</Text>
+        Maa<Text style={{ color: onDark ? '#F8C65C' : C.brand }}>Crave</Text>
       </Text>
     </View>
   );
@@ -314,7 +314,7 @@ export function Input({ label, hint, error, prefix, style, ...rest }: TextInputP
 export function Chip({ label, on, onPress, icon }: { label: string; on?: boolean; onPress: () => void; icon?: React.ReactNode }) {
   const tx = useTxt()(label, on ? F.bold : F.semibold);
   return (
-    <Tap onPress={onPress} scale={0.94} role="button" style={[styles.chip, on && { backgroundColor: C.brand }]}>
+    <Tap onPress={onPress} scale={0.94} role="button" style={[styles.chip, on && { backgroundColor: C.brand, borderColor: C.brand }]}>
       {icon}
       {label ? <Text style={{ fontFamily: tx.font, fontSize: 13.5, color: on ? '#fff' : C.text2 }}>{tx.text}</Text> : null}
     </Tap>
@@ -501,7 +501,7 @@ export function DishCard({ d, onAdd, saved, onToggleSave, groupPrice }: { d: Dis
         {d.description ? <T v="sub" numberOfLines={2} color={C.text2}>{d.description}</T> : null}
         {tags.length || (region && REGIONS[region]) ? (
           <Row gap={6} wrap>
-            {region && REGIONS[region] ? <View style={[styles.miniPill, { backgroundColor: C.turmericSoft }]}><Text style={[styles.miniTx, { color: C.onTurmeric, fontFamily: lang === 'bn' ? F.bnBold : F.semibold }]}>📍 {lang === 'bn' ? REGIONS[region].bn : REGIONS[region].en}</Text></View> : null}
+            {region && REGIONS[region] ? <View style={[styles.miniPill, { backgroundColor: C.brandSoft }]}><Text style={[styles.miniTx, { color: C.brandText, fontFamily: lang === 'bn' ? F.bnBold : F.semibold }]}>{lang === 'bn' ? bnOf(REGIONS[region].bn) + ' রান্না' : REGIONS[region].en + ' recipe'}</Text></View> : null}
             {tags.map((k) => <View key={k} style={[styles.miniPill, { backgroundColor: HEALTH[k].color + '14' }]}><Text style={[styles.miniTx, { color: HEALTH[k].color, fontFamily: lang === 'bn' ? F.bnBold : F.semibold }]}>{lang === 'bn' ? HEALTH[k].bn : HEALTH[k].en}</Text></View>)}
           </Row>
         ) : null}
@@ -628,18 +628,18 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: C.bg },
   inner: { width: '100%', maxWidth: MAX_W, alignSelf: 'center' },
   header: { backgroundColor: C.bg, paddingVertical: S.sm },
-  backBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: C.surface2, alignItems: 'center', justifyContent: 'center' },
-  footer: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: C.surface, paddingTop: S.md, borderTopLeftRadius: 24, borderTopRightRadius: 24, ...(Platform.select({ ios: { shadowColor: '#2A0B0D', shadowOpacity: 0.08, shadowRadius: 20, shadowOffset: { width: 0, height: -6 } }, android: { elevation: 12 }, default: { boxShadow: '0 -10px 30px -12px rgba(42,11,13,.18)' } }) as object) },
-  card: { backgroundColor: C.card, borderRadius: R.lg, padding: S.lg },
+  backBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, alignItems: 'center', justifyContent: 'center' },
+  footer: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: C.surface, paddingTop: S.md, borderTopLeftRadius: 24, borderTopRightRadius: 24, ...(Platform.select({ ios: { shadowColor: '#5A2A14', shadowOpacity: 0.07, shadowRadius: 20, shadowOffset: { width: 0, height: -6 } }, android: { elevation: 12 }, default: { boxShadow: '0 -10px 30px -14px rgba(90,42,20,.16)' } }) as object) },
+  card: { backgroundColor: C.surface, borderRadius: R.lg, padding: S.lg, borderWidth: 1, borderColor: C.line },
   cardWhite: { backgroundColor: C.surface, ...(shadow as object) },
   iconBtn: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
   badgeDot: { position: 'absolute', top: 2, right: 0, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: C.brand, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderWidth: 2, borderColor: C.bg },
-  input: { minHeight: 52, borderRadius: R.md, borderWidth: 1.5, borderColor: 'transparent', backgroundColor: C.surface2, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' },
+  input: { minHeight: 52, borderRadius: R.md, borderWidth: 1, borderColor: C.line2, backgroundColor: C.surface, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' },
   inputFocus: { borderColor: C.brand, backgroundColor: C.surface },
-  chip: { height: 38, paddingHorizontal: 16, borderRadius: R.pill, backgroundColor: C.surface2, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  choice: { flexDirection: 'row', alignItems: 'center', gap: S.md, padding: 16, borderWidth: 1.5, borderColor: 'transparent', borderRadius: R.md, backgroundColor: C.card },
+  chip: { height: 38, paddingHorizontal: 16, borderRadius: R.pill, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line2, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  choice: { flexDirection: 'row', alignItems: 'center', gap: S.md, padding: 16, borderWidth: 1, borderColor: C.line2, borderRadius: R.md, backgroundColor: C.surface },
   radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: C.line2, alignItems: 'center', justifyContent: 'center', backgroundColor: C.surface },
-  seg: { flexDirection: 'row', backgroundColor: C.surface2, borderRadius: R.pill, padding: 4, gap: 2, alignSelf: 'flex-start', maxWidth: '100%' },
+  seg: { flexDirection: 'row', backgroundColor: C.sunken, borderRadius: R.pill, padding: 4, gap: 2, alignSelf: 'flex-start', maxWidth: '100%' },
   segItem: { height: 36, paddingHorizontal: 16, borderRadius: R.pill, justifyContent: 'center' },
   segOn: { backgroundColor: C.ink },
   stepper: { flexDirection: 'row', alignItems: 'center', borderRadius: R.pill, backgroundColor: C.surface2, paddingHorizontal: 4, gap: 4 },

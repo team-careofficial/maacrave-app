@@ -9,9 +9,8 @@ import { C, CATEGORY_META, F, S } from '@/theme';
 import { BatchCard, Chip, CookCard, DishCard, Empty, ErrorState, Header, Loading, Row, Screen, Segmented, T } from '@/ui';
 import { Grid } from '@/ui/grid';
 import { useAuth } from '@/auth';
-import { t, useLang } from '@/i18n';
+import { num, t, useLang } from '@/i18n';
 import { allergyHits, bnOf, HEALTH, REGIONS } from '@/maa';
-import { Stitch } from '@/ui/maa';
 
 type Tab = 'dishes' | 'groups' | 'cooks';
 const SORTS = [{ key: 'popular', label: 'Popular' }, { key: 'rating', label: 'Top rated' }, { key: 'price', label: 'Lowest price' }, { key: 'fast', label: 'Fastest' }];
@@ -78,18 +77,17 @@ export default function Browse() {
           </ScrollView>
           {/* home districts */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: S.sm, marginHorizontal: -S.lg }} contentContainerStyle={{ gap: S.sm, paddingHorizontal: S.lg }}>
-            {Object.entries(REGIONS).map(([k, x]) => <Chip key={k} label={`📍 ${lang === 'bn' ? x.bn : x.en}`} on={region === k} onPress={() => setRegion(region === k ? undefined : k)} />)}
+            {Object.entries(REGIONS).map(([k, x]) => <Chip key={k} label={lang === 'bn' ? x.bn : x.en} on={region === k} onPress={() => setRegion(region === k ? undefined : k)} />)}
           </ScrollView>
           {r ? (
-            <View style={{ marginTop: S.md, borderRadius: 20, padding: S.lg, gap: 6, backgroundColor: C.turmericSoft, borderLeftWidth: 4, borderLeftColor: r.tint }}>
-              <T v="eyebrow" color={C.brand} bn={lang === 'bn'}>{t('A taste of home', 'নিজের জেলার স্বাদ')}</T>
-              <T v="section" color={r.tint} bn>{r.bn}</T>
-              <T v="sub" color={C.onTurmeric}>{t(`Mothers from ${r.en} cooking ${r.known.toLowerCase()} and more, here in Dhaka.`, `${bnOf(r.bn)} মায়েরা ঢাকায় বসেই রান্না করছেন ${r.knownBn} আর আরও অনেক কিছু।`)}</T>
-              <Stitch color={r.tint} style={{ marginTop: 4 }} />
+            <View style={{ marginTop: S.md, borderRadius: 20, padding: S.lg, gap: 6, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderLeftWidth: 3, borderLeftColor: C.brand }}>
+              <T v="eyebrow" color={C.brandText} bn={lang === 'bn'}>{t('Regional dishes', 'আঞ্চলিক খাবার')}</T>
+              <T v="section" bn>{r.bn}</T>
+              <T v="sub" color={C.text2}>{t(`Mothers from ${r.en} cooking ${r.known.toLowerCase()} and more, here in Dhaka.`, `${bnOf(r.bn)} মায়েরা ঢাকায় বসেই রান্না করছেন ${r.knownBn} আর আরও অনেক কিছু।`)}</T>
             </View>
           ) : null}
           <Row style={{ marginTop: S.lg, marginBottom: S.md, justifyContent: 'space-between' }}>
-            <T v="label" color={C.text2}>{dishes.data ? `${shown.length} dish${shown.length === 1 ? '' : 'es'}` : ' '}</T>
+            <T v="label" color={C.text2}>{dishes.data ? t(`${shown.length} dish${shown.length === 1 ? '' : 'es'}`, `${num(shown.length)}টি পদ`) : ' '}</T>
           </Row>
           {dishes.isLoading ? <Loading /> : dishes.error ? <ErrorState error={dishes.error} onRetry={dishes.refetch} /> : shown.length ? (
             <Grid>{shown.map((d) => <DishCard key={d.id} d={d} onAdd={() => add(d)} saved={fav.dishIds.has(d.id)} onToggleSave={() => fav.toggle({ dishId: d.id })} />)}</Grid>
