@@ -8,6 +8,9 @@ import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common'
 export class SmsService {
   private log = new Logger('SMS');
 
+  /** True when real SMS can be sent (a gateway is configured). */
+  enabled() { return (process.env.SMS_PROVIDER || 'log') === 'bulksmsbd'; }
+
   async send(phone: string, message: string): Promise<void> {
     const provider = process.env.SMS_PROVIDER || 'log';
     if (provider === 'bulksmsbd') {

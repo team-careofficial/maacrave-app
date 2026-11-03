@@ -96,6 +96,12 @@ model User {
   loyaltyPoints Int            @default(0)
   referralCode  String?        @unique
   suspended     Boolean        @default(false)
+  /// When the person agreed to the Terms of Service and Privacy Policy (asked once at sign-up, again if they change).
+  termsAcceptedAt DateTime?
+  /// Set when the number was confirmed with an SMS code (null if it was saved while SMS wasn't set up yet).
+  phoneVerifiedAt DateTime?
+  /// Who invited them (referral code entered at sign-up).
+  referredById  String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   roles         UserRole[]

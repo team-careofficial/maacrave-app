@@ -16,7 +16,7 @@ interface AuthCtx {
 const Ctx = createContext<AuthCtx | null>(null);
 const MODE_KEY = 'maacrave.mode';
 /** Set during sign-up when the person chooses to cook or ride, so the app opens their application next. */
-export const onboarding: { next: 'cook' | 'rider' | null } = { next: null };
+export const onboarding: { next: 'cook' | 'rider' | 'address' | null } = { next: null };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const qc = useQueryClient();
@@ -31,7 +31,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const u = await API.me();
       setMe(u);
       if (u.language === 'bn' || u.language === 'en') setLang(u.language);
-      setStatus(u.name && u.phone ? 'ready' : 'needsProfile'); // riders need a number to call, so it's part of the profile
+      // A complete profile: name, a verified mobile number (riders call it) and agreement to the terms.
+      setStatus(u.name && u.phone && u.termsAcceptedAt ? 'ready' : 'needsProfile');
       const saved = (await storage.get(MODE_KEY)) as Mode | null;
       setModeState(saved && canUseFor(u, saved) ? saved : 'CUSTOMER');
       return u;

@@ -55,7 +55,7 @@ function Gate() {
     else if (status === 'ready' && inAuth) {
       // Someone who chose “cook” or “rider” at sign-up goes straight to that application.
       const next = onboarding.next; onboarding.next = null;
-      router.replace(next ? `/apply/${next}` : homeFor(mode));
+      router.replace(next === 'address' ? '/addresses?welcome=1' : next ? `/apply/${next}` : homeFor(mode));
     }
     else if (status === 'ready' && !restored.current) {
       // Reopen the app in the mode the person last used (cook / rider), once per launch.

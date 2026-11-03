@@ -1,17 +1,29 @@
-import { BadRequestException, Body, Controller, Delete, Get, Injectable, Module, NotFoundException, Param, Patch, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, HttpCode, Injectable, Module, NotFoundException, Param, Patch, Post } from '@nestjs/common';
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsIn, IsInt, IsNumber, IsOptional, IsString, Length, Matches, Max, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsEmail, IsIn, IsInt, IsNumber, IsOptional, IsString, Length, Matches, Max, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
 import { AuthUser, CurrentUser } from '../common/auth';
 import { PrismaService } from '../common/prisma.service';
-import { BD_PHONE, DHAKA_AREAS, normalizePhone } from '../common/util';
+import { BD_PHONE, DHAKA_AREAS, digits, normalizePhone, sha256 } from '../common/util';
+import { EmailService } from '../sms/email.service';
+import { SmsService } from '../sms/sms.service';
+import { Throttle } from '@nestjs/throttler';
 
+// Letters (English or Bangla), spaces, dots, hyphens and apostrophes.
+const NAME = /^[\p{L}\p{M}][\p{L}\p{M} .'-]{1,59}$/u;
 class UpdateMeDto {
-  @IsOptional() @IsString() @MinLength(2) @MaxLength(60) name?: string;
+  @IsOptional() @IsString() @Matches(NAME, { message: 'Please enter your real name using letters only.' }) name?: string;
   @IsOptional() @IsIn(DHAKA_AREAS) area?: string;
   @IsOptional() @IsIn(['en', 'bn']) language?: string;
-  /** Contact number for riders, for people who signed up with email. */
+  /** Legacy field from old app versions: numbers must now be verified with a code (/me/contact). */
   @IsOptional() @IsString() phone?: string;
+  /** Agree to the Terms of Service and Privacy Policy. */
+  @IsOptional() @IsBoolean() acceptTerms?: boolean;
+  /** Friend's referral code, accepted once. */
+  @IsOptional() @IsString() @MaxLength(20) referralCode?: string;
 }
+/** Add or change a phone number or email: a code is sent there first, so only the real owner can attach it. */
+class ContactDto { @IsOptional() @IsString() phone?: string; @IsOptional() @IsEmail() @MaxLength(120) email?: string; }
+class ContactVerifyDto extends ContactDto { @IsString() @Length(6, 6) code: string; }
 class AddressDto {
   @IsString() @MinLength(1) @MaxLength(30) label: string;
   @IsIn(DHAKA_AREAS) area: string;
@@ -48,32 +60,81 @@ class FavoriteDto { @IsOptional() @IsString() dishId?: string; @IsOptional() @Is
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private sms: SmsService, private email: EmailService) {}
 
   me(userId: string) {
     return this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { id: true, phone: true, email: true, name: true, area: true, language: true, loyaltyPoints: true, referralCode: true, roles: { select: { role: true, status: true, note: true } }, cook: true, rider: true },
+      select: { id: true, phone: true, email: true, name: true, area: true, language: true, loyaltyPoints: true, referralCode: true, termsAcceptedAt: true, phoneVerifiedAt: true, createdAt: true, roles: { select: { role: true, status: true, note: true } }, cook: true, rider: true },
     });
   }
 
   async updateMe(userId: string, dto: UpdateMeDto) {
-    const data: Record<string, unknown> = { ...dto };
-    if (dto.phone !== undefined) {
-      const me = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
-      const phone = normalizePhone(dto.phone);
-      if (!BD_PHONE.test(phone)) throw new BadRequestException('Enter a valid Bangladeshi mobile number.');
-      if (me.phone && me.phone !== phone && !me.email) throw new BadRequestException('Your sign-in number can’t be changed here.');
-      const taken = await this.prisma.user.findFirst({ where: { phone, id: { not: userId } } });
-      if (taken) throw new BadRequestException('This number is already used by another account.');
-      data.phone = phone;
+    const { phone, acceptTerms, referralCode, ...rest } = dto;
+    const data: Record<string, unknown> = { ...rest, ...(rest.name ? { name: rest.name.trim().replace(/\s+/g, ' ') } : {}) };
+    const me = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    if (phone !== undefined && normalizePhone(phone) !== me.phone) throw new BadRequestException('Please update the app — your number now needs to be verified with a code.');
+    if (acceptTerms) data.termsAcceptedAt = new Date();
+    if (referralCode && !me.referredById) {
+      const friend = await this.prisma.user.findFirst({ where: { referralCode: referralCode.trim().toUpperCase(), deletedAt: null } });
+      if (!friend || friend.id === userId) throw new BadRequestException('That referral code isn’t valid.');
+      data.referredById = friend.id;
     }
-    if (dto.name) {
-      const u = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
-      if (!u.referralCode) data.referralCode = dto.name.split(' ')[0].toUpperCase().replace(/[^A-Z]/g, '').slice(0, 6) + userId.slice(-4).toUpperCase();
+    if (dto.name && !me.referralCode) {
+      // Own code to invite friends, e.g. TANVIR4F2K. Falls back to MC… for names without English letters.
+      data.referralCode = (dto.name.split(' ')[0].toUpperCase().replace(/[^A-Z]/g, '').slice(0, 6) || 'MC') + userId.slice(-4).toUpperCase();
+      if (await this.prisma.user.findFirst({ where: { referralCode: data.referralCode as string } })) data.referralCode = 'MC' + userId.slice(-8).toUpperCase();
     }
     await this.prisma.user.update({ where: { id: userId }, data });
     return this.me(userId);
+  }
+
+  /* ---------- verified contact details ---------- */
+  private contactTarget(userId: string, dto: ContactDto) {
+    if (!!dto.phone === !!dto.email) throw new BadRequestException('Send a phone number or an email.');
+    if (dto.email) return { kind: 'email' as const, value: dto.email.trim().toLowerCase(), key: `contact:${userId}:${dto.email.trim().toLowerCase()}` };
+    const phone = normalizePhone(dto.phone!);
+    if (!BD_PHONE.test(phone)) throw new BadRequestException('Enter a valid Bangladeshi mobile number.');
+    return { kind: 'phone' as const, value: phone, key: `contact:${userId}:${phone}` };
+  }
+
+  async requestContactCode(userId: string, dto: ContactDto) {
+    const t = this.contactTarget(userId, dto);
+    const taken = await this.prisma.user.findFirst({ where: { [t.kind]: t.value, id: { not: userId } } });
+    if (taken) throw new BadRequestException(t.kind === 'phone' ? 'This number is already used by another MaaCrave account.' : 'This email is already used by another MaaCrave account.');
+    // Until an SMS gateway is set up, numbers are saved without a code (marked unverified) so sign-up isn't blocked.
+    if (t.kind === 'phone' && !this.sms.enabled()) {
+      await this.prisma.user.update({ where: { id: userId }, data: { phone: t.value, phoneVerifiedAt: null } });
+      return { sent: false, saved: true, expiresInSeconds: 0 };
+    }
+    const recent = await this.prisma.otpCode.count({ where: { target: t.key, createdAt: { gt: new Date(Date.now() - 10 * 60_000) } } });
+    if (recent >= 3) throw new BadRequestException('Too many codes requested. Please wait 10 minutes.');
+    const code = digits(6);
+    await this.prisma.otpCode.create({ data: { target: t.key, codeHash: sha256(`${t.key}:${code}:${process.env.OTP_SECRET}`), expiresAt: new Date(Date.now() + 5 * 60_000) } });
+    if (t.kind === 'email') await this.email.sendCode(t.value, code);
+    else await this.sms.send(t.value, `Your MaaCrave verification code is ${code}. It expires in 5 minutes. Don't share it with anyone.`);
+    return { sent: true, expiresInSeconds: 300 };
+  }
+
+  async verifyContact(userId: string, dto: ContactVerifyDto) {
+    const t = this.contactTarget(userId, dto);
+    const otp = await this.prisma.otpCode.findFirst({ where: { target: t.key, consumedAt: null }, orderBy: { createdAt: 'desc' } });
+    if (!otp || otp.expiresAt < new Date()) throw new BadRequestException('This code has expired. Request a new one.');
+    if (otp.attempts >= 5) throw new BadRequestException('Too many attempts. Request a new code.');
+    if (otp.codeHash !== sha256(`${t.key}:${dto.code}:${process.env.OTP_SECRET}`)) {
+      await this.prisma.otpCode.update({ where: { id: otp.id }, data: { attempts: { increment: 1 } } });
+      throw new BadRequestException('That code isn’t right.');
+    }
+    await this.prisma.otpCode.update({ where: { id: otp.id }, data: { consumedAt: new Date() } });
+    try { await this.prisma.user.update({ where: { id: userId }, data: t.kind === 'phone' ? { phone: t.value, phoneVerifiedAt: new Date() } : { email: t.value } }); }
+    catch { throw new BadRequestException('This is already used by another MaaCrave account.'); }
+    return this.me(userId);
+  }
+
+  /** Signs out every phone and browser (e.g. after losing a phone). The current device signs in again. */
+  async signOutEverywhere(userId: string) {
+    await this.prisma.refreshToken.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date() } });
+    return { ok: true };
   }
 
   addresses(userId: string) { return this.prisma.address.findMany({ where: { userId }, orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }] }); }
@@ -188,6 +249,9 @@ export class UsersController {
   constructor(private users: UsersService) {}
   @Get() me(@CurrentUser() u: AuthUser) { return this.users.me(u.id); }
   @Patch() update(@CurrentUser() u: AuthUser, @Body() dto: UpdateMeDto) { return this.users.updateMe(u.id, dto); }
+  @Throttle({ default: { limit: 5, ttl: 60_000 } }) @Post('contact/request') @HttpCode(200) contactRequest(@CurrentUser() u: AuthUser, @Body() dto: ContactDto) { return this.users.requestContactCode(u.id, dto); }
+  @Throttle({ default: { limit: 10, ttl: 60_000 } }) @Post('contact/verify') @HttpCode(200) contactVerify(@CurrentUser() u: AuthUser, @Body() dto: ContactVerifyDto) { return this.users.verifyContact(u.id, dto); }
+  @Post('sessions/revoke-all') @HttpCode(200) revokeAll(@CurrentUser() u: AuthUser) { return this.users.signOutEverywhere(u.id); }
   @Get('addresses') addresses(@CurrentUser() u: AuthUser) { return this.users.addresses(u.id); }
   @Post('addresses') addAddress(@CurrentUser() u: AuthUser, @Body() dto: AddressDto) { return this.users.addAddress(u.id, dto); }
   @Post('addresses/:id/default') setDefault(@CurrentUser() u: AuthUser, @Param('id') id: string) { return this.users.setDefault(u.id, id); }
@@ -199,5 +263,5 @@ export class UsersController {
   @Post('favorites/toggle') toggle(@CurrentUser() u: AuthUser, @Body() dto: FavoriteDto) { return this.users.toggleFavorite(u.id, dto); }
 }
 
-@Module({ providers: [UsersService], controllers: [UsersController] })
+@Module({ providers: [UsersService, SmsService, EmailService], controllers: [UsersController] })
 export class UsersModule {}

@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { Bell, Bike, CalendarDays, ChefHat, ChevronRight, FileText, Globe, Heart, HelpCircle, LogOut, MapPin, Shield, ShoppingBag, Trash2, type LucideIcon } from 'lucide-react-native';
+import { Bell, Bike, CalendarDays, MonitorSmartphone, Smartphone, ChefHat, ChevronRight, FileText, Globe, Heart, HelpCircle, LogOut, MapPin, Shield, ShoppingBag, Trash2, type LucideIcon } from 'lucide-react-native';
 import { Linking, Pressable, Text, View } from 'react-native';
 import { API } from '@/api';
 import { setLang, useLang } from '@/i18n';
@@ -41,6 +41,11 @@ export default function Account() {
   const { me, signOut, canUse, roleStatus, setMode, reload } = useAuth();
   const toast = useToast();
   const lang = useMutation({ mutationFn: (language: 'en' | 'bn') => { setLang(language); return API.updateMe({ language }); }, onSuccess: () => { reload(); toast('Language updated'); } });
+  async function signOutAll() {
+    if (!(await confirm('Sign out of all devices?', 'Every phone and browser signed in to your account is signed out, including this one.', 'Sign out everywhere', true))) return;
+    try { await API.signOutEverywhere(); } catch { /* signing out locally anyway */ }
+    signOut();
+  }
   async function deleteAccount() {
     if (!(await confirm('Delete your account?', 'Your name, phone, email, addresses and saved items will be removed. Past orders are kept without your details. This cannot be undone.', 'Continue', true))) return;
     if (!(await confirm('Are you sure?', 'This permanently deletes your MaaCrave account.', 'Delete account', true))) return;
@@ -85,6 +90,7 @@ export default function Account() {
           <Item Icon={CalendarDays} label="Meal plans" sub="Breakfast, lunch or dinner · weekly or monthly" onPress={() => router.push('/plans')} /><Divider />
           <Item Icon={Heart} label="Saved dishes & cooks" onPress={() => router.push('/favorites')} /><Divider />
           <Item Icon={MapPin} label="Delivery addresses" onPress={() => router.push('/addresses')} /><Divider />
+          <Item Icon={Smartphone} label="Phone & email" sub={[me.phone ? `+88 ${me.phone}` : null, me.email].filter(Boolean).join(' · ')} onPress={() => router.push('/contact')} /><Divider />
           <Item Icon={Bell} label="Notifications" onPress={() => router.push('/notifications')} />
         </Group>
       </Section>
@@ -101,6 +107,7 @@ export default function Account() {
           <Item Icon={Shield} label="Privacy policy" onPress={() => router.push('/privacy')} /><Divider />
           <Item Icon={FileText} label="Terms of service" onPress={() => router.push('/terms')} /><Divider />
           <Item Icon={FileText} label="Refund & cancellation policy" onPress={() => router.push('/refund')} /><Divider />
+          <Item Icon={MonitorSmartphone} label="Sign out of all devices" sub="If you lost a phone or shared your account" onPress={signOutAll} /><Divider />
           <Item Icon={Trash2} label="Delete account" sub="Removes your personal data permanently" danger onPress={deleteAccount} right={<View />} /><Divider />
           <Item Icon={LogOut} label="Sign out" danger onPress={async () => { if (await confirm('Sign out?', 'You can sign back in with your phone number or email.', 'Sign out', true)) signOut(); }} right={<View />} />
         </Group>

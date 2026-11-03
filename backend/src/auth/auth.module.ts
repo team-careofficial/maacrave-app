@@ -60,6 +60,7 @@ export class AuthService {
       user = await this.prisma.user.create({ data: { ...where, roles: { create: { role: 'CUSTOMER', status: 'APPROVED' } } } });
     }
     if (user.suspended) throw new UnauthorizedException('This account is suspended. Contact support.');
+    if (t.kind === 'phone' && !user.phoneVerifiedAt) await this.prisma.user.update({ where: { id: user.id }, data: { phoneVerifiedAt: new Date() } });
     return { ...(await this.issue(user.id)), isNew: isNew || !user.name };
   }
 

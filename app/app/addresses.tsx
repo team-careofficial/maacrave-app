@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import * as Location from 'expo-location';
 import { LocateFixed, MapPin, Plus, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
@@ -71,6 +71,9 @@ function AddressForm({ onDone }: { onDone: () => void }) {
 }
 
 export default function Addresses() {
+  // Right after sign-up: "Where should we deliver?" with a way to skip.
+  const { welcome } = useLocalSearchParams<{ welcome?: string }>();
+  const first = welcome === '1';
   const q = useAddresses();
   const qc = useQueryClient();
   const [adding, setAdding] = useState(false);
@@ -78,10 +81,11 @@ export default function Addresses() {
   const remove = useMutation({ mutationFn: API.deleteAddress, onSuccess: (d) => qc.setQueryData(['addresses'], d) });
   const showForm = adding || (q.data && !q.data.length);
   return (
-    <Screen header={<Header back title="Delivery addresses" right={!showForm ? <Button title="Add" size="sm" v="secondary" icon={<Plus size={16} color={C.brandText} />} onPress={() => setAdding(true)} /> : undefined} />}>
+    <Screen header={<Header back={!first} title={first ? 'Where should we deliver?' : 'Delivery addresses'} sub={first ? 'Add your home or office — you can add more later' : undefined}
+      right={first ? <Button title="Skip" size="sm" v="ghost" onPress={() => router.replace('/')} /> : !showForm ? <Button title="Add" size="sm" v="secondary" icon={<Plus size={16} color={C.brandText} />} onPress={() => setAdding(true)} /> : undefined} />}>
       {q.isLoading ? <Loading /> : (
         <View style={{ gap: S.md, marginTop: S.sm }}>
-          {showForm ? <AddressForm onDone={() => { setAdding(false); if (router.canGoBack() && !q.data?.length) router.back(); }} /> : null}
+          {showForm ? <AddressForm onDone={() => { setAdding(false); if (first) router.replace('/'); else if (router.canGoBack() && !q.data?.length) router.back(); }} /> : null}
           {q.data?.map((a) => (
             <Card key={a.id} style={{ gap: S.sm }}>
               <Row style={{ alignItems: 'flex-start' }}>
