@@ -141,7 +141,7 @@ export function MotherOfWeek({ c }: { c: NonNullable<HomeData['featured']> }) {
 export function RegionRow({ regions }: { regions: HomeData['regions'] }) {
   const lang = useLang();
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -S.lg }} contentContainerStyle={{ gap: S.sm, paddingHorizontal: S.lg }}>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -S.lg, marginVertical: -10 }} contentContainerStyle={{ gap: S.sm, paddingHorizontal: S.lg, paddingVertical: 10 }}>
       {regions.map(({ key, dishes }) => {
         const r = REGIONS[key];
         if (!r) return null;
