@@ -1,0 +1,27 @@
+name: Marketing fonts
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  fonts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Collect open-licence fonts (OFL) for ad videos
+        run: |
+          mkdir f && cd f && npm init -y >/dev/null
+          npm i @expo-google-fonts/hind-siliguri @expo-google-fonts/bricolage-grotesque @fontsource/tiro-bangla @fontsource/anek-bangla @fontsource/noto-serif-bengali >/dev/null
+          mkdir out
+          find node_modules/@expo-google-fonts -name '*.ttf' -exec cp {} out/ \;
+          find node_modules/@fontsource -name '*bengali*-400-normal.woff2' -exec cp {} out/ \;
+          find node_modules/@fontsource -name '*bengali*-700-normal.woff2' -exec cp {} out/ \;
+          find node_modules/@fontsource -name '*bengali*-800-normal.woff2' -exec cp {} out/ \;
+          find node_modules/@fontsource -name '*bengali*-600-normal.woff2' -exec cp {} out/ \;
+          ls out
+          cd out && zip -q ../../fonts.zip *
+      - name: Upload
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          gh release view marketing-fonts -R $GITHUB_REPOSITORY >/dev/null 2>&1 || gh release create marketing-fonts -R $GITHUB_REPOSITORY --prerelease -t "Marketing fonts" -n "OFL fonts for ad videos"
+          gh release upload marketing-fonts fonts.zip -R $GITHUB_REPOSITORY --clobber
