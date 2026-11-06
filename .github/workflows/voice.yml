@@ -1,0 +1,33 @@
+name: Marketing voice-over
+on:
+  workflow_dispatch:
+  push:
+    branches: ["marketing/**"]
+    paths: ["marketing/voice.json", ".github/workflows/voice.yml"]
+permissions:
+  contents: write
+jobs:
+  voice:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Speak each line (Microsoft neural Bangla voices)
+        run: |
+          pip install -q edge-tts
+          mkdir v
+          python - <<'PY'
+          import json, subprocess
+          cfg = json.load(open('marketing/voice.json'))
+          for voice in [cfg['voice'], 'bn-BD-PradeepNeural']:
+              for s in cfg['segments']:
+                  out = f"v/{voice}-{s['id']}.mp3"
+                  subprocess.run(['edge-tts', '--voice', voice, '--rate', cfg.get('rate', '+0%'), '--text', s['text'], '--write-media', out], check=True)
+          PY
+          ls -la v && cd v && zip -q ../voice.zip *
+      - name: Upload
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          gh release view marketing-voice -R $GITHUB_REPOSITORY >/dev/null 2>&1 || gh release create marketing-voice -R $GITHUB_REPOSITORY --prerelease -t "Marketing voice-over" -n "Voice lines for ad videos"
+          gh release upload marketing-voice voice.zip -R $GITHUB_REPOSITORY --clobber
