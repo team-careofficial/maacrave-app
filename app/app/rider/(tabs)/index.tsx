@@ -9,7 +9,7 @@ import { num, t as tt } from '@/i18n';
 import { C, S } from '@/theme';
 import type { RiderTask } from '@/types';
 import { Badge, Button, Card, Empty, ErrorState, IconButton, Loading, Row, Screen, Section, T, Toggle, useToast } from '@/ui';
-import { BrandBar } from '@/ui/brand';
+import { CoverBand } from '@/ui/cover';
 import { Grid } from '@/ui/grid';
 
 function TaskCard({ t }: { t: RiderTask }) {
@@ -62,10 +62,9 @@ export default function RiderHome() {
   const unread = (notifs.data || []).filter((n) => !n.read).length;
 
   return (
-    <Screen onRefresh={() => { tasks.refetch(); active.refetch(); }} refreshing={tasks.isRefetching}
-      header={<BrandBar sub={`Rider · ${firstName(me?.name)}`} right={
-        <IconButton label="Notifications" badge={unread} onPress={() => router.push('/notifications')}><Bell size={20} color={C.text} /></IconButton>
-      } />}>
+    <Screen onRefresh={() => { tasks.refetch(); active.refetch(); }} refreshing={tasks.isRefetching} topColor={C.brand}
+      hero={<CoverBand eyebrow={tt('Rider', 'রাইডার')} title={firstName(me?.name) || tt('Rider', 'রাইডার')} sub={online ? tt('You’re online · pickups near you appear below', 'আপনি অনলাইনে · কাছের পিকআপ নিচে দেখাবে') : tt('You’re offline', 'আপনি অফলাইনে')}
+        right={<IconButton label="Notifications" tone="glass" badge={unread} onPress={() => router.push('/notifications')}><Bell size={20} color="#fff" /></IconButton>} />}>
       {terms.data && !terms.data.accepted ? (
         <Card accent onPress={() => router.push('/partner/rider')} style={{ marginTop: S.sm }}>
           <Row gap={S.md}><FileText size={20} color={C.brand} /><View style={{ flex: 1 }}><T v="label">{terms.data.lastAcceptedVersion ? tt('Rates have changed — please review', 'রেট বদলেছে — দেখে নিন') : tt('Review your pay rates and terms', 'আপনার রেট ও শর্তাবলি দেখুন')}</T><T v="meta">{tt('Accept them to go online', 'অনলাইনে যেতে সম্মতি দিন')}</T></View></Row>

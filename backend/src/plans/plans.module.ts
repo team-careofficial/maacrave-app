@@ -172,6 +172,16 @@ export class PlansService implements OnApplicationBootstrap {
     for (const sub of subs) {
       const key = `sub:${sub.id}:${today.iso}`;
       if (await this.prisma.order.findUnique({ where: { idempotencyKey: key }, select: { id: true } })) continue;
+      // The mother is on leave or her kitchen is paused: no meal today, nothing to pay, and the customer is told why.
+      const ck = sub.plan.cook;
+      const off = (ck.awayUntil && ck.awayUntil > dayStart) || (ck.pausedUntil && ck.pausedUntil > new Date());
+      if (off) {
+        const title = `No ${sub.plan.meal.toLowerCase()} from ${ck.displayName} today`;
+        if (!(await this.prisma.notification.findFirst({ where: { userId: sub.customerId, title, createdAt: { gte: dayStart } }, select: { id: true } }))) {
+          await this.notify.notify(sub.customerId, 'CUSTOMER', title, `${ck.displayName} can't cook today, so there's no meal and nothing to pay. Order from another mother in the app.`);
+        }
+        continue;
+      }
       const fees = computeFees(sub.plan.pricePerMeal, true, s, null, roadKm(pointOf(sub.plan.cook), pointOf(sub))); // plans ride with the cheaper group delivery rate
       try {
         const o = await this.prisma.order.create({

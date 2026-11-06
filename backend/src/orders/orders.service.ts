@@ -293,7 +293,14 @@ export class OrdersService {
         this.log.warn(`bKash refund not completed for ${orderId}: ${JSON.stringify(r)}`);
       } catch (e) { this.log.error(`bKash refund error ${orderId}: ${(e as Error).message}`); }
     }
-    // SSLCommerz refunds and failed bKash refunds are processed by the finance team.
+    if (p.method === 'SSLCOMMERZ' && p.providerTrx && this.ssl.configured()) {
+      try {
+        const r = await this.ssl.refund(p.providerTrx, p.amount, reason);
+        if (r.APIConnect === 'DONE' && r.status === 'success') { await this.prisma.payment.update({ where: { orderId }, data: { status: 'REFUNDED', providerRef: r.refund_ref_id || p.providerRef } }); return; }
+        this.log.warn(`SSLCommerz refund not accepted for ${orderId}: ${JSON.stringify(r)}`);
+      } catch (e) { this.log.error(`SSLCommerz refund error ${orderId}: ${(e as Error).message}`); }
+    }
+    // Anything the gateways didn't accept is processed by the finance team.
     await this.prisma.payment.update({ where: { orderId }, data: { status: 'REFUND_PENDING' } });
   }
 
