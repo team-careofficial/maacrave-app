@@ -152,7 +152,7 @@ export default function OrderScreen() {
             {o.status !== 'CANCELLED' ? <Card><Timeline o={o} /></Card> : (
               <Note>{o.payment?.method === 'COD' || !o.payment || o.payment.status === 'PENDING' || o.payment.status === 'FAILED'
                 ? t('This order was cancelled. Nothing was charged.', 'অর্ডারটি বাতিল হয়েছে। কোনো টাকা কাটা হয়নি।')
-                : o.payment.status === 'REFUNDED' ? t('This order was cancelled. Your refund is complete.', 'অর্ডারটি বাতিল হয়েছে। রিফান্ড সম্পন্ন হয়েছে।')
+                : o.payment.status === 'REFUNDED' ? t('This order was cancelled. The refund has been sent and reaches your account within 3–7 working days.', 'অর্ডারটি বাতিল হয়েছে। রিফান্ড পাঠানো হয়েছে, ৩–৭ কার্যদিবসের মধ্যে আপনার অ্যাকাউন্টে পৌঁছাবে।')
                 : t('This order was cancelled. Your refund is being processed and reaches the same account within 3–7 working days.', 'অর্ডারটি বাতিল হয়েছে। রিফান্ড প্রক্রিয়াধীন, ৩–৭ কার্যদিবসের মধ্যে একই অ্যাকাউন্টে পৌঁছাবে।')}</Note>
             )}
             {o.status !== 'AWAITING_PAYMENT' ? (

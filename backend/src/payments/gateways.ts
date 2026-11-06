@@ -85,4 +85,13 @@ export class SslCommerzGateway {
     const res = await fetch(u);
     return (await res.json()) as { status?: string; tran_id?: string; amount?: string; bank_tran_id?: string };
   }
+
+  /** Sends the money back to the card or wallet (SSLCommerz refund API). The bank settles it in a few working days. */
+  async refund(bankTranId: string, amount: number, remarks: string) {
+    const u = new URL(`${this.base}/validator/api/merchantTransIDvalidationAPI.php`);
+    u.searchParams.set('bank_tran_id', bankTranId); u.searchParams.set('refund_amount', amount.toFixed(2)); u.searchParams.set('refund_remarks', remarks.slice(0, 100));
+    u.searchParams.set('store_id', process.env.SSLCZ_STORE_ID!); u.searchParams.set('store_passwd', process.env.SSLCZ_STORE_PASSWORD!); u.searchParams.set('v', '1'); u.searchParams.set('format', 'json');
+    const res = await fetch(u);
+    return (await res.json()) as { APIConnect?: string; status?: string; refund_ref_id?: string; errorReason?: string };
+  }
 }

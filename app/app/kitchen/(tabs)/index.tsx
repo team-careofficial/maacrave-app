@@ -9,7 +9,7 @@ import { useAuth } from '@/auth';
 import { C, ON_GLOSS, ON_GLOSS_SOFT, S } from '@/theme';
 import { Button, Card, ErrorState, Glossy, IconButton, IconTile, Loading, Note, Rings, Row, Screen, Section, T, Toggle, useToast } from '@/ui';
 import { Bars } from '@/ui/bars';
-import { BrandBar } from '@/ui/brand';
+import { CoverBand } from '@/ui/cover';
 
 export default function KitchenToday() {
   const { me } = useAuth();
@@ -27,10 +27,10 @@ export default function KitchenToday() {
   const unread = (notifs.data || []).filter((n) => !n.read).length;
 
   return (
-    <Screen onRefresh={q.refetch} refreshing={q.isRefetching}
-      header={<BrandBar sub={`Kitchen · ${k?.kitchen.displayName || firstName(me?.name)}`} right={
-        <IconButton label="Notifications" badge={unread} onPress={() => router.push('/notifications')}><Bell size={20} color={C.text} /></IconButton>
-      } />}>
+    <Screen onRefresh={q.refetch} refreshing={q.isRefetching} topColor={C.brand}
+      hero={<CoverBand eyebrow={t('Your kitchen', 'আপনার রান্নাঘর')} title={k?.kitchen.displayName || firstName(me?.name) || t('Kitchen', 'রান্নাঘর')}
+        sub={k ? t(`${k.activeOrders} active order${k.activeOrders === 1 ? '' : 's'} · ${k.kitchen.accepting ? 'taking orders' : 'closed'}`, `${num(k.activeOrders)}টি চলমান অর্ডার · ${k.kitchen.accepting ? 'অর্ডার নিচ্ছেন' : 'বন্ধ'}`) : undefined}
+        right={<IconButton label="Notifications" tone="glass" badge={unread} onPress={() => router.push('/notifications')}><Bell size={20} color="#fff" /></IconButton>} />}>
       {q.isLoading ? <Loading /> : q.error || !k ? <ErrorState error={q.error} onRetry={q.refetch} /> : (
         <>
           {terms.data && !terms.data.accepted ? (

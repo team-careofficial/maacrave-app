@@ -1,7 +1,6 @@
 import {
   BadRequestException, Body, CanActivate, Controller, ExecutionContext, Get, HttpCode, Injectable, Logger, Module, NotFoundException, Param, Post, Query,
-  UnauthorizedException, UseGuards, createParamDecorator,
-} from '@nestjs/common';
+  UnauthorizedException, UseGuards, createParamDecorator,, ForbiddenException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Throttle } from '@nestjs/throttler';
 import { ComplaintStatus, OrderStatus, RoleStatus } from '@prisma/client';
@@ -28,6 +27,10 @@ const ADMIN_TTL = '8h';
 const OTP_TTL_MS = 5 * 60_000;
 // Tolerates spaces, quotes and semicolons people often paste into the dashboard.
 const adminEmails = () => (process.env.ADMIN_EMAILS || '').split(/[,;\s]+/).map((s) => s.replace(/["']/g, '').trim().toLowerCase()).filter(Boolean);
+/** Support staff (SUPPORT_EMAILS): can answer customers, handle reports and orders, but can't touch money, rates, approvals or content. */
+const supportEmails = () => (process.env.SUPPORT_EMAILS || '').split(/[,;\s]+/).map((s) => s.replace(/["']/g, '').trim().toLowerCase()).filter(Boolean);
+const roleOf = (email: string): 'admin' | 'support' | null => (adminEmails().includes(email) ? 'admin' : supportEmails().includes(email) ? 'support' : null);
+const SUPPORT_PATHS = /^\/v1\/admin\/(me|stats|tickets(\/.*)?|complaints(\/.*)?|orders(\/.*)?|activity)$/;
 const adminSecret = () => {
   const s = process.env.ADMIN_JWT_SECRET;
   if (!s || s.length < 24) throw new UnauthorizedException('Admin access is not configured on the server.');
@@ -47,12 +50,16 @@ class AdminGuard implements CanActivate {
     try {
       const p = await this.jwt.verifyAsync<{ sub: string; typ: string }>(token, { secret: adminSecret() });
       // Removing an email from ADMIN_EMAILS revokes access immediately.
-      if (p.typ !== 'admin' || !adminEmails().includes(p.sub)) throw new Error('not admin');
+      const role = p.typ === 'admin' ? roleOf(p.sub) : null;
+      if (!role) throw new Error('not admin');
       req.adminEmail = p.sub;
-      return true;
+      req.adminRole = role;
     } catch {
       throw new UnauthorizedException('Admin session expired. Sign in again.');
     }
+    const path = String(req.originalUrl || req.url || '').split('?')[0];
+    if (req.adminRole === 'support' && !SUPPORT_PATHS.test(path)) throw new ForbiddenException('Support accounts can’t open this. Ask an admin.');
+    return true;
   }
 }
 
@@ -135,7 +142,7 @@ export class AdminService {
     const email = raw.trim().toLowerCase();
     // Same answer whether or not the email is an admin, so the list can't be probed.
     if (!adminEmails().length) this.log.error('ADMIN_EMAILS is empty — nobody can sign in to the admin panel.');
-    if (!adminEmails().includes(email)) { this.log.warn(`Admin code requested for an email that is not in ADMIN_EMAILS (${email.replace(/(.{2}).*@/, '$1***@')})`); return { sent: true }; }
+    if (!roleOf(email)) { this.log.warn(`Admin code requested for an email that is not in ADMIN_EMAILS (${email.replace(/(.{2}).*@/, '$1***@')})`); return { sent: true }; }
     const target = `admin:${email}`;
     const recent = await this.prisma.otpCode.count({ where: { target, createdAt: { gt: new Date(Date.now() - 10 * 60_000) } } });
     if (recent >= 3) throw new BadRequestException('Too many codes requested. Wait 10 minutes.');
@@ -150,7 +157,7 @@ export class AdminService {
     const email = raw.trim().toLowerCase();
     const target = `admin:${email}`;
     const otp = await this.prisma.otpCode.findFirst({ where: { target, consumedAt: null }, orderBy: { createdAt: 'desc' } });
-    if (!adminEmails().includes(email) || !otp || otp.expiresAt < new Date() || otp.attempts >= 5) throw new UnauthorizedException('Code expired or invalid. Request a new one.');
+    if (!roleOf(email) || !otp || otp.expiresAt < new Date() || otp.attempts >= 5) throw new UnauthorizedException('Code expired or invalid. Request a new one.');
     if (otp.codeHash !== sha256(`${target}:${code}:${process.env.OTP_SECRET}`)) {
       await this.prisma.otpCode.update({ where: { id: otp.id }, data: { attempts: { increment: 1 } } });
       throw new UnauthorizedException('That code isn’t right.');
@@ -477,8 +484,8 @@ export class AdminAuthController {
 @Controller('admin')
 export class AdminController {
   constructor(private admin: AdminService) {}
-  @Get('me') me(@CurrentAdmin() email: string) { return { email }; }
-  @Get('stats') stats() { return this.admin.stats(); }
+  @Get('me') me(@CurrentAdmin() email: string) { return { email, role: roleOf(email) }; }
+  @Get('stats') async stats(@CurrentAdmin() a: string) { const s = await this.admin.stats(); return roleOf(a) === 'support' ? { ...s, margin: undefined } : s; }
   @Get('applications') applications(@Query('status') status = 'PENDING', @Query('role') role?: string) { return this.admin.applications(status, role); }
   @Get('documents/:id') document(@Param('id') id: string) { return this.admin.document(id); }
   @Post('applications/:id/approve') @HttpCode(200) approve(@CurrentAdmin() a: string, @Param('id') id: string, @Body() dto: DecisionDto) { return this.admin.decide(a, id, 'APPROVED', dto.note); }

@@ -367,11 +367,16 @@
   async function render() {
     const s = session.get();
     if (!s?.token) return renderLogin();
+    // Support staff see only what they can use.
+    if (!state.role) { try { state.role = (await api('/admin/me')).role || 'admin'; } catch { state.role = 'admin'; } }
+    const SUPPORT_VIEWS = ['dashboard', 'reports', 'support', 'orders', 'activity'];
+    const nav = state.role === 'support' ? NAV.filter(([k]) => SUPPORT_VIEWS.includes(k)) : NAV;
+    if (!nav.some(([k]) => k === state.view)) state.view = 'dashboard';
     $app.innerHTML = `
       <div class="shell">
         <aside class="side">${brand(true)}
-          ${NAV.map(([k, l]) => `<button class="nav ${state.view === k ? 'on' : ''}" data-go="${k}"><span>${l}</span>${state.counts[k] ? `<span class="count">${state.counts[k]}</span>` : ''}</button>`).join('')}
-          <div class="foot"><div class="muted">Signed in as</div><b>${esc(s.email)}</b><br><button class="btn sm ghost mt" data-action="logout">Sign out</button></div>
+          ${nav.map(([k, l]) => `<button class="nav ${state.view === k ? 'on' : ''}" data-go="${k}"><span>${l}</span>${state.counts[k] ? `<span class="count">${state.counts[k]}</span>` : ''}</button>`).join('')}
+          <div class="foot"><div class="muted">Signed in as${state.role === 'support' ? ' · support' : ''}</div><b>${esc(s.email)}</b><br><button class="btn sm ghost mt" data-action="logout">Sign out</button></div>
         </aside>
         <main id="view"><div class="spinner"></div></main>
       </div>`;
@@ -481,7 +486,7 @@
     const d = el.dataset;
     try {
       if (d.action === 'back-email') { state.step = 'email'; return renderLogin(); }
-      if (d.action === 'logout') { session.clear(); state.view = 'dashboard'; return render(); }
+      if (d.action === 'logout') { session.clear(); state.view = 'dashboard'; state.role = null; return render(); }
       if (d.go) { state.view = d.go; return render(); }
       if (d.filter) { state.filters[d.filter] = d.value; return render(); }
       if (d.doc) return showDoc(d.doc);
