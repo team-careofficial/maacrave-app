@@ -125,14 +125,15 @@ export function IconTile({ Icon, color = C.brandText, size = 40 }: { Icon: Lucid
 
 /* ---------- layout ---------- */
 export const MAX_W = 1080;
-export function Screen({ children, header, footer, scroll = true, onRefresh, refreshing, padded = true }: { children: React.ReactNode; header?: React.ReactNode; footer?: React.ReactNode; scroll?: boolean; onRefresh?: () => void; refreshing?: boolean; padded?: boolean }) {
+export function Screen({ children, header, footer, scroll = true, onRefresh, refreshing, padded = true, topColor, hero }: { children: React.ReactNode; header?: React.ReactNode; footer?: React.ReactNode; scroll?: boolean; onRefresh?: () => void; refreshing?: boolean; padded?: boolean; topColor?: string; hero?: React.ReactNode }) {
   const inner = <View style={[styles.inner, padded && { paddingHorizontal: S.lg }, !scroll && { flex: 1 }]}>{children}</View>;
   return (
-    <SafeAreaView edges={['top']} style={styles.screen}>
+    <SafeAreaView edges={['top']} style={[styles.screen, topColor ? { backgroundColor: topColor } : null]}>
       {header}
       {scroll ? (
-        <ScrollView contentContainerStyle={{ paddingBottom: footer ? 130 : 128 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}
+        <ScrollView style={topColor ? { backgroundColor: C.bg } : undefined} contentContainerStyle={{ paddingBottom: footer ? 130 : 128 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}
           refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={C.brand} colors={[C.brand]} /> : undefined}>
+          {hero}
           {inner}
         </ScrollView>
       ) : inner}
@@ -209,8 +210,12 @@ export function Section({ title, sub, action, onAction, children, style }: { tit
     <FadeIn style={[{ gap: S.md, marginTop: S.xxl }, style]}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: S.md }}>
         <View style={{ flex: 1 }}>
-          <T v="section">{title}</T>
-          {sub ? <T v="sub" style={{ marginTop: 2 }}>{sub}</T> : null}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {/* MaaCrave mark: a small orange leaf before every section title */}
+            <View style={{ width: 10, height: 18, backgroundColor: C.brand, borderTopLeftRadius: 10, borderBottomRightRadius: 10, borderTopRightRadius: 2, borderBottomLeftRadius: 2 }} />
+            <T v="section" style={{ flexShrink: 1 }}>{title}</T>
+          </View>
+          {sub ? <T v="sub" style={{ marginTop: 2, marginLeft: 18 }}>{sub}</T> : null}
         </View>
         {action ? (
           <Tap onPress={onAction} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
@@ -477,7 +482,12 @@ export function DishCard({ d, onAdd, saved, onToggleSave, groupPrice }: { d: Dis
     <Card onPress={() => router.push(`/dish/${d.id}`)} style={{ padding: 0, overflow: 'hidden' }}>
       <View style={{ padding: S.lg, paddingBottom: S.md, gap: S.md }}>
         <Row style={{ alignItems: 'flex-start' }}>
-          {photo ? <Image source={{ uri: photo }} style={{ width: 72, height: 72, borderRadius: 18, backgroundColor: C.sunken }} resizeMode="cover" /> : <CategoryTile category={d.category} size={58} solid />}
+          {/* leaf-shaped photo on a soft orange backing: the MaaCrave card signature */}
+          <View style={{ width: 80, height: 80 }}>
+            <View style={{ position: 'absolute', right: 0, bottom: 0, width: 72, height: 72, backgroundColor: C.brandSoft, borderTopLeftRadius: 30, borderBottomRightRadius: 30, borderTopRightRadius: 10, borderBottomLeftRadius: 10 }} />
+            {photo ? <Image source={{ uri: photo }} style={{ width: 72, height: 72, backgroundColor: C.sunken, borderTopLeftRadius: 30, borderBottomRightRadius: 30, borderTopRightRadius: 10, borderBottomLeftRadius: 10 }} resizeMode="cover" />
+              : <View style={{ width: 72, height: 72, alignItems: 'center', justifyContent: 'center', backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, borderTopLeftRadius: 30, borderBottomRightRadius: 30, borderTopRightRadius: 10, borderBottomLeftRadius: 10 }}><CategoryTile category={d.category} size={50} solid /></View>}
+          </View>
           <View style={{ flex: 1, gap: 3 }}>
             <T v="card" numberOfLines={1} style={{ fontSize: 16.5 }}>{d.name}</T>
             {d.cook ? (
@@ -630,7 +640,7 @@ const styles = StyleSheet.create({
   header: { backgroundColor: C.bg, paddingVertical: S.sm },
   backBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, alignItems: 'center', justifyContent: 'center' },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: C.surface, paddingTop: S.md, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: 1, borderTopColor: C.line },
-  card: { backgroundColor: C.surface, borderRadius: R.lg, padding: S.lg, borderWidth: 1, borderColor: C.line },
+  card: { backgroundColor: C.surface, borderRadius: 22, borderTopRightRadius: 34, padding: S.lg, borderWidth: 1, borderColor: C.line },
   cardWhite: { backgroundColor: C.surface, ...(shadow as object) },
   iconBtn: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
   badgeDot: { position: 'absolute', top: 2, right: 0, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: C.brand, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderWidth: 2, borderColor: C.bg },

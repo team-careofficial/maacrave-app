@@ -1,4 +1,3 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { Tabs } from 'expo-router';
 import type { LucideIcon } from 'lucide-react-native';
 import { useEffect, useRef } from 'react';
@@ -9,11 +8,6 @@ import { C, F } from '../theme';
 
 type TabDef = { name: string; title: string; Icon: LucideIcon };
 const ND = Platform.OS !== 'web';
-const barShadow = Platform.select({
-  ios: { shadowColor: '#2A0B0D', shadowOpacity: 0.06, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
-  android: { elevation: 4 },
-  default: { boxShadow: '0 6px 20px -10px rgba(42,11,13,.18)' } as object,
-}) as object;
 
 function TabButton({ t, focused, onPress }: { t: TabDef; focused: boolean; onPress: () => void }) {
   const lang = useLang();
@@ -22,16 +16,17 @@ function TabButton({ t, focused, onPress }: { t: TabDef; focused: boolean; onPre
   return (
     <Pressable accessibilityRole="tab" accessibilityState={{ selected: focused }} accessibilityLabel={tr(t.title)} onPress={onPress}
       style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 6 }}>
-      <View style={{ width: 44, height: 28, alignItems: 'center', justifyContent: 'center' }}>
-        <Animated.View style={{ position: 'absolute', width: 44, height: 28, borderRadius: 14, backgroundColor: C.brandSoft, opacity: a, transform: [{ scaleX: a.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }] }} />
-        <View style={{ position: 'relative', zIndex: 1 }}><t.Icon size={20} color={focused ? C.brand : C.muted} strokeWidth={focused ? 2.4 : 1.9} /></View>
-      </View>
-      <Text numberOfLines={1} style={{ marginTop: 2, fontFamily: lang === 'bn' ? 'HindSiliguri_600SemiBold' : focused ? F.bold : F.semibold, fontSize: 10.5, color: focused ? C.brand : C.muted }}>{tr(t.title)}</Text>
+      {/* the active tab rises into an orange coin above the bar */}
+      <Animated.View style={{ width: 48, height: 48, alignItems: 'center', justifyContent: 'center', marginTop: -6, transform: [{ translateY: a.interpolate({ inputRange: [0, 1], outputRange: [0, -18] }) }] }}>
+        <Animated.View style={{ position: 'absolute', width: 52, height: 52, borderRadius: 26, backgroundColor: C.brand, borderWidth: 4, borderColor: '#fff', opacity: a, transform: [{ scale: a.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }) }] }} />
+        <View style={{ position: 'relative', zIndex: 1 }}><t.Icon size={21} color={focused ? '#fff' : C.muted} strokeWidth={focused ? 2.3 : 1.9} /></View>
+      </Animated.View>
+      <Text numberOfLines={1} style={{ marginTop: focused ? -14 : -4, fontFamily: lang === 'bn' ? 'HindSiliguri_600SemiBold' : focused ? F.bold : F.semibold, fontSize: 10.5, color: focused ? C.brand : C.muted }}>{tr(t.title)}</Text>
     </Pressable>
   );
 }
 
-/** White floating tab bar; the active tab gets a soft crimson pill. */
+/** White floating tab bar; the active tab rises into an orange coin. */
 export function AppTabs({ tabs }: { tabs: TabDef[] }) {
   const insets = useSafeAreaInsets();
   return (
@@ -47,8 +42,7 @@ export function AppTabs({ tabs }: { tabs: TabDef[] }) {
         };
         return (
           <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 14, paddingBottom: Math.max(insets.bottom, 10) }}>
-            <LinearGradient pointerEvents="none" colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.92)', '#FFFFFF']} locations={[0, 0.45, 1]} style={{ position: 'absolute', left: 0, right: 0, bottom: 0, top: -28 }} />
-            <View style={[{ flexDirection: 'row', backgroundColor: C.surface, borderRadius: 24, paddingHorizontal: 4, width: '100%', maxWidth: 560, alignSelf: 'center', borderWidth: 1, borderColor: C.line }, barShadow]}>
+            <View style={{ flexDirection: 'row', backgroundColor: C.surface, borderRadius: 28, paddingHorizontal: 4, paddingBottom: 4, width: '100%', maxWidth: 560, alignSelf: 'center', borderWidth: 1, borderColor: C.line }}>
               {tabs.map((t) => <TabButton key={t.name} t={t} focused={current === t.name} onPress={() => press(t.name)} />)}
             </View>
           </View>
