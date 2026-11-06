@@ -35,14 +35,18 @@ const routes = {
   '/festivals/f1': { ...fest, open: true, dishes: [dish('d4', 'Bhapa pitha', 'ভাপা পিঠা', 120, { category: 'dessert', festivalId: 'f1', region: 'rangpur', photoId: 'd1' })] },
 };
 
+// a mother who is also a customer, for the kitchen-mode screen
+const meCook = { ...me, roles: [{ role: 'CUSTOMER', status: 'APPROVED' }, { role: 'COOK', status: 'APPROVED' }], cook: { id: 'c1', displayName: cook.displayName } };
+const kitchenDash = { kitchen: { ...cook, dailyCapacity: 20, hygieneChecks: 5, payoutWallet: null, kitchenInfo: null, experience: null }, newRequests: 2, activeBatches: 1, activeOrders: 3, today: 1840, last7Days: [], delivered: 412, gross: 0, commission: 0, net: 0, available: 5200 };
 const b = await chromium.launch();
-for (const [name, path, lang] of [['home-bn', '/', 'bn'], ['home-en', '/', 'en'], ['cook-bn', '/cook/c1', 'bn'], ['dish-bn', '/dish/d2', 'bn'], ['festival-bn', '/festival/f1', 'bn'], ['browse-region', '/browse?region=chattogram', 'bn'], ['diet-bn', '/diet', 'bn']]) {
+for (const [name, path, lang, who] of [['kitchen-bn', '/kitchen', 'bn', 'cook'], ['home-bn', '/', 'bn'], ['home-en', '/', 'en'], ['cook-bn', '/cook/c1', 'bn'], ['dish-bn', '/dish/d2', 'bn'], ['festival-bn', '/festival/f1', 'bn'], ['browse-region', '/browse?region=chattogram', 'bn'], ['diet-bn', '/diet', 'bn']]) {
   const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
-  await p.addInitScript((l) => { localStorage.setItem('maacrave.rt', 'r'); localStorage.setItem('maacrave.lang', l); }, lang);
+  await p.addInitScript(([l, w]) => { localStorage.setItem('maacrave.rt', 'r'); localStorage.setItem('maacrave.lang', l); if (w === 'cook') localStorage.setItem('maacrave.mode', 'COOK'); }, [lang, who]);
   await p.route(API + '/**', (r) => {
     const u = new URL(r.request().url()); const key = u.pathname.replace('/v1', '');
     if (key.startsWith('/media/')) return r.fulfill({ status: 200, contentType: 'image/png', body: PHOTO });
-    const body = routes[key] ?? (r.request().method() === 'GET' ? [] : {});
+    const extra = who === 'cook' ? { '/me': meCook, '/kitchen': kitchenDash, '/partner/terms': { accepted: true, rates: { commissionPct: 12 }, lastAcceptedVersion: 1 } } : {};
+    const body = extra[key] ?? routes[key] ?? (r.request().method() === 'GET' ? [] : {});
     return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
   });
   await p.goto('http://localhost:4173' + path); await p.waitForTimeout(6500);
