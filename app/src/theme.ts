@@ -1,30 +1,30 @@
 import { Platform } from 'react-native';
 
 export const C = {
-  // Surfaces: white canvas, warm matte fills, hairline borders
-  bg: '#FFFFFF', surface: '#FFFFFF', surface2: '#F6F3F1', sunken: '#EEEAE7', card: '#FFFFFF',
-  // Ink (warm, never pure black)
-  text: '#1D1617', text2: '#5C5253', muted: '#8B8182', line: '#EEE9E7', line2: '#E2DCDA',
-  // Gold accent: ratings, rings, small highlights. Dark text on it.
-  turmeric: '#E9A23B', turmericDeep: '#C9861F', turmericSoft: '#FCF1DE', onTurmeric: '#4A2E0A',
-  // Burgundy (crimson) brand
-  brand: '#A9151B', brand2: '#C21D23', brandHi: '#E2373C', brandDark: '#7C0E13', brandDeep: '#4A080B', brandSoft: '#FBEEEE', brandText: '#A0141A',
-  ink: '#231A1B', onInk: '#FFFFFF',
-  ok: '#1E7F4F', okSoft: '#E8F5EE', warn: '#9A6200', warnSoft: '#FDF4E1', err: '#C62828', errSoft: '#FDECEC', info: '#2552C9', infoSoft: '#EDF2FE',
-  star: '#E9A23B', gold: '#E9A23B',
+  // Surfaces: white canvas, light grey fills, hairline borders. Flat: no shadows, no gradients.
+  bg: '#FFFFFF', surface: '#FFFFFF', surface2: '#F5F5F5', sunken: '#EEEEEE', card: '#FFFFFF',
+  // Ink
+  text: '#1C1C1C', text2: '#555555', muted: '#8A8A8A', line: '#EDEDED', line2: '#E0E0E0',
+  // Star yellow (ratings only) and soft orange tints
+  turmeric: '#F5A623', turmericDeep: '#D98C0A', turmericSoft: '#FFF1E8', onTurmeric: '#3A2000',
+  // MaaCrave orange: one flat colour for buttons, banners, the logo and active states
+  brand: '#F26A1B', brand2: '#F26A1B', brandHi: '#FF8A45', brandDark: '#C9500C', brandDeep: '#8A3505', brandSoft: '#FFF1E8', brandText: '#C9500C',
+  ink: '#1C1C1C', onInk: '#FFFFFF',
+  ok: '#1E7F4F', okSoft: '#E8F5EE', warn: '#9A6200', warnSoft: '#FDF4E1', err: '#D32F2F', errSoft: '#FDECEC', info: '#2552C9', infoSoft: '#EDF2FE',
+  star: '#F5A623', gold: '#F5A623',
 };
-/** The one deep burgundy used everywhere (intro, banners, buttons, logo) — same as the launch screen. White text on it. */
-export const GLOSS = ['#941219', '#7A0D12', '#5A090D'] as const;
-/** Burgundy for avatars and small solid accents that carry white text. */
-export const MAROON = ['#B8191F', '#A9151B', '#7C0E13'] as const;
+/** Flat MaaCrave orange (kept as a 3-stop list so gradient components render one solid colour). White text on it. */
+export const GLOSS = ['#F26A1B', '#F26A1B', '#F26A1B'] as const;
+/** Avatars and small solid accents: the same flat orange. */
+export const MAROON = ['#F26A1B', '#F26A1B', '#F26A1B'] as const;
 export const ON_GLOSS = '#FFFFFF';
-export const ON_GLOSS_SOFT = 'rgba(255,255,255,0.84)';
-/** Gold accent gradient (portrait rings). */
-export const MANGO = ['#F2B95A', '#E9A23B', '#D48C25'] as const;
-/** Matte deep maroon (dark surfaces). */
-export const MATTE = ['#3B1013', '#2A0B0D'] as const;
-/** Top highlight laid over glossy surfaces. */
-export const SHEEN = ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0)'] as const;
+export const ON_GLOSS_SOFT = 'rgba(255,255,255,0.9)';
+/** Portrait rings: flat orange. */
+export const MANGO = ['#F26A1B', '#F26A1B', '#F26A1B'] as const;
+/** Dark surfaces. */
+export const MATTE = ['#1C1C1C', '#1C1C1C'] as const;
+/** No sheen in the flat design. */
+export const SHEEN = ['rgba(255,255,255,0)', 'rgba(255,255,255,0)'] as const;
 
 /** 8-point spacing scale */
 export const S = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, x3: 32, x4: 40, x5: 48 };
@@ -52,16 +52,9 @@ export const TYPE = {
 };
 export type TypeKey = keyof typeof TYPE;
 
-export const shadow = Platform.select({
-  ios: { shadowColor: '#2A0B0D', shadowOpacity: 0.07, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } },
-  android: { elevation: 4 },
-  default: { boxShadow: '0 10px 30px -14px rgba(42,11,13,.2)' } as object,
-});
-export const redShadow = Platform.select({
-  ios: { shadowColor: '#2A0B0D', shadowOpacity: 0.14, shadowRadius: 10, shadowOffset: { width: 0, height: 6 } },
-  android: { elevation: 3 },
-  default: { boxShadow: '0 8px 18px -12px rgba(42,11,13,.35)' } as object,
-});
+/** Flat design: no drop shadows. Cards use a hairline border instead. */
+export const shadow = {} as object;
+export const redShadow = {} as object;
 
 export const CATEGORY_META: Record<string, { label: string; bn: string; icon: string; color: string }> = {
   rice: { label: 'Rice & Biryani', bn: 'ভাত ও বিরিয়ানি', icon: 'soup', color: '#B45309' },

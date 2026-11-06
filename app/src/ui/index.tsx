@@ -110,7 +110,7 @@ export function CategoryTile({ category, size = 44, solid }: { category: string;
   const Icon = CAT_ICONS[m.icon] || Utensils;
   return (
     <View style={{ width: size, height: size, borderRadius: size * 0.3, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: solid ? C.surface : undefined }}>
-      {solid ? null : <LinearGradient colors={[m.color + '14', m.color + '2E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />}
+      {solid ? null : <LinearGradient colors={[m.color + '1F', m.color + '1F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />}
       <View style={{ position: 'relative', zIndex: 1 }}><Icon size={size * 0.46} color={m.color} strokeWidth={1.9} /></View>
     </View>
   );
@@ -155,7 +155,7 @@ export function Wordmark({ size = 34, onDark }: { size?: number; onDark?: boolea
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: size * 0.26 }}>
       <Logo size={size} />
       <Text style={{ fontFamily: F.displayX, fontSize: fs, letterSpacing: -0.6, color: onDark ? '#fff' : C.text }}>
-        Maa<Text style={{ color: onDark ? '#FFD9D9' : C.brand }}>Crave</Text>
+        Maa<Text style={{ color: onDark ? '#FFFFFF' : C.brand }}>Crave</Text>
       </Text>
     </View>
   );
@@ -629,7 +629,7 @@ const styles = StyleSheet.create({
   inner: { width: '100%', maxWidth: MAX_W, alignSelf: 'center' },
   header: { backgroundColor: C.bg, paddingVertical: S.sm },
   backBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line, alignItems: 'center', justifyContent: 'center' },
-  footer: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: C.surface, paddingTop: S.md, borderTopLeftRadius: 24, borderTopRightRadius: 24, ...(Platform.select({ ios: { shadowColor: '#5A2A14', shadowOpacity: 0.07, shadowRadius: 20, shadowOffset: { width: 0, height: -6 } }, android: { elevation: 12 }, default: { boxShadow: '0 -10px 30px -14px rgba(90,42,20,.16)' } }) as object) },
+  footer: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: C.surface, paddingTop: S.md, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderTopWidth: 1, borderTopColor: C.line },
   card: { backgroundColor: C.surface, borderRadius: R.lg, padding: S.lg, borderWidth: 1, borderColor: C.line },
   cardWhite: { backgroundColor: C.surface, ...(shadow as object) },
   iconBtn: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },

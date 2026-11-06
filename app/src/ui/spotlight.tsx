@@ -20,12 +20,13 @@ const ICONS: Record<string, LucideIcon> = {
   users: Users, gift: Gift, heart: Heart, utensils: UtensilsCrossed, request: MessageSquarePlus, percent: Percent, coffee: Coffee,
 };
 const THEMES: Record<string, readonly [string, string, string]> = {
-  crimson: ['#B8191F', '#A9151B', '#A3361A'],
-  saffron: ['#F4A12E', '#E07B12', '#B85A07'],
-  forest: ['#3BA06A', '#1E7F4F', '#145C38'],
-  night: ['#3A2A4F', '#261B36', '#16101F'],
-  rose: ['#E8698A', '#C93F66', '#9C2649'],
-  ocean: ['#3C8DD8', '#2463B3', '#163F7A'],
+  // flat colours, no shading; the default is MaaCrave orange
+  crimson: ['#F26A1B', '#F26A1B', '#F26A1B'],
+  saffron: ['#F59A1B', '#F59A1B', '#F59A1B'],
+  forest: ['#1E8F5A', '#1E8F5A', '#1E8F5A'],
+  night: ['#2B2B2B', '#2B2B2B', '#2B2B2B'],
+  rose: ['#E0457B', '#E0457B', '#E0457B'],
+  ocean: ['#2470C9', '#2470C9', '#2470C9'],
 };
 
 /** Shown until the team sets cards in the admin panel. */
@@ -78,7 +79,7 @@ function Scene({ kind, Icon, color, size }: { kind: string; Icon: LucideIcon; co
   );
 }
 
-const FRAME = '#A9151B';
+const FRAME = '#F26A1B';
 
 /** Gentle zoom-and-drift on the picture (the "Ken Burns" effect). */
 function Drift({ children }: { children: React.ReactNode }) {
