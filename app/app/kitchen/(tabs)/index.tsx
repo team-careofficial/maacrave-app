@@ -52,10 +52,10 @@ export default function KitchenToday() {
               <View>
                 <T v="eyebrow" color={ON_GLOSS_SOFT}>Earned today</T>
                 <T v="big" color={ON_GLOSS} style={{ fontSize: 40, lineHeight: 44 }}>{tk(k.today)}</T>
-                <T v="meta" color={ON_GLOSS_SOFT}>after commission · {tk(k.available)} ready to withdraw</T>
+                <T v="meta" color={ON_GLOSS_SOFT}>{t(`after commission · ${tk(k.available)} ready to withdraw`, `কমিশন বাদে · ${tk(k.available)} তোলার জন্য প্রস্তুত`)}</T>
               </View>
               <Row gap={S.sm} wrap>
-                {[`${k.activeOrders} active order${k.activeOrders === 1 ? '' : 's'}`, `${k.activeBatches} group batch${k.activeBatches === 1 ? '' : 'es'}`, `${k.delivered} delivered`].map((x) => (
+                {[t(`${k.activeOrders} active order${k.activeOrders === 1 ? '' : 's'}`, `${num(k.activeOrders)}টি চলমান অর্ডার`), t(`${k.activeBatches} group batch${k.activeBatches === 1 ? '' : 'es'}`, `${num(k.activeBatches)}টি গ্রুপ ব্যাচ`), t(`${k.delivered} delivered`, `${num(k.delivered)}টি ডেলিভারি`)].map((x) => (
                   <View key={x} style={{ backgroundColor: 'rgba(255,255,255,0.35)', borderRadius: 999, paddingHorizontal: 12, height: 30, justifyContent: 'center' }}><T v="meta" color={ON_GLOSS}>{x}</T></View>
                 ))}
               </Row>
@@ -64,7 +64,7 @@ export default function KitchenToday() {
 
           {k.newRequests ? (
             <Card accent onPress={() => router.push('/kitchen/requests')} style={{ marginTop: S.md }}>
-              <Row><IconTile Icon={MessageSquare} /><View style={{ flex: 1 }}><T v="label">{k.newRequests} new request{k.newRequests > 1 ? 's' : ''} near {k.kitchen.area}</T><T v="meta">Send a price before another mother does</T></View><T v="label" color={C.brandText}>Reply</T></Row>
+              <Row><IconTile Icon={MessageSquare} /><View style={{ flex: 1 }}><T v="label">{t(`${k.newRequests} new request${k.newRequests > 1 ? 's' : ''} near ${k.kitchen.area}`, `${k.kitchen.area}-এ ${num(k.newRequests)}টি নতুন অনুরোধ`)}</T><T v="meta">Send a price before another mother does</T></View><T v="label" color={C.brandText}>Reply</T></Row>
             </Card>
           ) : null}
 
