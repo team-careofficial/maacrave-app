@@ -1,5 +1,9 @@
 name: Marketing fonts
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  push:
+    branches: ["marketing/**"]
+    paths: [".github/workflows/fonts.yml"]
 permissions:
   contents: write
 jobs:
