@@ -4,7 +4,7 @@ import { Animated, Easing, Platform, StyleSheet, Text, View } from 'react-native
 import { C, F, GLOSS, ON_GLOSS } from '../theme';
 import { Logo } from './logo';
 
-/** Burgundy launch screen (matches the native splash colour #7A0D12). */
+/** Burgundy launch screen (matches the native splash colour #F26A1B). */
 const INTRO = GLOSS;
 /** Never keep people on the intro longer than this, even if the server is slow to wake up. */
 const MAX_MS = 4500;
@@ -56,7 +56,7 @@ export function Intro({ ready, onDone }: { ready: boolean; onDone: () => void })
     <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 100, opacity: out.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]}>
       <LinearGradient colors={INTRO} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={StyleSheet.absoluteFill} />
       {/* soft light from the top, like a lamp over the kitchen */}
-      <LinearGradient colors={['rgba(255,205,190,0.18)', 'rgba(255,205,190,0)']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '55%' }} />
+      <LinearGradient colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0)']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '55%' }} />
 
       <Animated.View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', transform: [{ scale: out.interpolate({ inputRange: [0, 1], outputRange: [1, 1.06] }) }] }}>
         <Animated.View style={{ alignItems: 'center', transform: [{ translateY: lift.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) }] }}>
@@ -78,7 +78,7 @@ export function Intro({ ready, onDone }: { ready: boolean; onDone: () => void })
           <View style={{ overflow: 'hidden', marginTop: 18, paddingHorizontal: 4 }}>
             <Animated.View style={{ flexDirection: 'row', opacity: name, transform: [{ translateY: name.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) }] }}>
               <Text style={{ fontFamily: F.displayX, fontSize: 40, lineHeight: 48, letterSpacing: -1.2, color: '#FFFFFF' }}>Maa</Text>
-              <Text style={{ fontFamily: F.displayX, fontSize: 40, lineHeight: 48, letterSpacing: -1.2, color: '#FFC9C9' }}>Crave</Text>
+              <Text style={{ fontFamily: F.displayX, fontSize: 40, lineHeight: 48, letterSpacing: -1.2, color: '#FFE2CF' }}>Crave</Text>
             </Animated.View>
           </View>
 

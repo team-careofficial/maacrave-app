@@ -13,7 +13,7 @@ export function Brand({ light, onTurmeric }: { light?: boolean; onTurmeric?: boo
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
       <Logo inverse={light} />
-      <T v="section" color={light ? '#fff' : C.text} style={{ fontSize: 23 }}>Maa<T v="section" color={light ? '#FFD9D9' : C.brand} style={{ fontSize: 23 }}>Crave</T></T>
+      <T v="section" color={light ? '#fff' : C.text} style={{ fontSize: 23 }}>Maa<T v="section" color={light ? '#FFFFFF' : C.brand} style={{ fontSize: 23 }}>Crave</T></T>
     </View>
   );
 }
