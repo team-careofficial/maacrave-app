@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Bell, MessageSquarePlus, Search, ShoppingBag, SlidersHorizontal, Truck, UtensilsCrossed } from 'lucide-react-native';
+import { Bell, ChevronDown, MapPin, MessageSquarePlus, Search, ShoppingBag, SlidersHorizontal, Truck, UtensilsCrossed } from 'lucide-react-native';
+import Svg, { Path } from 'react-native-svg';
 import { ScrollView, View } from 'react-native';
 import { API } from '@/api';
 import { useAuth } from '@/auth';
@@ -9,8 +10,7 @@ import { useCart } from '@/cart';
 import { ACTIVE_STATUSES, firstName, STATUS_LABEL } from '@/format';
 import { useAddresses, useAddToCart, useFavorites } from '@/hooks';
 import { C, F, MAROON, R, S, shadow } from '@/theme';
-import { BatchCard, Card, CookCard, DishCard, FadeIn, IconButton, Loading, Row, Screen, Section, T, Tap } from '@/ui';
-import { BrandBar } from '@/ui/brand';
+import { BatchCard, Card, CookCard, DishCard, FadeIn, IconButton, Loading, Row, Screen, Section, T, Tap, Wordmark } from '@/ui';
 import { SpotlightGrid } from '@/ui/spotlight';
 import { KitchenTicker } from '@/ui/kitchenTicker';
 import { Grid, useCols } from '@/ui/grid';
@@ -55,33 +55,51 @@ export default function Home() {
   const refresh = () => { home.refetch(); dishes.refetch(); batches.refetch(); orders.refetch(); requests.refetch(); cooks.refetch(); };
 
   return (
-    <Screen onRefresh={refresh} refreshing={dishes.isRefetching}
-      header={<BrandBar right={
-        <Row gap={6}>
-          <IconButton label="Notifications" badge={unread} onPress={() => router.push('/notifications')}><Bell size={20} color={C.text} /></IconButton>
-          <IconButton label="Cart" badge={cart.count} onPress={() => router.push('/cart')}><ShoppingBag size={20} color={C.text} /></IconButton>
-        </Row>
-      } />}>
-      {/* big greeting */}
-      <FadeIn>
-        <T v="hero" style={{ marginTop: S.sm, fontFamily: F.display, fontSize: 28, lineHeight: 34, letterSpacing: -0.6 }}>{tr(hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening')},{'\n'}<T v="hero" color={C.brand} style={{ fontFamily: F.display, fontSize: 28, lineHeight: 34, letterSpacing: -0.6 }}>{firstName(me?.name) || tr('friend')}</T></T>
-      </FadeIn>
-
-      <Row gap={S.sm} style={{ marginTop: S.lg }}>
-        <Tap onPress={() => router.push('/browse')} scale={0.98} style={{ flex: 1, height: 50, borderRadius: R.pill, backgroundColor: C.surface, borderWidth: 1, borderColor: C.line2, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18 }}>
-          <Search size={19} color={C.muted} />
-          <T v="body" color={C.muted} numberOfLines={1}>Search biryani, bhorta, cooks…</T>
-        </Tap>
-        <Tap label="Filters" onPress={() => router.push('/browse')} scale={0.9} style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center' }}>
-          <SlidersHorizontal size={19} color="#fff" />
-        </Tap>
-      </Row>
-
-      {/* maroon banner: mothers' kitchens slide in one after another */}
-      <KitchenTicker cooks={cooks.data || []} fallback={quote} />
-
+    <Screen onRefresh={refresh} refreshing={dishes.isRefetching} topColor={C.brand}
+      hero={
+        <View>
+          {/* orange top band, like the cover of a recipe book */}
+          <View style={{ backgroundColor: C.brand, paddingBottom: S.xl }}>
+            <View style={{ width: '100%', maxWidth: 1080, alignSelf: 'center', paddingHorizontal: S.lg }}>
+              <Row style={{ paddingTop: 8, justifyContent: 'space-between' }}>
+                <Wordmark size={34} onDark />
+                <Row gap={6}>
+                  <IconButton label="Notifications" badge={unread} onPress={() => router.push('/notifications')} tone="glass"><Bell size={20} color="#fff" /></IconButton>
+                  <IconButton label="Cart" badge={cart.count} onPress={() => router.push('/cart')} tone="glass"><ShoppingBag size={20} color="#fff" /></IconButton>
+                </Row>
+              </Row>
+              <Tap onPress={() => router.push('/addresses')} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: S.lg }}>
+                <View style={{ width: 34, height: 34, borderRadius: 17, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.55)', alignItems: 'center', justifyContent: 'center' }}><MapPin size={16} color="#fff" /></View>
+                <View style={{ flex: 1 }}>
+                  <T v="meta" color="rgba(255,255,255,0.8)">{t('Delivering to', 'ডেলিভারি')}</T>
+                  <Row gap={4}><T v="label" color="#fff" numberOfLines={1}>{addr ? `${addr.label} · ${addr.area}` : area || t('Add your address', 'ঠিকানা দিন')}</T><ChevronDown size={14} color="#fff" /></Row>
+                </View>
+              </Tap>
+              <FadeIn>
+                <T v="hero" color="#fff" style={{ marginTop: S.lg, fontFamily: F.display, fontSize: 28, lineHeight: 34, letterSpacing: -0.6 }}>{tr(hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening')}, {firstName(me?.name) || tr('friend')}</T>
+                <T v="sub" color="rgba(255,255,255,0.88)" style={{ marginTop: 2 }}>{t('What would you like from a mother’s kitchen today?', 'আজ মায়ের রান্নাঘর থেকে কী খাবেন?')}</T>
+              </FadeIn>
+              <Row gap={S.sm} style={{ marginTop: S.lg }}>
+                <Tap onPress={() => router.push('/browse')} scale={0.98} style={{ flex: 1, height: 52, borderRadius: R.pill, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18 }}>
+                  <Search size={19} color={C.brand} />
+                  <T v="body" color={C.muted} numberOfLines={1}>Search biryani, bhorta, cooks…</T>
+                </Tap>
+                <Tap label="Filters" onPress={() => router.push('/browse')} scale={0.9} style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center' }}>
+                  <SlidersHorizontal size={19} color="#fff" />
+                </Tap>
+              </Row>
+              {/* mothers' kitchens slide in one after another */}
+              <KitchenTicker cooks={cooks.data || []} fallback={quote} onBrand />
+            </View>
+          </View>
+          {/* the wave where the orange cover meets the page */}
+          <Svg width="100%" height={34} viewBox="0 0 400 34" preserveAspectRatio="none" style={{ marginTop: -1 }}>
+            <Path d="M0 0 H400 V10 C320 38 250 34 190 22 C120 8 60 6 0 26 Z" fill={C.brand} />
+          </Svg>
+        </View>
+      }>
       {/* the two ways to eat, side by side */}
-      <Row gap={S.md} style={{ marginTop: S.md, alignItems: 'stretch' }}>
+      <Row gap={S.md} style={{ marginTop: S.xs, alignItems: 'stretch' }}>
         {/* Order now: white card with a fine gold-to-burgundy outline */}
         <Tap onPress={() => router.push('/browse')} scale={0.97} style={{ flex: 1, borderRadius: R.xl, ...(shadow as object) }}>
           <LinearGradient colors={['#F26A1B', '#F26A1B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, borderRadius: R.xl, padding: 1 }}>

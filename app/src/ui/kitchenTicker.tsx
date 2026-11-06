@@ -15,7 +15,7 @@ const SHOW_MS = 3200;
  * ("Cooking today · Shahana's Kitchen · Mohammadpur ★4.8"). Tap a name to open that kitchen.
  * With no kitchens yet, it shows the line of the day instead.
  */
-export function KitchenTicker({ cooks, fallback }: { cooks: CookPublic[]; fallback: { bn: string; en: string } }) {
+export function KitchenTicker({ cooks, fallback, onBrand }: { cooks: CookPublic[]; fallback: { bn: string; en: string }; onBrand?: boolean }) {
   const lang = useLang();
   // Kitchens taking orders first, then the rest; at most 12 so the loop stays short.
   const list = [...cooks].sort((a, b) => Number(b.accepting) - Number(a.accepting) || b.rating - a.rating).slice(0, 12);
@@ -41,7 +41,7 @@ export function KitchenTicker({ cooks, fallback }: { cooks: CookPublic[]; fallba
   };
 
   return (
-    <Glossy style={{ marginTop: S.lg }} radius={22} glow={false} onPress={c ? () => router.push(`/cook/${c.id}`) : undefined}>
+    <Glossy style={{ marginTop: S.lg }} radius={22} glow={false} colors={onBrand ? ['rgba(255,255,255,0.16)', 'rgba(255,255,255,0.16)'] : undefined} onPress={c ? () => router.push(`/cook/${c.id}`) : undefined}>
       <View style={{ paddingVertical: S.lg, paddingHorizontal: S.xl, flexDirection: 'row', alignItems: 'center', gap: S.md, minHeight: 88 }}>
         <View pointerEvents="none" style={{ position: 'absolute', right: -50, top: -60, width: 170, height: 170, borderRadius: 85, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)' }} />
         <View pointerEvents="none" style={{ position: 'absolute', right: -20, top: -30, width: 110, height: 110, borderRadius: 55, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' }} />
