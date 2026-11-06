@@ -1,6 +1,6 @@
 import {
   BadRequestException, Body, CanActivate, Controller, ExecutionContext, Get, HttpCode, Injectable, Logger, Module, NotFoundException, Param, Post, Query,
-  UnauthorizedException, UseGuards, createParamDecorator,, ForbiddenException } from '@nestjs/common';
+  UnauthorizedException, UseGuards, createParamDecorator, ForbiddenException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Throttle } from '@nestjs/throttler';
 import { ComplaintStatus, OrderStatus, RoleStatus } from '@prisma/client';
